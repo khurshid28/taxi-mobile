@@ -40,6 +40,24 @@ class StorageHelper {
     return prefs.getInt(key);
   }
 
+  // Save int
+  static Future<bool> setInt(String key, int value) async {
+    final prefs = await _prefs;
+    return await prefs.setInt(key, value);
+  }
+
+  // Save double
+  static Future<bool> setDouble(String key, double value) async {
+    final prefs = await _prefs;
+    return await prefs.setDouble(key, value);
+  }
+
+  // Get double
+  static Future<double?> getDouble(String key) async {
+    final prefs = await _prefs;
+    return prefs.getDouble(key);
+  }
+
   // Remove key
   static Future<bool> remove(String key) async {
     final prefs = await _prefs;

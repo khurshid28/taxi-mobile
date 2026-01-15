@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
+import '../../../../core/models/order_model.dart';
 
 enum OrderStatus {
   initial,
@@ -75,22 +76,4 @@ class HomeState extends Equatable {
         distanceToClient,
         clientPickedUp,
       ];
-}
-
-class OrderModel {
-  final String id;
-  final String clientName;
-  final Point pickupLocation;
-  final Point dropoffLocation;
-  final double distance;
-  final double price;
-
-  OrderModel({
-    required this.id,
-    required this.clientName,
-    required this.pickupLocation,
-    required this.dropoffLocation,
-    required this.distance,
-    required this.price,
-  });
 }

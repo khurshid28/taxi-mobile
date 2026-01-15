@@ -6,6 +6,8 @@ import 'dart:math';
 import 'home_state.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/notification_service.dart';
+import '../../../../core/utils/storage_helper.dart';
+import '../../../../core/models/order_model.dart';
 
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(const HomeState());
@@ -183,6 +185,17 @@ class HomeCubit extends Cubit<HomeState> {
     return degrees;
   }
 
+  double _calculateDistance(Point start, Point end) {
+    // Calculate distance in kilometers
+    final distanceInMeters = Geolocator.distanceBetween(
+      start.latitude,
+      start.longitude,
+      end.latitude,
+      end.longitude,
+    );
+    return distanceInMeters / 1000; // Convert to km
+  }
+
   void startDrawingRoute() {
     emit(state.copyWith(status: OrderStatus.drawingRoute));
   }
@@ -201,14 +214,22 @@ class HomeCubit extends Cubit<HomeState> {
     _orderWaitingTimer = Timer(
       Duration(milliseconds: AppConstants.orderWaitingTime),
       () {
-        // Simulate order arrival
+        // Simulate order arrival with full details
         final order = OrderModel(
-          id: '12345',
+          id: 'ORDER${DateTime.now().millisecondsSinceEpoch}',
           clientName: 'Ali Valiyev',
+          clientPhone: '+998901234567',
           pickupLocation: state.currentLocation!,
-          dropoffLocation: state.destinationLocation!,
-          distance: 5.2,
+          destinationLocation: state.destinationLocation!,
+          pickupAddress: 'Yunusobod, 5-mavze',
+          destinationAddress: 'Chilonzor, 9-kvartal',
+          distance: _calculateDistance(
+            state.currentLocation!,
+            state.destinationLocation!,
+          ),
           price: 15000,
+          createdAt: DateTime.now(),
+          status: OrderStatusType.pending,
         );
 
         emit(state.copyWith(
@@ -219,12 +240,22 @@ class HomeCubit extends Cubit<HomeState> {
     );
   }
 
-  void acceptOrder() {
+  void acceptOrder() async {
+    // Increase rating by 2 for accepting order
+    final currentRating = await StorageHelper.getInt('driver_rating') ?? 50;
+    final newRating = (currentRating + 2).clamp(0, 100);
+    await StorageHelper.setInt('driver_rating', newRating);
+
     emit(state.copyWith(status: OrderStatus.orderAccepted));
     _calculateRoute();
   }
 
-  void rejectOrder() {
+  void rejectOrder() async {
+    // Decrease rating by 5 for rejecting order
+    final currentRating = await StorageHelper.getInt('driver_rating') ?? 50;
+    final newRating = (currentRating - 5).clamp(0, 100);
+    await StorageHelper.setInt('driver_rating', newRating);
+
     emit(state.copyWith(
       status: OrderStatus.waitingForOrder,
       currentOrder: null,
