@@ -129,7 +129,8 @@ class _HomePageState extends State<HomePage> {
                     currentPrice: state.currentPrice,
                     traveledDistance: state.traveledDistance,
                     waitingSeconds: state.waitingSeconds,
-                    isWaitingForClient: state.status == OrderStatus.waitingForClient,
+                    isWaitingForClient:
+                        state.status == OrderStatus.waitingForClient,
                     onComplete: () => _showCompleteDialog(state),
                     onCancel: () => _showCancelSheet(context),
                     onOpenMaps: () {
@@ -208,13 +209,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            if (state.status == OrderStatus.initial)
-              IconButton(
-                onPressed: () {
-                  context.read<HomeCubit>().startDrawingRoute();
-                },
-                icon: const Icon(Icons.search, color: AppColors.primary),
-              ),
           ],
         ),
       ),
@@ -258,9 +252,9 @@ class _HomePageState extends State<HomePage> {
   String _getStatusText(OrderStatus status) {
     switch (status) {
       case OrderStatus.initial:
-        return 'Yo\'nalish tanlang';
+        return 'Tayyor';
       case OrderStatus.drawingRoute:
-        return 'Xaritada bosing';
+        return 'Tayyor';
       case OrderStatus.waitingForOrder:
         return 'Zakaz kutilmoqda...';
       case OrderStatus.orderReceived:
@@ -295,7 +289,9 @@ class _HomePageState extends State<HomePage> {
           opacity: 0.9,
           icon: PlacemarkIcon.single(
             PlacemarkIconStyle(
-              image: BitmapDescriptor.fromAssetImage('assets/icons/location.png'),
+              image: BitmapDescriptor.fromAssetImage(
+                'assets/icons/location.png',
+              ),
               scale: 0.5,
             ),
           ),
@@ -339,44 +335,44 @@ class _HomePageState extends State<HomePage> {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final size = 48.0;
-    
+
     // Save canvas state
     canvas.save();
-    
+
     // Move to center and rotate
     canvas.translate(size / 2, size / 2);
     canvas.rotate(heading * 3.14159 / 180); // Convert degrees to radians
     canvas.translate(-size / 2, -size / 2);
-    
+
     // Draw navigation arrow shape
     final paint = Paint()
       ..color = AppColors.primary
       ..style = PaintingStyle.fill;
-    
+
     final path = Path()
       ..moveTo(size / 2, size * 0.2) // Top point
       ..lineTo(size * 0.3, size * 0.8) // Bottom left
       ..lineTo(size / 2, size * 0.65) // Center bottom
       ..lineTo(size * 0.7, size * 0.8) // Bottom right
       ..close();
-    
+
     canvas.drawPath(path, paint);
-    
+
     // Draw border
     final borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawPath(path, borderPaint);
-    
+
     // Restore canvas
     canvas.restore();
-    
+
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
     final buffer = byteData!.buffer.asUint8List();
-    
+
     _mapObjects.add(
       PlacemarkMapObject(
         mapId: const MapObjectId('current_location'),
@@ -386,7 +382,8 @@ class _HomePageState extends State<HomePage> {
           PlacemarkIconStyle(
             image: BitmapDescriptor.fromBytes(buffer),
             scale: 1.0,
-            rotationType: RotationType.noRotation, // We handle rotation ourselves
+            rotationType:
+                RotationType.noRotation, // We handle rotation ourselves
           ),
         ),
       ),
@@ -395,16 +392,15 @@ class _HomePageState extends State<HomePage> {
 
   void _moveToLocation(Point point) {
     _mapController.moveCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: point, zoom: 15),
-      ),
+      CameraUpdate.newCameraPosition(CameraPosition(target: point, zoom: 15)),
       animation: const MapAnimation(type: MapAnimationType.smooth, duration: 1),
     );
   }
 
   Future<void> _openGoogleMaps(HomeState state) async {
     if (state.currentLocation != null && state.destinationLocation != null) {
-      final url = 'https://www.google.com/maps/dir/?api=1'
+      final url =
+          'https://www.google.com/maps/dir/?api=1'
           '&origin=${state.currentLocation!.latitude},${state.currentLocation!.longitude}'
           '&destination=${state.destinationLocation!.latitude},${state.destinationLocation!.longitude}'
           '&travelmode=driving';
@@ -438,7 +434,7 @@ class _HomePageState extends State<HomePage> {
   void _showCompleteDialog(HomeState state) {
     // Calculate trip duration (mock - in real app this would be tracked)
     final duration = (state.traveledDistance * 3).round(); // ~3 minutes per km
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -453,4 +449,3 @@ class _HomePageState extends State<HomePage> {
     });
   }
 }
-
