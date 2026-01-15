@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/routes/app_routes.dart';
 import '../cubit/auth_cubit.dart';
 
 class VerifyOtpPage extends StatefulWidget {
@@ -83,7 +83,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            Navigator.pushReplacementNamed(context, AppRoutes.completeProfile);
+            context.go('/complete-profile');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

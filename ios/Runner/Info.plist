@@ -46,6 +46,13 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
+	
 	<!-- Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Sizning joylashuvingizni aniqlash uchun kerak</string>

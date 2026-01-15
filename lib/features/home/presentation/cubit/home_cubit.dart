@@ -2,14 +2,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
+import 'dart:math';
 import 'home_state.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/notification_service.dart';
 
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(const HomeState());
 
   StreamSubscription<Position>? _positionSubscription;
   Timer? _orderWaitingTimer;
+  Timer? _locationUpdateTimer;
+  Point? _previousLocation;
+  bool _hasShownArrivalNotification = false;
 
   void initialize() async {
     emit(state.copyWith(isLoading: true));
@@ -26,10 +31,16 @@ class HomeCubit extends Cubit<HomeState> {
         currentLocation: currentLocation,
         status: OrderStatus.initial,
         isLoading: false,
+        heading: position.heading,
       ));
+
+      _previousLocation = currentLocation;
 
       // Start listening to location updates
       _startLocationTracking();
+      
+      // Start periodic location updates every 3 seconds
+      _startPeriodicLocationUpdates();
     } catch (e) {
       emit(state.copyWith(
         error: e.toString(),
@@ -71,13 +82,105 @@ class HomeCubit extends Cubit<HomeState> {
         longitude: position.longitude,
       );
 
-      emit(state.copyWith(currentLocation: newLocation));
+      // Calculate heading if we have previous location
+      double heading = state.heading;
+      if (_previousLocation != null) {
+        heading = _calculateHeading(_previousLocation!, newLocation);
+      }
+
+      emit(state.copyWith(
+        currentLocation: newLocation,
+        heading: heading,
+      ));
+
+      _previousLocation = newLocation;
 
       // Update route if order is in progress
       if (state.status == OrderStatus.inProgress) {
         _updateRoute();
       }
     });
+  }
+
+  void _startPeriodicLocationUpdates() {
+    _locationUpdateTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (timer) async {
+        try {
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ),
+          );
+
+          final newLocation = Point(
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+
+          // Calculate heading
+          double heading = state.heading;
+          if (_previousLocation != null) {
+            heading = _calculateHeading(_previousLocation!, newLocation);
+          }
+
+          // Calculate distance to client if destination exists
+          double? distanceToClient;
+          if (state.destinationLocation != null) {
+            distanceToClient = Geolocator.distanceBetween(
+              position.latitude,
+              position.longitude,
+              state.destinationLocation!.latitude,
+              state.destinationLocation!.longitude,
+            );
+
+            // Show notification when within 150m and not shown yet
+            if (distanceToClient <= 150 && !_hasShownArrivalNotification) {
+              NotificationService().showNotification(
+                title: 'Yetib keldingiz',
+                body: 'Siz client joylashuviga yetib keldingiz!',
+              );
+              _hasShownArrivalNotification = true;
+            }
+
+            // Reset flag if moved away
+            if (distanceToClient > 200) {
+              _hasShownArrivalNotification = false;
+            }
+          }
+
+          emit(state.copyWith(
+            currentLocation: newLocation,
+            heading: heading,
+            distanceToClient: distanceToClient,
+          ));
+
+          _previousLocation = newLocation;
+
+          // Update route if order is in progress
+          if (state.status == OrderStatus.inProgress) {
+            _updateRoute();
+          }
+        } catch (e) {
+          // Silently fail, will retry in 3 seconds
+        }
+      },
+    );
+  }
+
+  double _calculateHeading(Point start, Point end) {
+    // Calculate bearing between two points
+    final lat1 = start.latitude * (3.14159265359 / 180);
+    final lat2 = end.latitude * (3.14159265359 / 180);
+    final dLon = (end.longitude - start.longitude) * (3.14159265359 / 180);
+
+    final y = sin(dLon) * cos(lat2);
+    final x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+    final bearing = atan2(y, x);
+
+    // Convert to degrees and normalize to 0-360
+    final degrees = (bearing * 180 / 3.14159265359 + 360) % 360;
+    return degrees;
   }
 
   void startDrawingRoute() {
@@ -170,7 +273,14 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  void markClientPickedUp() {
+    emit(state.copyWith(
+      clientPickedUp: true,
+    ));
+  }
+
   void completeOrder() {
+    _hasShownArrivalNotification = false;
     emit(state.copyWith(
       status: OrderStatus.completed,
     ));
@@ -182,6 +292,8 @@ class HomeCubit extends Cubit<HomeState> {
         currentOrder: null,
         destinationLocation: null,
         routePoints: [],
+        distanceToClient: null,
+        clientPickedUp: false,
       ));
     });
   }
@@ -196,6 +308,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> close() {
     _positionSubscription?.cancel();
     _orderWaitingTimer?.cancel();
+    _locationUpdateTimer?.cancel();
     return super.close();
   }
 }

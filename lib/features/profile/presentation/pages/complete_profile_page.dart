@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/routes/app_routes.dart';
 import '../cubit/profile_cubit.dart';
 
 class CompleteProfilePage extends StatefulWidget {
@@ -62,7 +62,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       body: BlocListener<ProfileCubit, ProfileState>(
         listener: (context, state) {
           if (state is ProfileCompleted) {
-            Navigator.pushReplacementNamed(context, AppRoutes.home);
+            context.go('/home');
           } else if (state is ProfileError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

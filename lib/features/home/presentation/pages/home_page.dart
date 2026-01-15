@@ -104,6 +104,43 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
+              // Show client pickup button when within 150m
+              if (state.distanceToClient != null &&
+                  state.distanceToClient! <= 150 &&
+                  !state.clientPickedUp &&
+                  state.status == OrderStatus.inProgress)
+                Positioned(
+                  bottom: 220,
+                  left: 20,
+                  right: 20,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      context.read<HomeCubit>().markClientPickedUp();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Client ni oldim'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Client ni oldim',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+
               // Waiting indicator
               if (state.status == OrderStatus.waitingForOrder)
                 Positioned(
@@ -206,7 +243,7 @@ class _HomePageState extends State<HomePage> {
   void _updateMapObjects(HomeState state) {
     _mapObjects.clear();
 
-    // Add current location marker
+    // Add current location marker with rotation using simple circle
     if (state.currentLocation != null) {
       _mapObjects.add(
         PlacemarkMapObject(
@@ -214,10 +251,12 @@ class _HomePageState extends State<HomePage> {
           point: state.currentLocation!,
           icon: PlacemarkIcon.single(
             PlacemarkIconStyle(
-              image: BitmapDescriptor.fromAssetImage('assets/icons/car.png'),
-              scale: 0.5,
+              image: BitmapDescriptor.fromAssetImage('assets/icons/car_icon.png'),
+              scale: 0.15,
+              rotationType: RotationType.rotate,
             ),
           ),
+          direction: state.heading,
         ),
       );
     }

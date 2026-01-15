@@ -19,6 +19,9 @@ class HomeState extends Equatable {
   final OrderModel? currentOrder;
   final bool isLoading;
   final String? error;
+  final double heading; // Icon rotation angle
+  final double? distanceToClient; // Distance to client in meters
+  final bool clientPickedUp; // Client picked up flag
 
   const HomeState({
     this.status = OrderStatus.initial,
@@ -28,6 +31,9 @@ class HomeState extends Equatable {
     this.currentOrder,
     this.isLoading = false,
     this.error,
+    this.heading = 0.0,
+    this.distanceToClient,
+    this.clientPickedUp = false,
   });
 
   HomeState copyWith({
@@ -38,6 +44,9 @@ class HomeState extends Equatable {
     OrderModel? currentOrder,
     bool? isLoading,
     String? error,
+    double? heading,
+    double? distanceToClient,
+    bool? clientPickedUp,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -47,6 +56,9 @@ class HomeState extends Equatable {
       currentOrder: currentOrder ?? this.currentOrder,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
+      heading: heading ?? this.heading,
+      distanceToClient: distanceToClient ?? this.distanceToClient,
+      clientPickedUp: clientPickedUp ?? this.clientPickedUp,
     );
   }
 
@@ -59,6 +71,9 @@ class HomeState extends Equatable {
         currentOrder,
         isLoading,
         error,
+        heading,
+        distanceToClient,
+        clientPickedUp,
       ];
 }
 

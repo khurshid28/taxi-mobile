@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
-import '../../../../core/routes/app_routes.dart';
 import '../../../../core/constants/app_constants.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -56,11 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirmed == true) {
       await StorageHelper.clear();
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.splash,
-          (route) => false,
-        );
+        context.go('/');
       }
     }
   }
