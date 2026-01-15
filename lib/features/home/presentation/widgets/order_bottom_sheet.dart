@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/order_model.dart';
+import '../../../../core/utils/number_formatter.dart';
 
 class OrderBottomSheet extends StatefulWidget {
   final OrderModel order;
@@ -198,7 +199,8 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                               child: _buildInfoCard(
                                 icon: Icons.attach_money,
                                 title: 'Narx',
-                                value: '${widget.order.price.toStringAsFixed(0)} so\'m',
+                                value: NumberFormatter.formatPriceWithCurrency(
+                                    widget.order.price),
                                 color: Colors.green,
                               ),
                             ),

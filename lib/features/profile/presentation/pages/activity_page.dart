@@ -159,7 +159,7 @@ class _ActivityPageState extends State<ActivityPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${(totalEarnings / 1000).toStringAsFixed(0)}K so\'m • $totalDistance km • $totalClients ta safar',
+                              '${(totalEarnings / 1000000).toStringAsFixed(1)} mln so\'m • $totalDistance km • $totalClients ta safar',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: 13,
@@ -185,8 +185,9 @@ class _ActivityPageState extends State<ActivityPage> {
                       child: _buildModernSummaryCard(
                         icon: Icons.account_balance_wallet,
                         title: 'Daromad',
-                        value: '${(totalEarnings / 1000).toStringAsFixed(0)}K',
-                        subtitle: 'so\'m',
+                        value:
+                            '${(totalEarnings / 1000000).toStringAsFixed(1)}',
+                        subtitle: 'mln',
                         color: const Color(0xFF4CAF50),
                         bgColor: const Color(0xFFE8F5E9),
                       ),
@@ -392,7 +393,7 @@ class _ActivityPageState extends State<ActivityPage> {
                         _buildChartDetailItem(
                           icon: Icons.account_balance_wallet,
                           label:
-                              '${(selectedWeek.earnings / 1000).toStringAsFixed(0)}K',
+                              '${(selectedWeek.earnings / 1000000).toStringAsFixed(2)} mln',
                           color: const Color(0xFF4CAF50),
                         ),
                         Container(
@@ -626,7 +627,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   children: [
                     _buildModernWeekStat(
                       Icons.account_balance_wallet,
-                      '${(week.earnings / 1000).toStringAsFixed(0)}K',
+                      '${(week.earnings / 1000000).toStringAsFixed(2)} mln',
                       const Color(0xFF4CAF50),
                     ),
                     const SizedBox(width: 16),

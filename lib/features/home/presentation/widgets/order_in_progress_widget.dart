@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/number_formatter.dart';
 
 class OrderInProgressWidget extends StatelessWidget {
   final VoidCallback onComplete;
@@ -86,7 +87,7 @@ class OrderInProgressWidget extends StatelessWidget {
                 _buildInfoItem(
                   icon: Icons.attach_money,
                   label: 'Narx',
-                  value: '$currentPrice so\'m',
+                  value: NumberFormatter.formatPriceWithCurrency(currentPrice),
                   color: AppColors.orderActive,
                 ),
                 Container(
