@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class SearchingAnimationWidget extends StatefulWidget {
@@ -12,7 +14,8 @@ class SearchingAnimationWidget extends StatefulWidget {
   });
 
   @override
-  State<SearchingAnimationWidget> createState() => _SearchingAnimationWidgetState();
+  State<SearchingAnimationWidget> createState() =>
+      _SearchingAnimationWidgetState();
 }
 
 class _SearchingAnimationWidgetState extends State<SearchingAnimationWidget>
@@ -31,10 +34,7 @@ class _SearchingAnimationWidgetState extends State<SearchingAnimationWidget>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(-0.3, 0),
       end: const Offset(0.3, 0),
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -62,20 +62,21 @@ class _SearchingAnimationWidgetState extends State<SearchingAnimationWidget>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            widget.icon,
-            size: 48,
-            color: AppColors.primary,
-          ),
+          Icon(widget.icon, size: 48, color: AppColors.primary),
           const SizedBox(height: 16),
-          Text(
-            widget.text,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          Shimmer.fromColors(
+            baseColor: AppColors.textPrimary,
+            highlightColor: AppColors.primary,
+            period: const Duration(milliseconds: 1500),
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           Stack(

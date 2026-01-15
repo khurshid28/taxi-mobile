@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
 import '../../../../core/theme/app_colors.dart';
 
@@ -97,21 +99,32 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   child: Transform.rotate(
                     angle: _rotationAnimation.value,
                     child: Container(
-                      width: 90,
-                      height: 90,
+                      width: 100,
+                      height: 100,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
                             AppColors.primary.withOpacity(0.2),
                             AppColors.primary.withOpacity(0.05),
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.check_circle_rounded,
-                        color: AppColors.primary,
-                        size: 56,
+                      child: Center(
+                        child: SvgPicture.asset(
+                          'assets/icons/success_duotone.svg',
+                          width: 60,
+                          height: 60,
+                        ),
                       ),
                     ),
                   ),
@@ -182,16 +195,39 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   AnimatedBuilder(
                     animation: _counterAnimation,
                     builder: (context, child) {
-                      return Text(
-                        '${_counterAnimation.value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} so\'m',
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
-                          letterSpacing: -1.5,
-                          height: 1,
-                        ),
-                      );
+                      final isCompleted =
+                          _counterAnimation.status == AnimationStatus.completed;
+                      final priceText =
+                          '${_counterAnimation.value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} so\'m';
+
+                      return isCompleted
+                          ? Shimmer.fromColors(
+                              baseColor: AppColors.primary,
+                              highlightColor: AppColors.primary.withOpacity(
+                                0.6,
+                              ),
+                              period: const Duration(milliseconds: 1500),
+                              child: Text(
+                                priceText,
+                                style: const TextStyle(
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
+                                  letterSpacing: -1.5,
+                                  height: 1,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              priceText,
+                              style: const TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.primary,
+                                letterSpacing: -1.5,
+                                height: 1,
+                              ),
+                            );
                     },
                   ),
                 ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class CancelTripSheet extends StatefulWidget {
@@ -26,8 +27,8 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 1.5)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: const Border(top: BorderSide(color: Colors.red, width: 3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
@@ -41,24 +42,45 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 4,
+            width: 50,
+            height: 5,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+              gradient: LinearGradient(
+                colors: [Colors.red.withOpacity(0.5), Colors.red],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(16),
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: Colors.red[50],
+              gradient: LinearGradient(
+                colors: [Colors.red[50]!, Colors.red[100]!],
+              ),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.warning_rounded,
-              color: Colors.red,
-              size: 32,
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/icons/close_duotone.svg',
+                width: 40,
+                height: 40,
+              ),
             ),
           ),
           const SizedBox(height: 16),
