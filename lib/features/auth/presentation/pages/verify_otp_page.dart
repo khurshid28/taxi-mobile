@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/auth_cubit.dart';
@@ -19,10 +20,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
     6,
     (index) => TextEditingController(),
   );
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   int _resendTimer = 60;
   Timer? _timer;
@@ -77,8 +75,25 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: const Text('Tasdiqlash'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'Tasdiqlash',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+          ),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -93,98 +108,206 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
             );
           }
         },
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              Icon(
-                Icons.message,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Tasdiqlash kodini kiriting',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${widget.phoneNumber} raqamiga yuborildi',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 50,
-                    child: TextFormField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      decoration: InputDecoration(
-                        counterText: '',
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        if (value.isNotEmpty && index < 5) {
-                          _focusNodes[index + 1].requestFocus();
-                        } else if (value.isEmpty && index > 0) {
-                          _focusNodes[index - 1].requestFocus();
-                        }
-                        if (index == 5 && value.isNotEmpty) {
-                          _verifyOtp();
-                        }
-                      },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primary.withOpacity(0.05),
+                      ],
                     ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 32),
-              BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) {
-                  if (state is AuthLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                  return ElevatedButton(
-                    onPressed: _verifyOtp,
-                    child: const Text('Tasdiqlash'),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _resendTimer == 0 ? _resendOtp : null,
-                child: Text(
-                  _resendTimer > 0
-                      ? 'Qayta yuborish ($_resendTimer s)'
-                      : 'Qayta yuborish',
-                  style: TextStyle(
-                    color: _resendTimer > 0
-                        ? AppColors.textSecondary
-                        : AppColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/icons/message_duotone.svg',
+                      width: 50,
+                      height: 50,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 32),
+                const Text(
+                  'Tasdiqlash kodini kiriting',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -1.2,
+                    height: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '${widget.phoneNumber} raqamiga yuborildi',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 50),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(6, (index) {
+                    final isFilled = _controllers[index].text.isNotEmpty;
+                    return Container(
+                      width: 52,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: isFilled
+                            ? LinearGradient(
+                                colors: [
+                                  AppColors.primary.withOpacity(0.1),
+                                  AppColors.primary.withOpacity(0.05),
+                                ],
+                              )
+                            : null,
+                        color: isFilled ? null : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isFilled
+                              ? AppColors.primary
+                              : Colors.grey[300]!,
+                          width: isFilled ? 2.5 : 1.5,
+                        ),
+                        boxShadow: [
+                          if (isFilled)
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.2),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                        ],
+                      ),
+                      child: TextFormField(
+                        controller: _controllers[index],
+                        focusNode: _focusNodes[index],
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        maxLength: 1,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: const InputDecoration(
+                          counterText: '',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (value) {
+                          setState(() {});
+                          if (value.isNotEmpty && index < 5) {
+                            _focusNodes[index + 1].requestFocus();
+                          } else if (value.isEmpty && index > 0) {
+                            _focusNodes[index - 1].requestFocus();
+                          }
+                          if (index == 5 && value.isNotEmpty) {
+                            _verifyOtp();
+                          }
+                        },
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 40),
+                BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    if (state is AuthLoading) {
+                      return Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.7),
+                              AppColors.primary.withOpacity(0.5),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      );
+                    }
+                    return Container(
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _verifyOtp,
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Center(
+                            child: Text(
+                              'Tasdiqlash',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _resendTimer == 0 ? _resendOtp : null,
+                  child: Text(
+                    _resendTimer > 0
+                        ? 'Qayta yuborish ($_resendTimer s)'
+                        : 'Qayta yuborish',
+                    style: TextStyle(
+                      color: _resendTimer > 0
+                          ? AppColors.textSecondary
+                          : AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

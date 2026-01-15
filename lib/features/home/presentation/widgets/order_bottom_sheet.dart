@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
@@ -228,22 +227,22 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                           children: [
                             Expanded(
                               child: _buildInfoCard(
-                                icon: Icons.straighten,
+                                iconPath: 'assets/icons/location_duotone.svg',
                                 title: 'Masofa',
                                 value:
                                     '${widget.order.distance.toStringAsFixed(1)} km',
-                                color: Colors.blue,
+                                color: const Color(0xFF2196F3),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildInfoCard(
-                                icon: Icons.attach_money,
+                                iconPath: 'assets/icons/wallet_duotone.svg',
                                 title: 'Narx',
                                 value: NumberFormatter.formatPriceWithCurrency(
                                   widget.order.price,
                                 ),
-                                color: Colors.green,
+                                color: const Color(0xFF4CAF50),
                               ),
                             ),
                           ],
@@ -332,33 +331,67 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
   }
 
   Widget _buildInfoCard({
-    required IconData icon,
+    required String iconPath,
     required String title,
     required String value,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: SvgPicture.asset(iconPath, width: 28, height: 28),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: 13,
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
+              letterSpacing: -0.5,
             ),
             textAlign: TextAlign.center,
           ),
@@ -369,7 +402,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
 
   Widget _buildAddressRow(String label, String address, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),

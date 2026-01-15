@@ -53,6 +53,23 @@ class _PhonePageState extends State<PhonePage> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Skip for now - navigate to home or onboarding end
+              context.go('/complete-profile');
+            },
+            child: Text(
+              'O\'tkazib yuborish',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
