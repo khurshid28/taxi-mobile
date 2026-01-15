@@ -12,7 +12,8 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -30,19 +31,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 1500),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeIn,
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutBack,
-      ),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
   }
@@ -52,9 +49,21 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     if (!mounted) return;
 
+    // Check if onboarding was shown
+    final onboardingShown =
+        await StorageHelper.getBool(AppConstants.keyOnboardingShown) ?? false;
+
+    if (!onboardingShown) {
+      await StorageHelper.saveBool(AppConstants.keyOnboardingShown, true);
+      context.go('/onboarding');
+      return;
+    }
+
     // Check authentication status
-    final isLoggedIn = await StorageHelper.getBool(AppConstants.keyIsLoggedIn) ?? false;
-    final profileCompleted = await StorageHelper.getBool(AppConstants.keyProfileCompleted) ?? false;
+    final isLoggedIn =
+        await StorageHelper.getBool(AppConstants.keyIsLoggedIn) ?? false;
+    final profileCompleted =
+        await StorageHelper.getBool(AppConstants.keyProfileCompleted) ?? false;
 
     if (isLoggedIn) {
       if (profileCompleted) {
@@ -120,10 +129,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                     const SizedBox(height: 8),
                     const Text(
                       'Tez va qulay taxi xizmati',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
                     ),
                   ],
                 ),

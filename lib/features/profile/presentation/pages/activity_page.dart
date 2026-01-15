@@ -12,13 +12,48 @@ class ActivityPage extends StatefulWidget {
 class _ActivityPageState extends State<ActivityPage> {
   // Sample data for last 7 weeks
   final List<WeeklyActivity> _weeklyData = [
-    WeeklyActivity(week: 'Hafta 1', earnings: 1250000, distance: 145, clients: 38),
-    WeeklyActivity(week: 'Hafta 2', earnings: 1580000, distance: 178, clients: 45),
-    WeeklyActivity(week: 'Hafta 3', earnings: 1420000, distance: 162, clients: 41),
-    WeeklyActivity(week: 'Hafta 4', earnings: 1680000, distance: 195, clients: 48),
-    WeeklyActivity(week: 'Hafta 5', earnings: 1520000, distance: 172, clients: 43),
-    WeeklyActivity(week: 'Hafta 6', earnings: 1750000, distance: 201, clients: 52),
-    WeeklyActivity(week: 'Hafta 7', earnings: 1890000, distance: 218, clients: 56),
+    WeeklyActivity(
+      week: 'Hafta 1',
+      earnings: 1250000,
+      distance: 145,
+      clients: 38,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 2',
+      earnings: 1580000,
+      distance: 178,
+      clients: 45,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 3',
+      earnings: 1420000,
+      distance: 162,
+      clients: 41,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 4',
+      earnings: 1680000,
+      distance: 195,
+      clients: 48,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 5',
+      earnings: 1520000,
+      distance: 172,
+      clients: 43,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 6',
+      earnings: 1750000,
+      distance: 201,
+      clients: 52,
+    ),
+    WeeklyActivity(
+      week: 'Hafta 7',
+      earnings: 1890000,
+      distance: 218,
+      clients: 56,
+    ),
   ];
 
   int _selectedIndex = 6; // Current week selected by default
@@ -26,26 +61,51 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     final selectedWeek = _weeklyData[_selectedIndex];
-    final totalEarnings = _weeklyData.fold<int>(0, (sum, week) => sum + week.earnings);
-    final totalDistance = _weeklyData.fold<int>(0, (sum, week) => sum + week.distance);
-    final totalClients = _weeklyData.fold<int>(0, (sum, week) => sum + week.clients);
+    final totalEarnings = _weeklyData.fold<int>(
+      0,
+      (sum, week) => sum + week.earnings,
+    );
+    final totalDistance = _weeklyData.fold<int>(
+      0,
+      (sum, week) => sum + week.distance,
+    );
+    final totalClients = _weeklyData.fold<int>(
+      0,
+      (sum, week) => sum + week.clients,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.05),
+        surfaceTintColor: Colors.transparent,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!, width: 1),
+          ),
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: AppColors.textPrimary,
+              size: 18,
+            ),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+          ),
         ),
         title: const Text(
           'Aktivligim',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.5,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
+            fontFamily: 'SF Pro Display',
           ),
         ),
         centerTitle: true,
@@ -79,7 +139,11 @@ class _ActivityPageState extends State<ActivityPage> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.trending_up, color: Colors.white, size: 32),
+                      const Icon(
+                        Icons.trending_up,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -172,10 +236,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   const SizedBox(height: 4),
                   Text(
                     'Oxirgi 7 haftaning tahlili',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -184,15 +245,20 @@ class _ActivityPageState extends State<ActivityPage> {
 
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.1),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
+                    color: AppColors.primary.withOpacity(0.08),
+                    blurRadius: 30,
+                    offset: const Offset(0, 8),
+                    spreadRadius: -4,
                   ),
                 ],
               ),
@@ -209,7 +275,8 @@ class _ActivityPageState extends State<ActivityPage> {
                           touchCallback: (event, response) {
                             if (response != null && response.spot != null) {
                               setState(() {
-                                _selectedIndex = response.spot!.touchedBarGroupIndex;
+                                _selectedIndex =
+                                    response.spot!.touchedBarGroupIndex;
                               });
                             }
                           },
@@ -226,7 +293,8 @@ class _ActivityPageState extends State<ActivityPage> {
                             sideTitles: SideTitles(
                               showTitles: true,
                               getTitlesWidget: (value, meta) {
-                                if (value.toInt() >= 0 && value.toInt() < _weeklyData.length) {
+                                if (value.toInt() >= 0 &&
+                                    value.toInt() < _weeklyData.length) {
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Text(
@@ -236,7 +304,8 @@ class _ActivityPageState extends State<ActivityPage> {
                                             ? AppColors.primary
                                             : AppColors.textSecondary,
                                         fontSize: 12,
-                                        fontWeight: _selectedIndex == value.toInt()
+                                        fontWeight:
+                                            _selectedIndex == value.toInt()
                                             ? FontWeight.bold
                                             : FontWeight.normal,
                                       ),
@@ -322,7 +391,8 @@ class _ActivityPageState extends State<ActivityPage> {
                         ),
                         _buildChartDetailItem(
                           icon: Icons.account_balance_wallet,
-                          label: '${(selectedWeek.earnings / 1000).toStringAsFixed(0)}K',
+                          label:
+                              '${(selectedWeek.earnings / 1000).toStringAsFixed(0)}K',
                           color: const Color(0xFF4CAF50),
                         ),
                         Container(
@@ -361,7 +431,10 @@ class _ActivityPageState extends State<ActivityPage> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -383,7 +456,9 @@ class _ActivityPageState extends State<ActivityPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
-                children: _weeklyData.reversed.map((week) => _buildModernWeekCard(week)).toList(),
+                children: _weeklyData.reversed
+                    .map((week) => _buildModernWeekCard(week))
+                    .toList(),
               ),
             ),
             const SizedBox(height: 20),
@@ -405,12 +480,14 @@ class _ActivityPageState extends State<ActivityPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: color.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+            spreadRadius: -2,
           ),
         ],
       ),
@@ -430,10 +507,11 @@ class _ActivityPageState extends State<ActivityPage> {
             style: TextStyle(
               fontSize: 11,
               color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -441,21 +519,23 @@ class _ActivityPageState extends State<ActivityPage> {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                   color: color,
-                  letterSpacing: -0.5,
+                  letterSpacing: -1,
+                  height: 1,
                 ),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: 3),
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 10,
-                    color: color.withOpacity(0.7),
-                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    color: color.withOpacity(0.8),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ),
@@ -490,15 +570,17 @@ class _ActivityPageState extends State<ActivityPage> {
   Widget _buildModernWeekCard(WeeklyActivity week) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey[200]!, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
           ),
         ],
       ),
@@ -532,10 +614,11 @@ class _ActivityPageState extends State<ActivityPage> {
                 Text(
                   week.week,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
                     color: AppColors.textPrimary,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.6,
+                    height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 8),

@@ -66,14 +66,24 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.2),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.15),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+              spreadRadius: -5,
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -113,63 +123,73 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
             const Text(
               'Safar tugadi!',
               style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
-                letterSpacing: -0.8,
+                letterSpacing: -1.2,
+                height: 1.1,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Muvaffaqiyatli yakunlandi',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
             ),
             const SizedBox(height: 32),
 
             // Total price with animation
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary.withOpacity(0.12),
-                    AppColors.primary.withOpacity(0.05),
+                    AppColors.primary.withOpacity(0.15),
+                    AppColors.primary.withOpacity(0.06),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppColors.primary.withOpacity(0.2),
-                  width: 1.5,
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 2,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'Jami summa',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   AnimatedBuilder(
                     animation: _counterAnimation,
                     builder: (context, child) {
                       return Text(
-                        '${_counterAnimation.value.toString().replaceAllMapped(
-                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                              (Match m) => '${m[1]} ',
-                            )} so\'m',
+                        '${_counterAnimation.value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} so\'m',
                         style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
                           color: AppColors.primary,
+                          letterSpacing: -1.5,
+                          height: 1,
                         ),
                       );
                     },
@@ -189,11 +209,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   label: 'Masofa',
                   value: '${widget.distance.toStringAsFixed(1)} km',
                 ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: AppColors.divider,
-                ),
+                Container(width: 1, height: 40, color: AppColors.divider),
                 _buildDetailItem(
                   icon: Icons.timer,
                   label: 'Vaqt',
@@ -218,10 +234,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                 ),
                 child: const Text(
                   'Yopish',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -242,10 +255,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 4),
         Text(

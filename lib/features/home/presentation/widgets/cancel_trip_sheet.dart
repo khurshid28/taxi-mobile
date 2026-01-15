@@ -4,10 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 class CancelTripSheet extends StatefulWidget {
   final VoidCallback onCancel;
 
-  const CancelTripSheet({
-    super.key,
-    required this.onCancel,
-  });
+  const CancelTripSheet({super.key, required this.onCancel});
 
   @override
   State<CancelTripSheet> createState() => _CancelTripSheetState();
@@ -27,9 +24,18 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 1.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 40,
+            offset: const Offset(0, -10),
+            spreadRadius: -5,
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -59,10 +65,11 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
           const Text(
             'Safarni bekor qilish',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+              letterSpacing: -0.8,
+              height: 1.2,
             ),
           ),
           const SizedBox(height: 8),
@@ -71,10 +78,12 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Reasons list
           ..._reasons.asMap().entries.map((entry) {
             final index = entry.key;
@@ -87,27 +96,34 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: _selectedReason == index
                       ? Colors.red[50]
-                      : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(14),
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _selectedReason == index
                         ? Colors.red
-                        : Colors.grey[200]!,
+                        : Colors.grey[300]!,
                     width: 2,
                   ),
                   boxShadow: _selectedReason == index
                       ? [
                           BoxShadow(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.red.withOpacity(0.15),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                            spreadRadius: -2,
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
-                        ]
-                      : null,
+                        ],
                 ),
                 child: Row(
                   children: [
@@ -141,11 +157,13 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: _selectedReason == index
-                              ? FontWeight.w600
+                              ? FontWeight.w700
                               : FontWeight.w500,
                           color: _selectedReason == index
                               ? Colors.red[900]
                               : AppColors.textPrimary,
+                          letterSpacing: -0.2,
+                          height: 1.4,
                         ),
                       ),
                     ),
@@ -199,10 +217,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                   ),
                   child: const Text(
                     'Bekor qilish',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

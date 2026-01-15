@@ -14,6 +14,7 @@ class AppConstants {
   static const String keyUserPhone = 'user_phone';
   static const String keyIsLoggedIn = 'is_logged_in';
   static const String keyProfileCompleted = 'profile_completed';
+  static const String keyOnboardingShown = 'onboarding_shown';
 
   // Order States
   static const int orderWaitingTime = 8000; // 8 seconds
