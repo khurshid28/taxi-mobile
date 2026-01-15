@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
   <!-- Duotone background -->
-  <circle cx="12" cy="7" r="4" fill="currentColor" opacity="0.2"/>
-  <path d="M5.5 21a7.5 7.5 0 0 1 13 0" fill="currentColor" opacity="0.2"/>
+  <circle cx="12" cy="8" r="5" fill="currentColor" opacity="0.2"/>
+  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" opacity="0.2"/>
   <!-- Line foreground -->
-  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none"/>
-  <path d="M5.5 21a7.5 7.5 0 0 1 13 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
 </svg>
