@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Duotone background -->
+  <path d="M21 8H3v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8z" fill="currentColor" opacity="0.2"/>
+  <rect x="16" y="12" width="4" height="4" rx="1" fill="currentColor" opacity="0.2"/>
+  <!-- Line foreground -->
+  <path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M3 9h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="7" y="13" width="4" height="2" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+</svg>

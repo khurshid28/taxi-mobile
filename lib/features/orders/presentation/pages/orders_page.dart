@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../core/models/order_model.dart';
@@ -17,16 +18,26 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   List<OrderModel> _filteredOrders = [];
   OrderStatusType? _selectedFilter;
   late AnimationController _animationController;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _orders = MockData.getOrders();
-    _filteredOrders = _orders;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    setState(() {
+      _orders = MockData.getOrders();
+      _filteredOrders = _orders;
+      _isLoading = false;
+    });
     _animationController.forward();
   }
 
@@ -50,10 +61,12 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   }
 
   Future<void> _refreshOrders() async {
-    await Future.delayed(const Duration(seconds: 1));
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 700));
     setState(() {
       _orders = MockData.getOrders();
       _filterOrders(_selectedFilter);
+      _isLoading = false;
     });
   }
 
@@ -134,37 +147,165 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       body: RefreshIndicator(
         onRefresh: _refreshOrders,
         color: AppColors.primary,
-        child: _filteredOrders.isEmpty
-            ? _buildEmptyState()
-            : AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _animationController,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        return TweenAnimationBuilder(
-                          tween: Tween<double>(begin: 0, end: 1),
-                          duration: Duration(milliseconds: 300 + (index * 100)),
-                          builder: (context, double value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 50 * (1 - value)),
-                              child: Opacity(
-                                opacity: value,
-                                child: child,
-                              ),
+        child: _isLoading
+            ? _buildShimmerLoading()
+            : _filteredOrders.isEmpty
+                ? _buildEmptyState()
+                : AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return FadeTransition(
+                        opacity: _animationController,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredOrders.length,
+                          itemBuilder: (context, index) {
+                            return TweenAnimationBuilder(
+                              tween: Tween<double>(begin: 0, end: 1),
+                              duration: Duration(milliseconds: 300 + (index * 100)),
+                              builder: (context, double value, child) {
+                                return Transform.translate(
+                                  offset: Offset(0, 50 * (1 - value)),
+                                  child: Opacity(
+                                    opacity: value,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _buildOrderCard(_filteredOrders[index]),
                             );
                           },
-                          child: _buildOrderCard(_filteredOrders[index]),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                  ),
       ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: 120,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 70,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
