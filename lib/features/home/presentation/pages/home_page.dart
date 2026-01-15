@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
@@ -243,20 +244,24 @@ class _HomePageState extends State<HomePage> {
   void _updateMapObjects(HomeState state) {
     _mapObjects.clear();
 
-    // Add current location marker with rotation using simple circle
+    // Add current location marker (user) with rotation - navigation arrow
     if (state.currentLocation != null) {
+      _addUserLocationMarker(state.currentLocation!, state.heading);
+    }
+
+    // Add client location marker if order exists
+    if (state.currentOrder != null) {
       _mapObjects.add(
         PlacemarkMapObject(
-          mapId: const MapObjectId('current_location'),
-          point: state.currentLocation!,
+          mapId: const MapObjectId('client_location'),
+          point: state.currentOrder!.pickupLocation,
+          opacity: 0.9,
           icon: PlacemarkIcon.single(
             PlacemarkIconStyle(
-              image: BitmapDescriptor.fromAssetImage('assets/icons/car_icon.png'),
-              scale: 0.15,
-              rotationType: RotationType.rotate,
+              image: BitmapDescriptor.fromAssetImage('assets/icons/location.png'),
+              scale: 0.5,
             ),
           ),
-          direction: state.heading,
         ),
       );
     }
@@ -290,6 +295,65 @@ class _HomePageState extends State<HomePage> {
     }
 
     setState(() {});
+  }
+
+  Future<void> _addUserLocationMarker(Point location, double heading) async {
+    // Create a simple canvas-based marker with the primary color
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final size = 48.0;
+    
+    // Save canvas state
+    canvas.save();
+    
+    // Move to center and rotate
+    canvas.translate(size / 2, size / 2);
+    canvas.rotate(heading * 3.14159 / 180); // Convert degrees to radians
+    canvas.translate(-size / 2, -size / 2);
+    
+    // Draw navigation arrow shape
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.fill;
+    
+    final path = Path()
+      ..moveTo(size / 2, size * 0.2) // Top point
+      ..lineTo(size * 0.3, size * 0.8) // Bottom left
+      ..lineTo(size / 2, size * 0.65) // Center bottom
+      ..lineTo(size * 0.7, size * 0.8) // Bottom right
+      ..close();
+    
+    canvas.drawPath(path, paint);
+    
+    // Draw border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawPath(path, borderPaint);
+    
+    // Restore canvas
+    canvas.restore();
+    
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), size.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    final buffer = byteData!.buffer.asUint8List();
+    
+    _mapObjects.add(
+      PlacemarkMapObject(
+        mapId: const MapObjectId('current_location'),
+        point: location,
+        opacity: 1.0,
+        icon: PlacemarkIcon.single(
+          PlacemarkIconStyle(
+            image: BitmapDescriptor.fromBytes(buffer),
+            scale: 1.0,
+            rotationType: RotationType.noRotation, // We handle rotation ourselves
+          ),
+        ),
+      ),
+    );
   }
 
   void _moveToLocation(Point point) {
