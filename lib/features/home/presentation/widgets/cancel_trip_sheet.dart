@@ -38,25 +38,39 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: Colors.grey[300],
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_rounded,
+              color: Colors.red,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
           const Text(
             'Safarni bekor qilish',
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Iltimos, bekor qilish sababini tanlang',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 24),
@@ -76,15 +90,24 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: _selectedReason == index
-                      ? AppColors.primary.withOpacity(0.1)
+                      ? Colors.red[50]
                       : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _selectedReason == index
-                        ? AppColors.primary
+                        ? Colors.red
                         : Colors.grey[200]!,
                     width: 2,
                   ),
+                  boxShadow: _selectedReason == index
+                      ? [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   children: [
@@ -95,12 +118,12 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: _selectedReason == index
-                              ? AppColors.primary
+                              ? Colors.red
                               : Colors.grey[400]!,
                           width: 2,
                         ),
                         color: _selectedReason == index
-                            ? AppColors.primary
+                            ? Colors.red
                             : Colors.transparent,
                       ),
                       child: _selectedReason == index
@@ -119,9 +142,9 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                           fontSize: 15,
                           fontWeight: _selectedReason == index
                               ? FontWeight.w600
-                              : FontWeight.normal,
+                              : FontWeight.w500,
                           color: _selectedReason == index
-                              ? AppColors.primary
+                              ? Colors.red[900]
                               : AppColors.textPrimary,
                         ),
                       ),

@@ -31,85 +31,168 @@ class _ActivityPageState extends State<ActivityPage> {
     final totalClients = _weeklyData.fold<int>(0, (sum, week) => sum + week.clients);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Aktivligim',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.5,
           ),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Total Summary Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.attach_money,
-                    title: 'Jami daromad',
-                    value: '${(totalEarnings / 1000).toStringAsFixed(0)}K',
-                    subtitle: 'so\'m',
-                    color: Colors.green,
-                  ),
+            // Header with gradient
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.route,
-                    title: 'Jami masofa',
-                    value: '$totalDistance',
-                    subtitle: 'km',
-                    color: Colors.blue,
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Oxirgi 7 hafta',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildSummaryCard(
-              icon: Icons.people,
-              title: 'Jami clientlar',
-              value: '$totalClients',
-              subtitle: 'ta mijoz',
-              color: Colors.orange,
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.trending_up, color: Colors.white, size: 32),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Jami statistika',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${(totalEarnings / 1000).toStringAsFixed(0)}K so\'m • $totalDistance km • $totalClients ta safar',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 30),
+            // Total Summary Cards
+            Transform.translate(
+              offset: const Offset(0, -15),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernSummaryCard(
+                        icon: Icons.account_balance_wallet,
+                        title: 'Daromad',
+                        value: '${(totalEarnings / 1000).toStringAsFixed(0)}K',
+                        subtitle: 'so\'m',
+                        color: const Color(0xFF4CAF50),
+                        bgColor: const Color(0xFFE8F5E9),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernSummaryCard(
+                        icon: Icons.directions_car,
+                        title: 'Masofa',
+                        value: '$totalDistance',
+                        subtitle: 'km',
+                        color: const Color(0xFF2196F3),
+                        bgColor: const Color(0xFFE3F2FD),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernSummaryCard(
+                        icon: Icons.people_alt,
+                        title: 'Clientlar',
+                        value: '$totalClients',
+                        subtitle: 'safar',
+                        color: const Color(0xFFFF9800),
+                        bgColor: const Color(0xFFFFF3E0),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             // Weekly Chart
-            const Text(
-              'Haftalik statistika',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Haftalik daromad',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Oxirgi 7 haftaning tahlili',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
 
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -213,33 +296,47 @@ class _ActivityPageState extends State<ActivityPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  // Selected week details
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildDetailItem(
-                        icon: Icons.calendar_today,
-                        label: selectedWeek.week,
-                        color: AppColors.primary,
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.08),
+                          AppColors.primary.withOpacity(0.03),
+                        ],
                       ),
-                      _buildDetailItem(
-                        icon: Icons.attach_money,
-                        label: '${(selectedWeek.earnings / 1000).toStringAsFixed(0)}K',
-                        color: Colors.green,
-                      ),
-                      _buildDetailItem(
-                        icon: Icons.route,
-                        label: '${selectedWeek.distance} km',
-                        color: Colors.blue,
-                      ),
-                      _buildDetailItem(
-                        icon: Icons.people,
-                        label: '${selectedWeek.clients} ta',
-                        color: Colors.orange,
-                      ),
-                    ],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildChartDetailItem(
+                          icon: Icons.calendar_today,
+                          label: selectedWeek.week,
+                          color: AppColors.primary,
+                        ),
+                        Container(
+                          width: 1,
+                          height: 35,
+                          color: Colors.grey[300],
+                        ),
+                        _buildChartDetailItem(
+                          icon: Icons.account_balance_wallet,
+                          label: '${(selectedWeek.earnings / 1000).toStringAsFixed(0)}K',
+                          color: const Color(0xFF4CAF50),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 35,
+                          color: Colors.grey[300],
+                        ),
+                        _buildChartDetailItem(
+                          icon: Icons.people_alt,
+                          label: '${selectedWeek.clients} ta',
+                          color: const Color(0xFFFF9800),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -248,29 +345,61 @@ class _ActivityPageState extends State<ActivityPage> {
             const SizedBox(height: 30),
 
             // Detailed breakdown
-            const Text(
-              'Batafsil ma\'lumot',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Haftalik batafsil',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_weeklyData.length} hafta',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
 
-            ..._weeklyData.reversed.map((week) => _buildWeekCard(week)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: _weeklyData.reversed.map((week) => _buildModernWeekCard(week)).toList(),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard({
+  Widget _buildModernSummaryCard({
     required IconData icon,
     required String title,
     required String value,
     required String subtitle,
     required Color color,
+    required Color bgColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -279,51 +408,54 @@ class _ActivityPageState extends State<ActivityPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                   color: color,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: color.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -334,7 +466,7 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildDetailItem({
+  Widget _buildChartDetailItem({
     required IconData icon,
     required String label,
     required Color color,
@@ -342,11 +474,11 @@ class _ActivityPageState extends State<ActivityPage> {
     return Column(
       children: [
         Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             color: color,
           ),
@@ -355,28 +487,41 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildWeekCard(WeeklyActivity week) {
+  Widget _buildModernWeekCard(WeeklyActivity week) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primary.withOpacity(0.15),
+                  AppColors.primary.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
               Icons.calendar_month,
               color: AppColors.primary,
-              size: 24,
+              size: 28,
             ),
           ),
           const SizedBox(width: 16),
@@ -387,22 +532,47 @@ class _ActivityPageState extends State<ActivityPage> {
                 Text(
                   week.week,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16,
                     color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    _buildWeekStat(Icons.attach_money, '${(week.earnings / 1000).toStringAsFixed(0)}K', Colors.green),
+                    _buildModernWeekStat(
+                      Icons.account_balance_wallet,
+                      '${(week.earnings / 1000).toStringAsFixed(0)}K',
+                      const Color(0xFF4CAF50),
+                    ),
                     const SizedBox(width: 16),
-                    _buildWeekStat(Icons.route, '${week.distance}km', Colors.blue),
+                    _buildModernWeekStat(
+                      Icons.directions_car,
+                      '${week.distance}km',
+                      const Color(0xFF2196F3),
+                    ),
                     const SizedBox(width: 16),
-                    _buildWeekStat(Icons.people, '${week.clients}', Colors.orange),
+                    _buildModernWeekStat(
+                      Icons.people_alt,
+                      '${week.clients}',
+                      const Color(0xFFFF9800),
+                    ),
                   ],
                 ),
               ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -410,15 +580,22 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildWeekStat(IconData icon, String value, Color color) {
+  Widget _buildModernWeekStat(IconData icon, String value, Color color) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, size: 14, color: color),
+        ),
+        const SizedBox(width: 6),
         Text(
           value,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: color,
             fontWeight: FontWeight.w600,
           ),

@@ -87,16 +87,21 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   child: Transform.rotate(
                     angle: _rotationAnimation.value,
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 90,
+                      height: 90,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.2),
+                            AppColors.primary.withOpacity(0.05),
+                          ],
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.check_circle,
+                        Icons.check_circle_rounded,
                         color: AppColors.primary,
-                        size: 50,
+                        size: 56,
                       ),
                     ),
                   ),
@@ -108,17 +113,19 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
             const Text(
               'Safar tugadi!',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
+                letterSpacing: -0.8,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Muvaffaqiyatli yakunlandi',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 32),
@@ -129,13 +136,17 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary.withOpacity(0.1),
+                    AppColors.primary.withOpacity(0.12),
                     AppColors.primary.withOpacity(0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.2),
+                  width: 1.5,
+                ),
               ),
               child: Column(
                 children: [
