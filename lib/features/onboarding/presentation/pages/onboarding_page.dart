@@ -92,26 +92,70 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(width: 80),
+                    const SizedBox(width: 100),
                     _buildPageIndicator(),
                     SizedBox(
-                      width: 80,
+                      width: 100,
                       child: _currentPage < _items.length - 1
-                          ? TextButton(
-                              onPressed: _skipOnboarding,
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                          ? Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white,
+                                    _items[_currentPage].gradient[0]
+                                        .withOpacity(0.1),
+                                  ],
                                 ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _items[_currentPage].gradient[0]
+                                      .withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _items[_currentPage].gradient[0]
+                                        .withOpacity(0.2),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              child: Text(
-                                'O\'tkazish',
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.2,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _skipOnboarding,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'O\'tkazish',
+                                          style: TextStyle(
+                                            color: _items[_currentPage]
+                                                .gradient[1],
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_forward_rounded,
+                                          color:
+                                              _items[_currentPage].gradient[1],
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             )
