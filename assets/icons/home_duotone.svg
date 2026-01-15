@@ -1,0 +1,10 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- House base (main color) -->
+  <path d="M3 12L5 10.5V20C5 20.5523 5.44772 21 6 21H9V16C9 15.4477 9.44772 15 10 15H14C14.5523 15 15 15.4477 15 16V21H18C18.5523 21 19 20.5523 19 20V10.5L21 12L12 4L3 12Z" fill="currentColor"/>
+  
+  <!-- House roof (lighter fill) -->
+  <path d="M12 4L21 12H19L12 6L5 12H3L12 4Z" fill="currentColor" opacity="0.3"/>
+  
+  <!-- Door -->
+  <rect x="9" y="16" width="6" height="5" fill="currentColor" opacity="0.5"/>
+</svg>

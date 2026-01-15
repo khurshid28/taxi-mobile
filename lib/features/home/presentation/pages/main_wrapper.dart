@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../orders/presentation/pages/orders_page.dart';
@@ -25,10 +26,7 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -44,28 +42,90 @@ class _MainWrapperState extends State<MainWrapper> {
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 12,
-        ),
-        items: const [
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            icon: SvgPicture.asset(
+              'assets/icons/home_duotone.svg',
+              width: 26,
+              height: 26,
+              colorFilter: ColorFilter.mode(
+                AppColors.textSecondary,
+                BlendMode.srcIn,
+              ),
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/home_duotone.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
+              ),
+            ),
             label: 'Asosiy',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            activeIcon: Icon(Icons.list_alt),
+            icon: SvgPicture.asset(
+              'assets/icons/orders_duotone.svg',
+              width: 26,
+              height: 26,
+              colorFilter: ColorFilter.mode(
+                AppColors.textSecondary,
+                BlendMode.srcIn,
+              ),
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/orders_duotone.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
+              ),
+            ),
             label: 'Zakazlarim',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.payment_outlined),
-            activeIcon: Icon(Icons.payment),
+            icon: SvgPicture.asset(
+              'assets/icons/payment_duotone.svg',
+              width: 26,
+              height: 26,
+              colorFilter: ColorFilter.mode(
+                AppColors.textSecondary,
+                BlendMode.srcIn,
+              ),
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/payment_duotone.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
+              ),
+            ),
             label: 'To\'lovlarim',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
+            icon: SvgPicture.asset(
+              'assets/icons/profile_duotone.svg',
+              width: 26,
+              height: 26,
+              colorFilter: ColorFilter.mode(
+                AppColors.textSecondary,
+                BlendMode.srcIn,
+              ),
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/profile_duotone.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
+              ),
+            ),
             label: 'Profil',
           ),
         ],

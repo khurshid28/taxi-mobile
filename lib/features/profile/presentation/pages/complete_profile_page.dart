@@ -117,6 +117,17 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Iltimos, haqiqiy ma\'lumotlaringizni kiriting.\nBu sizning xavfsizligingiz uchun muhim.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 32),
                   // Passport Image
                   Center(
