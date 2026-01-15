@@ -54,10 +54,18 @@ class _PhonePageState extends State<PhonePage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 40),
-                Icon(
-                  Icons.phone_android,
-                  size: 80,
-                  color: AppColors.primary,
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Image.asset(
+                    'assets/images/taxi_logo.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 const Text(

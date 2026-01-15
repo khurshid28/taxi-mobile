@@ -89,8 +89,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 120,
-                      height: 120,
+                      width: 150,
+                      height: 150,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(30),
@@ -102,10 +102,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.local_taxi,
-                        size: 60,
-                        color: AppColors.primary,
+                      padding: const EdgeInsets.all(20),
+                      child: Image.asset(
+                        'assets/images/taxi_logo.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 24),
