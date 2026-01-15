@@ -8,6 +8,8 @@ enum OrderStatus {
   waitingForOrder,
   orderReceived,
   orderAccepted,
+  goingToClient,
+  waitingForClient,
   inProgress,
   completed,
 }
@@ -23,6 +25,10 @@ class HomeState extends Equatable {
   final double heading; // Icon rotation angle
   final double? distanceToClient; // Distance to client in meters
   final bool clientPickedUp; // Client picked up flag
+  final int waitingSeconds; // Waiting time in seconds
+  final int currentPrice; // Current price (increases with waiting time)
+  final double traveledDistance; // Kilometers traveled
+  final bool isWaitingTimerActive; // Waiting timer active flag
 
   const HomeState({
     this.status = OrderStatus.initial,
@@ -35,6 +41,10 @@ class HomeState extends Equatable {
     this.heading = 0.0,
     this.distanceToClient,
     this.clientPickedUp = false,
+    this.waitingSeconds = 0,
+    this.currentPrice = 0,
+    this.traveledDistance = 0.0,
+    this.isWaitingTimerActive = false,
   });
 
   HomeState copyWith({
@@ -48,6 +58,10 @@ class HomeState extends Equatable {
     double? heading,
     double? distanceToClient,
     bool? clientPickedUp,
+    int? waitingSeconds,
+    int? currentPrice,
+    double? traveledDistance,
+    bool? isWaitingTimerActive,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -60,6 +74,10 @@ class HomeState extends Equatable {
       heading: heading ?? this.heading,
       distanceToClient: distanceToClient ?? this.distanceToClient,
       clientPickedUp: clientPickedUp ?? this.clientPickedUp,
+      waitingSeconds: waitingSeconds ?? this.waitingSeconds,
+      currentPrice: currentPrice ?? this.currentPrice,
+      traveledDistance: traveledDistance ?? this.traveledDistance,
+      isWaitingTimerActive: isWaitingTimerActive ?? this.isWaitingTimerActive,
     );
   }
 
@@ -75,5 +93,9 @@ class HomeState extends Equatable {
         heading,
         distanceToClient,
         clientPickedUp,
+        waitingSeconds,
+        currentPrice,
+        traveledDistance,
+        isWaitingTimerActive,
       ];
 }

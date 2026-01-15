@@ -4,6 +4,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/constants/app_constants.dart';
+import 'activity_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -444,6 +445,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 24),
                   // Menu Items
+                  _buildMenuItem(
+                    icon: Icons.bar_chart,
+                    title: 'Aktivligim',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ActivityPage(),
+                        ),
+                      );
+                    },
+                  ),
                   _buildMenuItem(
                     icon: Icons.account_balance_wallet,
                     title: 'To\'lovlar',

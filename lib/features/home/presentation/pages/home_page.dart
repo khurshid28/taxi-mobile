@@ -8,6 +8,9 @@ import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
 import '../widgets/order_in_progress_widget.dart';
+import '../widgets/searching_animation_widget.dart';
+import '../widgets/cancel_trip_sheet.dart';
+import '../widgets/trip_complete_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -72,6 +75,30 @@ class _HomePageState extends State<HomePage> {
                 child: _buildTopControls(state),
               ),
 
+              // Waiting for order animation
+              if (state.status == OrderStatus.waitingForOrder)
+                const Positioned(
+                  bottom: 100,
+                  left: 0,
+                  right: 0,
+                  child: SearchingAnimationWidget(
+                    text: 'Buyurtma kutilmoqda...',
+                    icon: Icons.hourglass_empty,
+                  ),
+                ),
+
+              // Going to client animation
+              if (state.status == OrderStatus.goingToClient)
+                const Positioned(
+                  bottom: 100,
+                  left: 0,
+                  right: 0,
+                  child: SearchingAnimationWidget(
+                    text: 'Clientga qarab ketilmoqda...',
+                    icon: Icons.directions_car,
+                  ),
+                ),
+
               // Bottom sheet based on state
               if (state.status == OrderStatus.orderReceived &&
                   state.currentOrder != null)
@@ -90,26 +117,32 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-              if (state.status == OrderStatus.inProgress)
+              // Order in progress or waiting for client widget
+              if (state.status == OrderStatus.inProgress ||
+                  state.status == OrderStatus.waitingForClient)
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
                   child: OrderInProgressWidget(
-                    onComplete: () {
-                      context.read<HomeCubit>().completeOrder();
-                    },
+                    clientPhone: state.currentOrder?.clientPhone,
+                    currentPrice: state.currentPrice,
+                    traveledDistance: state.traveledDistance,
+                    waitingSeconds: state.waitingSeconds,
+                    isWaitingForClient: state.status == OrderStatus.waitingForClient,
+                    onComplete: () => _showCompleteDialog(state),
+                    onCancel: () => _showCancelSheet(context),
                     onOpenMaps: () {
                       _openGoogleMaps(state);
                     },
                   ),
                 ),
 
-              // Show client pickup button when within 150m
+              // Show client pickup button when close to client
               if (state.distanceToClient != null &&
-                  state.distanceToClient! <= 150 &&
+                  state.distanceToClient! <= 50 &&
                   !state.clientPickedUp &&
-                  state.status == OrderStatus.inProgress)
+                  state.status == OrderStatus.goingToClient)
                 Positioned(
                   bottom: 220,
                   left: 20,
@@ -234,6 +267,10 @@ class _HomePageState extends State<HomePage> {
         return 'Yangi zakaz!';
       case OrderStatus.orderAccepted:
         return 'Zakaz qabul qilindi';
+      case OrderStatus.goingToClient:
+        return 'Clientga ketilmoqda';
+      case OrderStatus.waitingForClient:
+        return 'Client kutilmoqda';
       case OrderStatus.inProgress:
         return 'Yo\'lda';
       case OrderStatus.completed:
@@ -377,4 +414,43 @@ class _HomePageState extends State<HomePage> {
       }
     }
   }
+
+  void _showCancelSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => CancelTripSheet(
+        onCancel: () {
+          context.read<HomeCubit>().completeOrder();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Safar bekor qilindi'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCompleteDialog(HomeState state) {
+    // Calculate trip duration (mock - in real app this would be tracked)
+    final duration = (state.traveledDistance * 3).round(); // ~3 minutes per km
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TripCompleteDialog(
+        totalPrice: state.currentPrice,
+        distance: state.traveledDistance,
+        duration: duration,
+      ),
+    ).then((_) {
+      // Complete the order after dialog closes
+      context.read<HomeCubit>().completeOrder();
+    });
+  }
 }
+
