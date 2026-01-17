@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/auth_cubit.dart';
 
@@ -38,38 +40,22 @@ class _PhonePageState extends State<PhonePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black.withOpacity(0.05),
-        title: const Text(
+        title: Text(
           'Telefon raqamingiz',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 20,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
           ),
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Skip for now - navigate to home or onboarding end
-              context.go('/complete-profile');
-            },
-            child: Text(
-              'O\'tkazib yuborish',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -82,7 +68,7 @@ class _PhonePageState extends State<PhonePage> {
                 backgroundColor: AppColors.error,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
               ),
             );
@@ -97,47 +83,52 @@ class _PhonePageState extends State<PhonePage> {
             ),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.only(
+              left: 24.w,
+              right: 24.w,
+              top: 24.h,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40.h),
                   // Logo Container
                   Center(
                     child: Container(
-                      width: 140,
-                      height: 140,
+                      width: 140.w,
+                      height: 140.h,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(32),
+                        borderRadius: BorderRadius.circular(32.r),
                         border: Border.all(
                           color: AppColors.primary.withOpacity(0.3),
-                          width: 2,
+                          width: 2.w,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withOpacity(0.15),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
-                            spreadRadius: -5,
+                            blurRadius: 30.r,
+                            offset: Offset(0, 10.h),
+                            spreadRadius: -5.r,
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24.w),
                       child: Image.asset(
                         'assets/images/taxi_logo.png',
                         fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40.h),
                   // Title
-                  const Text(
+                  Text(
                     'Telefon raqamingizni kiriting',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 28.sp,
                       fontWeight: FontWeight.w900,
                       color: AppColors.textPrimary,
                       letterSpacing: -1.2,
@@ -145,12 +136,12 @@ class _PhonePageState extends State<PhonePage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.h),
                   // Subtitle
                   Text(
                     'Biz sizga tasdiqlash kodini yuboramiz',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 15.sp,
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
                       height: 1.5,
@@ -158,18 +149,21 @@ class _PhonePageState extends State<PhonePage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 50),
+                  SizedBox(height: 50.h),
                   // Phone Input
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1.5.w,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.03),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
+                          blurRadius: 15.r,
+                          offset: Offset(0, 4.h),
                         ),
                       ],
                     ),
@@ -177,8 +171,9 @@ class _PhonePageState extends State<PhonePage> {
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       inputFormatters: [_phoneMaskFormatter],
-                      style: const TextStyle(
-                        fontSize: 16,
+                      scrollPadding: EdgeInsets.only(bottom: 200.h),
+                      style: TextStyle(
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
@@ -189,12 +184,14 @@ class _PhonePageState extends State<PhonePage> {
                           color: Colors.grey[400],
                           fontWeight: FontWeight.w500,
                         ),
-                        labelStyle: const TextStyle(
+                        labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          margin: const EdgeInsets.all(12),
+                          width: 56.w,
+                          height: 56.h,
+                          margin: EdgeInsets.all(12.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -202,41 +199,45 @@ class _PhonePageState extends State<PhonePage> {
                                 AppColors.primary.withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
-                          child: const Icon(
-                            Icons.phone_android,
-                            color: AppColors.primary,
+                          child: Center(
+                            child: SvgPicture.asset(
+                              'assets/icons/phone_duotone.svg',
+                              width: 24.w,
+                              height: 24.h,
+                            ),
                           ),
                         ),
+                        prefixIconConstraints: BoxConstraints(
+                          minWidth: 56.w,
+                          minHeight: 56.h,
+                        ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                           borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(
+                          borderRadius: BorderRadius.circular(20.r),
+                          borderSide: BorderSide(
                             color: AppColors.primary,
-                            width: 2,
+                            width: 2.w,
                           ),
                         ),
                         errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                           borderSide: BorderSide(
                             color: Colors.red[300]!,
-                            width: 1.5,
+                            width: 1.5.w,
                           ),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          borderSide: BorderSide(color: Colors.red, width: 2.w),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 20,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 20.h,
                         ),
                       ),
                       validator: (value) {
@@ -250,13 +251,13 @@ class _PhonePageState extends State<PhonePage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40.h),
                   // Continue Button
                   BlocBuilder<AuthCubit, AuthState>(
                     builder: (context, state) {
                       if (state is AuthLoading) {
                         return Container(
-                          height: 60,
+                          height: 60.h,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -264,7 +265,7 @@ class _PhonePageState extends State<PhonePage> {
                                 AppColors.primary.withOpacity(0.5),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(20.r),
                           ),
                           child: const Center(
                             child: CircularProgressIndicator(
@@ -274,18 +275,18 @@ class _PhonePageState extends State<PhonePage> {
                         );
                       }
                       return Container(
-                        height: 60,
+                        height: 60.h,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
                           ),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withOpacity(0.4),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                              spreadRadius: -2,
+                              blurRadius: 20.r,
+                              offset: Offset(0, 8.h),
+                              spreadRadius: -2.r,
                             ),
                           ],
                         ),
@@ -293,8 +294,8 @@ class _PhonePageState extends State<PhonePage> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: _sendOtp,
-                            borderRadius: BorderRadius.circular(20),
-                            child: const Center(
+                            borderRadius: BorderRadius.circular(20.r),
+                            child: Center(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -302,16 +303,16 @@ class _PhonePageState extends State<PhonePage> {
                                     'Davom etish',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 18,
+                                      fontSize: 18.sp,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: -0.5,
                                     ),
                                   ),
-                                  SizedBox(width: 8),
+                                  SizedBox(width: 8.w),
                                   Icon(
                                     Icons.arrow_forward_rounded,
                                     color: Colors.white,
-                                    size: 24,
+                                    size: 24.w,
                                   ),
                                 ],
                               ),

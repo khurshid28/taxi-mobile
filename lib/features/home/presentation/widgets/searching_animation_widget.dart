@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class SearchingAnimationWidget extends StatefulWidget {
@@ -45,54 +46,54 @@ class _SearchingAnimationWidgetState extends State<SearchingAnimationWidget>
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      margin: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadow,
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.r,
+            offset: Offset(0.w, 5.h),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(widget.icon, size: 48, color: AppColors.primary),
-          const SizedBox(height: 16),
+          Icon(widget.icon, size: 48.w, color: AppColors.primary),
+          SizedBox(height: 16.h),
           Shimmer.fromColors(
             baseColor: AppColors.textPrimary,
             highlightColor: AppColors.primary,
             period: const Duration(milliseconds: 1500),
             child: Text(
               widget.text,
-              style: const TextStyle(
-                fontSize: 18,
+              style: TextStyle(
+                fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           Stack(
             alignment: Alignment.center,
             children: [
               Container(
-                height: 4,
+                height: 4.h,
                 decoration: BoxDecoration(
                   color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
               SlideTransition(
                 position: _slideAnimation,
                 child: Container(
-                  width: 100,
-                  height: 4,
+                  width: 100.w,
+                  height: 4.h,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -101,7 +102,7 @@ class _SearchingAnimationWidgetState extends State<SearchingAnimationWidget>
                         AppColors.primary.withOpacity(0.3),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
               ),

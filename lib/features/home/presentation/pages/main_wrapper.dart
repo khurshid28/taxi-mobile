@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../orders/presentation/pages/orders_page.dart';
@@ -38,17 +39,17 @@ class _MainWrapperState extends State<MainWrapper> {
         backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: const TextStyle(
+        selectedLabelStyle: TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: 12,
+          fontSize: 12.sp,
         ),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        unselectedLabelStyle: TextStyle(fontSize: 12.sp),
         items: [
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/home_duotone.svg',
-              width: 26,
-              height: 26,
+              width: 26.w,
+              height: 26.h,
               colorFilter: ColorFilter.mode(
                 AppColors.textSecondary,
                 BlendMode.srcIn,
@@ -56,8 +57,8 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
             activeIcon: SvgPicture.asset(
               'assets/icons/home_duotone.svg',
-              width: 28,
-              height: 28,
+              width: 28.w,
+              height: 28.h,
               colorFilter: const ColorFilter.mode(
                 AppColors.primary,
                 BlendMode.srcIn,
@@ -68,8 +69,8 @@ class _MainWrapperState extends State<MainWrapper> {
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/orders_duotone.svg',
-              width: 26,
-              height: 26,
+              width: 26.w,
+              height: 26.h,
               colorFilter: ColorFilter.mode(
                 AppColors.textSecondary,
                 BlendMode.srcIn,
@@ -77,20 +78,20 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
             activeIcon: SvgPicture.asset(
               'assets/icons/orders_duotone.svg',
-              width: 28,
-              height: 28,
+              width: 28.w,
+              height: 28.h,
               colorFilter: const ColorFilter.mode(
                 AppColors.primary,
                 BlendMode.srcIn,
               ),
             ),
-            label: 'Zakazlarim',
+            label: 'Buyurtmalarim',
           ),
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/payment_duotone.svg',
-              width: 26,
-              height: 26,
+              width: 26.w,
+              height: 26.h,
               colorFilter: ColorFilter.mode(
                 AppColors.textSecondary,
                 BlendMode.srcIn,
@@ -98,8 +99,8 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
             activeIcon: SvgPicture.asset(
               'assets/icons/payment_duotone.svg',
-              width: 28,
-              height: 28,
+              width: 28.w,
+              height: 28.h,
               colorFilter: const ColorFilter.mode(
                 AppColors.primary,
                 BlendMode.srcIn,
@@ -110,8 +111,8 @@ class _MainWrapperState extends State<MainWrapper> {
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
               'assets/icons/profile_duotone.svg',
-              width: 26,
-              height: 26,
+              width: 26.w,
+              height: 26.h,
               colorFilter: ColorFilter.mode(
                 AppColors.textSecondary,
                 BlendMode.srcIn,
@@ -119,8 +120,8 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
             activeIcon: SvgPicture.asset(
               'assets/icons/profile_duotone.svg',
-              width: 28,
-              height: 28,
+              width: 28.w,
+              height: 28.h,
               colorFilter: const ColorFilter.mode(
                 AppColors.primary,
                 BlendMode.srcIn,

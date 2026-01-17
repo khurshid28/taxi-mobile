@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/number_formatter.dart';
 import 'activity_page.dart';
+import 'settings_page.dart';
+import 'info_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -30,9 +36,10 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     final name = await StorageHelper.getString('user_name') ?? 'Haydovchi';
-    final phone = await StorageHelper.getString(AppConstants.keyUserPhone) ?? '';
+    final phone =
+        await StorageHelper.getString(AppConstants.keyUserPhone) ?? '';
     final rating = await StorageHelper.getInt('driver_rating') ?? 50;
     final balance = await StorageHelper.getDouble('driver_balance') ?? 295000;
     final trips = await StorageHelper.getInt('total_trips') ?? 6;
@@ -49,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _showTopUpDialog() {
     final amountController = TextEditingController();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -58,37 +65,37 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
                 child: Container(
-                  width: 40,
-                  height: 4,
+                  width: 40.w,
+                  height: 4.h,
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Text(
                 'Balansni to\'ldirish',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -99,24 +106,30 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildAmountChip('500,000', amountController),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Miqdor (so\'m)',
                   hintText: 'Miqdorni kiriting',
-                  prefixIcon: Icon(Icons.attach_money, color: AppColors.primary),
+                  prefixIcon: Icon(
+                    Icons.attach_money,
+                    color: AppColors.primary,
+                  ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(
+                      color: AppColors.primary,
+                      width: 2.w,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               ElevatedButton(
                 onPressed: () async {
                   final amount = double.tryParse(
@@ -135,7 +148,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: Colors.green,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
                     );
@@ -143,21 +156,21 @@ class _ProfilePageState extends State<ProfilePage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'To\'ldirish',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
             ],
           ),
         ),
@@ -171,16 +184,16 @@ class _ProfilePageState extends State<ProfilePage> {
         controller.text = amount.replaceAll(',', '');
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AppColors.primary.withOpacity(0.3)),
         ),
         child: Text(
           amount,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w600,
             color: AppColors.primary,
           ),
@@ -193,20 +206,25 @@ class _ProfilePageState extends State<ProfilePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
         title: const Text('Chiqish'),
         content: const Text('Hisobingizdan chiqmoqchimisiz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Yo\'q', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              'Yo\'q',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
             ),
             child: const Text('Ha', style: TextStyle(color: Colors.white)),
@@ -243,7 +261,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 240.h,
             floating: false,
             pinned: true,
             backgroundColor: AppColors.primary,
@@ -263,72 +281,69 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 20),
+                      SizedBox(height: 16.h),
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
+                          border: Border.all(color: Colors.white, width: 3.w),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                              blurRadius: 10.r,
+                              offset: Offset(0.w, 4.h),
                             ),
                           ],
                         ),
                         child: CircleAvatar(
-                          radius: 50,
+                          radius: 42.r,
                           backgroundColor: Colors.white,
-                          child: Text(
-                            _name.isNotEmpty ? _name[0].toUpperCase() : 'H',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 48.sp,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 12.h),
                       Text(
                         _name,
-                        style: const TextStyle(
-                          fontSize: 24,
+                        style: TextStyle(
+                          fontSize: 22.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         _phone,
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: TextStyle(
+                          fontSize: 14.sp,
                           color: Colors.white70,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 12.h),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 6.h,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.star,
-                              color: _getRatingColor(_rating),
-                              size: 20,
+                              Icons.star_rounded,
+                              color: Colors.amber,
+                              size: 18.sp,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 6.w),
                             Text(
                               'Reyting: $_rating',
-                              style: const TextStyle(
-                                fontSize: 14,
+                              style: TextStyle(
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
@@ -344,7 +359,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
                   // Balance Card
@@ -356,17 +371,17 @@ class _ProfilePageState extends State<ProfilePage> {
                           AppColors.primary.withOpacity(0.8),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(20.r),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
+                          blurRadius: 15.r,
+                          offset: Offset(0.w, 8.h),
                         ),
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -376,23 +391,30 @@ class _ProfilePageState extends State<ProfilePage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Balans',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 14.sp,
                                       color: Colors.white70,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  SizedBox(height: 8.h),
                                   TweenAnimationBuilder(
-                                    tween: Tween<double>(begin: 0, end: _balance),
-                                    duration: const Duration(milliseconds: 1000),
+                                    tween: Tween<double>(
+                                      begin: 0,
+                                      end: _balance,
+                                    ),
+                                    duration: const Duration(
+                                      milliseconds: 1000,
+                                    ),
                                     curve: Curves.easeOut,
                                     builder: (context, double value, child) {
                                       return Text(
-                                        '${value.toStringAsFixed(0)} so\'m',
-                                        style: const TextStyle(
-                                          fontSize: 28,
+                                        NumberFormatter.formatPriceWithCurrency(
+                                          value,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 28.sp,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
@@ -420,7 +442,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   // Stats Row
                   Row(
                     children: [
@@ -432,7 +454,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           color: Colors.blue,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.w),
                       Expanded(
                         child: _buildStatCard(
                           icon: Icons.star,
@@ -443,10 +465,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24.h),
                   // Menu Items
                   _buildMenuItem(
-                    icon: Icons.bar_chart,
+                    svgIcon: 'assets/icons/user_duotone.svg',
+                    title: 'Profil tahrirlash',
+                    onTap: () {
+                      // Navigate to edit profile
+                    },
+                  ),
+                  _buildMenuItem(
+                    svgIcon: 'assets/icons/chart_duotone.svg',
                     title: 'Aktivligim',
                     onTap: () {
                       Navigator.push(
@@ -458,26 +487,43 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                   ),
                   _buildMenuItem(
-                    icon: Icons.account_balance_wallet,
-                    title: 'To\'lovlar',
-                    onTap: () {},
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.history,
-                    title: 'Tarix',
-                    onTap: () {},
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.settings,
+                    svgIcon: 'assets/icons/settings_duotone.svg',
                     title: 'Sozlamalar',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuItem(
-                    icon: Icons.help_outline,
-                    title: 'Yordam',
-                    onTap: () {},
+                    svgIcon: 'assets/icons/info_duotone.svg',
+                    title: 'Ma\'lumotlar',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const InfoPage(),
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 16),
+                  _buildMenuItem(
+                    svgIcon: 'assets/icons/phone_duotone.svg',
+                    title: 'Yordam',
+                    onTap: () async {
+                      final Uri phoneUri = Uri(
+                        scheme: 'tel',
+                        path: '+998901234567',
+                      );
+                      if (await canLaunchUrl(phoneUri)) {
+                        await launchUrl(phoneUri);
+                      }
+                    },
+                  ),
+                  SizedBox(height: 16.h),
                   _buildMenuItem(
                     icon: Icons.logout,
                     title: 'Chiqish',
@@ -500,44 +546,41 @@ class _ProfilePageState extends State<ProfilePage> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 10.r,
+            offset: Offset(0.w, 4.h),
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 28.w),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 24.sp,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -545,60 +588,102 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildMenuItem({
-    required IconData icon,
+    IconData? icon,
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    String? svgIcon,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            (isDestructive ? Colors.red : AppColors.primary).withOpacity(0.01),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: (isDestructive ? Colors.red : AppColors.primary).withOpacity(
+            0.1,
+          ),
+          width: 2.w,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12.r,
+            offset: Offset(0.w, 4.h),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20.r),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 18.h),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 48.w,
+                  height: 48.h,
                   decoration: BoxDecoration(
-                    color: (isDestructive ? Colors.red : AppColors.primary)
-                        .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      colors: [
+                        (isDestructive ? Colors.red : AppColors.primary),
+                        (isDestructive ? Colors.red : AppColors.primary)
+                            .withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDestructive ? Colors.red : AppColors.primary)
+                            .withOpacity(0.3),
+                        blurRadius: 10.r,
+                        offset: Offset(0, 4.h),
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    icon,
-                    color: isDestructive ? Colors.red : AppColors.primary,
-                    size: 20,
+                  child: Center(
+                    child: svgIcon != null
+                        ? SvgPicture.asset(
+                            svgIcon,
+                            width: 24.w,
+                            height: 24.h,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          )
+                        : Icon(icon, color: Colors.white, size: 24.w),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: isDestructive ? Colors.red : AppColors.textPrimary,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: isDestructive
+                          ? Colors.red[700]
+                          : AppColors.textPrimary,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textSecondary,
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey[400],
+                  size: 28.w,
                 ),
               ],
             ),
@@ -632,42 +717,42 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
                     Shimmer.fromColors(
                       baseColor: Colors.white.withOpacity(0.3),
                       highlightColor: Colors.white.withOpacity(0.5),
                       child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
+                        width: 100.w,
+                        height: 100.h,
+                        decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     Shimmer.fromColors(
                       baseColor: Colors.white.withOpacity(0.3),
                       highlightColor: Colors.white.withOpacity(0.5),
                       child: Container(
-                        width: 150,
-                        height: 24,
+                        width: 150.w,
+                        height: 24.h,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Shimmer.fromColors(
                       baseColor: Colors.white.withOpacity(0.3),
                       highlightColor: Colors.white.withOpacity(0.5),
                       child: Container(
-                        width: 100,
-                        height: 14,
+                        width: 100.w,
+                        height: 14.h,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(7),
+                          borderRadius: BorderRadius.circular(7.r),
                         ),
                       ),
                     ),
@@ -678,21 +763,21 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.w),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               Shimmer.fromColors(
                 baseColor: Colors.grey[300]!,
                 highlightColor: Colors.grey[100]!,
                 child: Container(
-                  height: 120,
+                  height: 120.h,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               Row(
                 children: [
                   Expanded(
@@ -700,45 +785,48 @@ class _ProfilePageState extends State<ProfilePage> {
                       baseColor: Colors.grey[300]!,
                       highlightColor: Colors.grey[100]!,
                       child: Container(
-                        height: 100,
+                        height: 100.h,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Shimmer.fromColors(
                       baseColor: Colors.grey[300]!,
                       highlightColor: Colors.grey[100]!,
                       child: Container(
-                        height: 100,
+                        height: 100.h,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              ...List.generate(4, (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Shimmer.fromColors(
-                  baseColor: Colors.grey[300]!,
-                  highlightColor: Colors.grey[100]!,
-                  child: Container(
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+              SizedBox(height: 24.h),
+              ...List.generate(
+                4,
+                (index) => Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Container(
+                      height: 60.h,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
                     ),
                   ),
                 ),
-              )),
+              ),
             ]),
           ),
         ),

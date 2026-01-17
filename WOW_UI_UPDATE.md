@@ -4,8 +4,8 @@
 
 ### 1. ⭐ Rating System
 - **Boshlang'ich reyting**: 50 ball
-- **Zakasni qabul qilish**: +2 ball
-- **Zakasni rad etish**: -5 ball
+- **Buyurtmani qabul qilish**: +2 ball
+- **Buyurtmani rad etish**: -5 ball
 - **Reyting ranglari**: 
   - 80+ = Yashil (A'lo)
   - 50-79 = To'q sariq (O'rtacha)
@@ -162,8 +162,8 @@ lib/
 4. Tortib tushing - yangilash
 
 ### Reyting:
-- Har safar zakasni qabul qilsangiz: **+2 ball** 🟢
-- Har safar zakasni rad etsangiz: **-5 ball** 🔴
+- Har safar buyurtmani qabul qilsangiz: **+2 ball** 🟢
+- Har safar buyurtmani rad etsangiz: **-5 ball** 🔴
 - Profildan reytingingizni ko'ring
 
 ## Demo Ma'lumotlar

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:pinput/pinput.dart';
 import 'dart:async';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/auth_cubit.dart';
@@ -16,11 +18,8 @@ class VerifyOtpPage extends StatefulWidget {
 }
 
 class _VerifyOtpPageState extends State<VerifyOtpPage> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  final _pinController = TextEditingController();
+  final _focusNode = FocusNode();
 
   int _resendTimer = 60;
   Timer? _timer;
@@ -54,7 +53,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   }
 
   void _verifyOtp() {
-    final otp = _controllers.map((c) => c.text).join();
+    final otp = _pinController.text;
     if (otp.length == 6) {
       context.read<AuthCubit>().verifyOtp(otp);
     }
@@ -63,12 +62,8 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _pinController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -76,24 +71,22 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           'Tasdiqlash',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 20,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
           ),
         ),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -117,14 +110,19 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.only(
+              left: 24.w,
+              right: 24.w,
+              top: 24.h,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 100.w,
+                  height: 100.h,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -136,24 +134,24 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        blurRadius: 30.r,
+                        offset: Offset(0, 10.h),
                       ),
                     ],
                   ),
                   child: Center(
                     child: SvgPicture.asset(
                       'assets/icons/message_duotone.svg',
-                      width: 50,
-                      height: 50,
+                      width: 50.w,
+                      height: 50.h,
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                const Text(
+                SizedBox(height: 32.h),
+                Text(
                   'Tasdiqlash kodini kiriting',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 28.sp,
                     fontWeight: FontWeight.w900,
                     color: AppColors.textPrimary,
                     letterSpacing: -1.2,
@@ -161,88 +159,133 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   '${widget.phoneNumber} raqamiga yuborildi',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 15.sp,
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.2,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 50),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(6, (index) {
-                    final isFilled = _controllers[index].text.isNotEmpty;
-                    return Container(
-                      width: 52,
-                      height: 60,
+                SizedBox(height: 50.h),
+                Center(
+                  child: Pinput(
+                    controller: _pinController,
+                    focusNode: _focusNode,
+                    length: 6,
+                    autofocus: true,
+                    onCompleted: (pin) => _verifyOtp(),
+                    defaultPinTheme: PinTheme(
+                      width: 56.w,
+                      height: 64.h,
+                      textStyle: TextStyle(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                      ),
                       decoration: BoxDecoration(
-                        gradient: isFilled
-                            ? LinearGradient(
-                                colors: [
-                                  AppColors.primary.withOpacity(0.1),
-                                  AppColors.primary.withOpacity(0.05),
-                                ],
-                              )
-                            : null,
-                        color: isFilled ? null : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
-                          color: isFilled
-                              ? AppColors.primary
-                              : Colors.grey[300]!,
-                          width: isFilled ? 2.5 : 1.5,
+                          color: Colors.grey[300]!,
+                          width: 2.w,
                         ),
                         boxShadow: [
-                          if (isFilled)
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.2),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8.r,
+                            offset: Offset(0, 2.h),
+                          ),
                         ],
                       ),
-                      child: TextFormField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: const InputDecoration(
-                          counterText: '',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onChanged: (value) {
-                          setState(() {});
-                          if (value.isNotEmpty && index < 5) {
-                            _focusNodes[index + 1].requestFocus();
-                          } else if (value.isEmpty && index > 0) {
-                            _focusNodes[index - 1].requestFocus();
-                          }
-                          if (index == 5 && value.isNotEmpty) {
-                            _verifyOtp();
-                          }
-                        },
+                    ),
+                    focusedPinTheme: PinTheme(
+                      width: 56.w,
+                      height: 64.h,
+                      textStyle: TextStyle(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
                       ),
-                    );
-                  }),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: AppColors.primary,
+                          width: 2.5.w,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.25),
+                            blurRadius: 16.r,
+                            offset: Offset(0, 4.h),
+                          ),
+                        ],
+                      ),
+                    ),
+                    submittedPinTheme: PinTheme(
+                      width: 56.w,
+                      height: 64.h,
+                      textStyle: TextStyle(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withOpacity(0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: AppColors.primary,
+                          width: 2.5.w,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.35),
+                            blurRadius: 20.r,
+                            offset: Offset(0, 6.h),
+                          ),
+                        ],
+                      ),
+                    ),
+                    errorPinTheme: PinTheme(
+                      width: 56.w,
+                      height: 64.h,
+                      textStyle: TextStyle(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.red,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(color: Colors.red, width: 2.w),
+                      ),
+                    ),
+                    hapticFeedbackType: HapticFeedbackType.lightImpact,
+                    cursor: Container(
+                      width: 2.w,
+                      height: 32.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (context, state) {
                     if (state is AuthLoading) {
                       return Container(
-                        height: 60,
+                        height: 60.h,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -250,7 +293,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                               AppColors.primary.withOpacity(0.5),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: const Center(
                           child: CircularProgressIndicator(color: Colors.white),
@@ -258,17 +301,17 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                       );
                     }
                     return Container(
-                      height: 60,
+                      height: 60.h,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
                         ),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.r),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            blurRadius: 20.r,
+                            offset: Offset(0, 8.h),
                           ),
                         ],
                       ),
@@ -276,13 +319,13 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: _verifyOtp,
-                          borderRadius: BorderRadius.circular(20),
-                          child: const Center(
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Center(
                             child: Text(
                               'Tasdiqlash',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize: 18.sp,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -292,7 +335,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 TextButton(
                   onPressed: _resendTimer == 0 ? _resendOtp : null,
                   child: Text(

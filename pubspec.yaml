@@ -59,6 +59,7 @@ dependencies:
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
   flutter_screenutil: ^5.9.3
+  pinput: ^5.0.0
   
   # Image Picker
   image_picker: ^1.1.2

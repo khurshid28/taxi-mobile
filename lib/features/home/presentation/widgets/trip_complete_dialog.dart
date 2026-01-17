@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class TripCompleteDialog extends StatefulWidget {
@@ -68,21 +69,21 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32.r)),
       child: Container(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32.w),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(32.r),
           border: Border.all(
             color: AppColors.primary.withOpacity(0.2),
-            width: 2,
+            width: 2.w,
           ),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withOpacity(0.15),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+              blurRadius: 40.r,
+              offset: Offset(0.w, 20.h),
               spreadRadius: -5,
             ),
           ],
@@ -99,8 +100,8 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   child: Transform.rotate(
                     angle: _rotationAnimation.value,
                     child: Container(
-                      width: 100,
-                      height: 100,
+                      width: 100.w,
+                      height: 100.h,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -114,16 +115,16 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
+                            blurRadius: 30.r,
+                            offset: Offset(0.w, 10.h),
                           ),
                         ],
                       ),
                       child: Center(
                         child: SvgPicture.asset(
                           'assets/icons/success_duotone.svg',
-                          width: 60,
-                          height: 60,
+                          width: 60.w,
+                          height: 60.h,
                         ),
                       ),
                     ),
@@ -131,33 +132,33 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                 );
               },
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
-            const Text(
+            Text(
               'Safar tugadi!',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 28.sp,
                 fontWeight: FontWeight.w900,
                 color: AppColors.textPrimary,
                 letterSpacing: -1.2,
                 height: 1.1,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'Muvaffaqiyatli yakunlandi',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 15.sp,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
 
             // Total price with animation
             Container(
-              padding: const EdgeInsets.all(28),
+              padding: EdgeInsets.all(28.w),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -167,16 +168,16 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(24.r),
                 border: Border.all(
                   color: AppColors.primary.withOpacity(0.3),
-                  width: 2,
+                  width: 2.w,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
+                    blurRadius: 20.r,
+                    offset: Offset(0.w, 4.h),
                   ),
                 ],
               ),
@@ -185,13 +186,13 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   Text(
                     'Jami summa',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       color: Colors.grey[700],
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10.h),
                   AnimatedBuilder(
                     animation: _counterAnimation,
                     builder: (context, child) {
@@ -209,23 +210,23 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                               period: const Duration(milliseconds: 1500),
                               child: Text(
                                 priceText,
-                                style: const TextStyle(
-                                  fontSize: 40,
+                                style: TextStyle(
+                                  fontSize: 40.sp,
                                   fontWeight: FontWeight.w900,
                                   color: AppColors.primary,
                                   letterSpacing: -1.5,
-                                  height: 1,
+                                  height: 1.h,
                                 ),
                               ),
                             )
                           : Text(
                               priceText,
-                              style: const TextStyle(
-                                fontSize: 40,
+                              style: TextStyle(
+                                fontSize: 40.sp,
                                 fontWeight: FontWeight.w900,
                                 color: AppColors.primary,
                                 letterSpacing: -1.5,
-                                height: 1,
+                                height: 1.h,
                               ),
                             );
                     },
@@ -234,7 +235,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Trip details
             Row(
@@ -245,7 +246,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                   label: 'Masofa',
                   value: '${widget.distance.toStringAsFixed(1)} km',
                 ),
-                Container(width: 1, height: 40, color: AppColors.divider),
+                Container(width: 1.w, height: 40.h, color: AppColors.divider),
                 _buildDetailItem(
                   icon: Icons.timer,
                   label: 'Vaqt',
@@ -254,7 +255,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               ],
             ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
 
             // Close button
             SizedBox(
@@ -262,15 +263,18 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Yopish',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -287,17 +291,17 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
   }) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.primary, size: 28),
-        const SizedBox(height: 8),
+        Icon(icon, color: AppColors.primary, size: 28.w),
+        SizedBox(height: 8.h),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4.h),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
+          style: TextStyle(
+            fontSize: 16.sp,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),

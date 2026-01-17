@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:taxi_mobile/core/theme/app_colors.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -88,14 +89,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             children: [
               // Skip button
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(width: 100),
+                    SizedBox(width: 100.w),
                     _buildPageIndicator(),
                     SizedBox(
-                      width: 100,
+                      width: 100.w,
                       child: _currentPage < _items.length - 1
                           ? Container(
                               decoration: BoxDecoration(
@@ -106,7 +107,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                         .withOpacity(0.1),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(20.r),
                                 border: Border.all(
                                   color: _items[_currentPage].gradient[0]
                                       .withOpacity(0.3),
@@ -116,8 +117,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                   BoxShadow(
                                     color: _items[_currentPage].gradient[0]
                                         .withOpacity(0.2),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                                    blurRadius: 12.r,
+                                    offset: Offset(0.w, 4.h),
                                   ),
                                 ],
                               ),
@@ -125,11 +126,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: _skipOnboarding,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(20.r),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.w,
+                                      vertical: 10.h,
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -141,17 +142,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                           style: TextStyle(
                                             color: _items[_currentPage]
                                                 .gradient[1],
-                                            fontSize: 14,
+                                            fontSize: 14.sp,
                                             fontWeight: FontWeight.w700,
                                             letterSpacing: -0.2,
                                           ),
                                         ),
-                                        const SizedBox(width: 4),
+                                        SizedBox(width: 4.w),
                                         Icon(
                                           Icons.arrow_forward_rounded,
                                           color:
                                               _items[_currentPage].gradient[1],
-                                          size: 18,
+                                          size: 18.w,
                                         ),
                                       ],
                                     ),
@@ -179,9 +180,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
               // Next/Get Started button
               Padding(
-                padding: const EdgeInsets.all(32),
+                padding: EdgeInsets.all(32.w),
                 child: Column(
-                  children: [_buildNextButton(), const SizedBox(height: 20)],
+                  children: [
+                    _buildNextButton(),
+                    SizedBox(height: 20.h),
+                  ],
                 ),
               ),
             ],
@@ -198,11 +202,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _items.length,
         (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          height: 8,
+          margin: EdgeInsets.symmetric(horizontal: 4.w),
+          height: 8.h,
           width: _currentPage == index ? 32 : 8,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(4.r),
             color: _currentPage == index
                 ? _items[_currentPage].gradient[0]
                 : Colors.grey[300],
@@ -210,8 +214,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ? [
                     BoxShadow(
                       color: _items[_currentPage].gradient[0].withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      blurRadius: 8.r,
+                      offset: Offset(0.w, 2.h),
                     ),
                   ]
                 : null,
@@ -223,14 +227,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _buildPageContent(OnboardingItem item) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: EdgeInsets.symmetric(horizontal: 32.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Image container with gradient background
           Container(
-            width: 280,
-            height: 280,
+            width: 280.w,
+            height: 280.h,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -244,16 +248,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
               boxShadow: [
                 BoxShadow(
                   color: item.gradient[0].withOpacity(0.3),
-                  blurRadius: 60,
-                  offset: const Offset(0, 20),
+                  blurRadius: 60.r,
+                  offset: Offset(0.w, 20.h),
                   spreadRadius: -10,
                 ),
               ],
             ),
             child: Center(
               child: Container(
-                width: 220,
-                height: 220,
+                width: 220.w,
+                height: 220.h,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: item.gradient,
@@ -264,28 +268,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   boxShadow: [
                     BoxShadow(
                       color: item.gradient[1].withOpacity(0.4),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
+                      blurRadius: 30.r,
+                      offset: Offset(0.w, 15.h),
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
                     item.image,
-                    style: const TextStyle(fontSize: 100, height: 1),
+                    style: TextStyle(fontSize: 100.sp, height: 1.h),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 60),
+          SizedBox(height: 60.h),
 
           // Title
           Text(
             item.title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 32,
+              fontSize: 32.sp,
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
               letterSpacing: -1.2,
@@ -293,20 +297,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
               shadows: [
                 Shadow(
                   color: item.gradient[0].withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+                  blurRadius: 20.r,
+                  offset: Offset(0.w, 4.h),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // Description
           Text(
             item.description,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 16.sp,
               color: Colors.grey[700],
               fontWeight: FontWeight.w500,
               height: 1.6,
@@ -322,19 +326,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final isLastPage = _currentPage == _items.length - 1;
     return Container(
       width: double.infinity,
-      height: 60,
+      height: 60.h,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _items[_currentPage].gradient,
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: _items[_currentPage].gradient[0].withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 20.r,
+            offset: Offset(0.w, 8.h),
             spreadRadius: -2,
           ),
         ],
@@ -343,25 +347,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: _nextPage,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   isLastPage ? 'Boshlash' : 'Keyingisi',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Icon(
+                SizedBox(width: 8.w),
+                Icon(
                   Icons.arrow_forward_rounded,
                   color: Colors.white,
-                  size: 24,
+                  size: 24.w,
                 ),
               ],
             ),
