@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math';
 import 'home_state.dart';
 import '../../../../core/utils/notification_service.dart';
+import '../../../../core/utils/sound_service.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/models/order_model.dart';
 
@@ -257,6 +258,10 @@ class HomeCubit extends Cubit<HomeState> {
           status: OrderStatus.orderReceived,
           currentOrder: order,
         ));
+        
+        // Play new order sound and show notification
+        SoundService().playNewOrderSound();
+        NotificationService().showNewOrderNotification();
       },
     );
   }
@@ -274,6 +279,9 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void acceptOrder() async {
+    // Play acceptance sound
+    await SoundService().playOrderAcceptedSound();
+    
     // Increase rating by 2 for accepting order
     final currentRating = await StorageHelper.getInt('driver_rating') ?? 50;
     final newRating = (currentRating + 2).clamp(0, 100);

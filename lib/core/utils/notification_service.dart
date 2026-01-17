@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'sound_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -27,6 +28,7 @@ class NotificationService {
   Future<void> showNotification({
     required String title,
     required String body,
+    bool playSound = true,
   }) async {
     const androidDetails = AndroidNotificationDetails(
       'taxi_channel',
@@ -34,12 +36,15 @@ class NotificationService {
       channelDescription: 'Taxi order notifications',
       importance: Importance.high,
       priority: Priority.high,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('notification'),
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: 'notification.mp3',
     );
 
     const details = NotificationDetails(
@@ -52,6 +57,19 @@ class NotificationService {
       title,
       body,
       details,
+    );
+
+    // Play custom sound through SoundService
+    if (playSound) {
+      await SoundService().playNewOrderSound();
+    }
+  }
+
+  Future<void> showNewOrderNotification() async {
+    await showNotification(
+      title: '🚕 Yangi buyurtma!',
+      body: 'Yangi buyurtma keldi. Qabul qilish uchun bosing',
+      playSound: true,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'core/utils/notification_service.dart';
+import 'core/utils/sound_service.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/profile/presentation/cubit/profile_cubit.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
@@ -13,6 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
   await NotificationService().initialize();
+  await SoundService().initialize();
   runApp(const MyApp());
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/sound_service.dart';
+import '../../../../core/utils/storage_helper.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,6 +16,33 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _soundEnabled = true;
   String _language = 'O\'zbek';
   String _theme = 'Yorqin';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final soundEnabled = await StorageHelper.getBool('sound_enabled') ?? true;
+    setState(() {
+      _soundEnabled = soundEnabled;
+      SoundService().setSoundEnabled(soundEnabled);
+    });
+  }
+
+  Future<void> _saveSoundSetting(bool value) async {
+    await StorageHelper.saveBool('sound_enabled', value);
+    setState(() {
+      _soundEnabled = value;
+      SoundService().setSoundEnabled(value);
+    });
+    
+    // Test sound when enabling
+    if (value) {
+      await SoundService().playNewOrderSound();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
               'Bildirishnoma ovozlari',
               Icons.volume_up_rounded,
               _soundEnabled,
-              (value) => setState(() => _soundEnabled = value),
+              (value) => _saveSoundSetting(value),
             ),
           ]),
           SizedBox(height: 16.h),

@@ -13,6 +13,7 @@ import '../widgets/order_in_progress_widget.dart';
 import '../widgets/searching_animation_widget.dart';
 import '../widgets/cancel_trip_sheet.dart';
 import '../widgets/trip_complete_dialog.dart';
+import '../widgets/home_shimmer_loading.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -65,7 +66,9 @@ class _HomePageState extends State<HomePage> {
         },
         builder: (context, state) {
           if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: HomeShimmerLoading(),
+            );
           }
 
           return Stack(
