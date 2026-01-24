@@ -11,7 +11,7 @@ class OrderInProgressWidget extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback? onPickupClient;
   final VoidCallback? onToggleTimeout;
-  final VoidCallback? onStopWaitingTimer;
+  final VoidCallback? onToggleWaitingTimer;
   final double? distanceToClient;
   final String? clientPhone;
   final String? clientName;
@@ -33,7 +33,7 @@ class OrderInProgressWidget extends StatelessWidget {
     required this.onCancel,
     this.onPickupClient,
     this.onToggleTimeout,
-    this.onStopWaitingTimer,
+    this.onToggleWaitingTimer,
     this.distanceToClient,
     this.clientPhone,
     this.clientName,
@@ -317,8 +317,10 @@ class OrderInProgressWidget extends StatelessWidget {
                       ),
                     ),
 
-                    // Waiting time (if waiting for client)
-                    if (isWaitingForClient) ...[
+                    // Waiting time (show when waiting for client OR during trip with active timer)
+                    if (waitingSeconds > 0 &&
+                        (isWaitingForClient ||
+                            (!isWaitingForClient && !isGoingToClient))) ...[
                       SizedBox(height: 12.h),
                       Container(
                         padding: EdgeInsets.all(12.w),
@@ -341,24 +343,27 @@ class OrderInProgressWidget extends StatelessWidget {
                               color: waitingSeconds > 120
                                   ? Colors.orange
                                   : Colors.green,
+                              size: 24.sp,
                             ),
-                            SizedBox(width: 8.w),
+                            SizedBox(width: 12.w),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Kutish vaqti: ${_formatWaitingTime(waitingSeconds)}',
+                                    'Kutish: ${_formatWaitingTime(waitingSeconds)}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 15.sp,
                                       color: waitingSeconds > 120
                                           ? Colors.orange[900]
                                           : Colors.green[900],
                                     ),
                                   ),
+                                  SizedBox(height: 4.h),
                                   if (waitingSeconds <= 120)
                                     Text(
-                                      '${((120 - waitingSeconds) / 60.0).toStringAsFixed(1)} daqiqa bepul',
+                                      '2 daqiqa bepul',
                                       style: TextStyle(
                                         fontSize: 12.sp,
                                         color: Colors.green[700],
@@ -379,36 +384,67 @@ class OrderInProgressWidget extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            // Timeout toggle button
-                            IconButton(
-                              onPressed: onToggleTimeout,
-                              icon: Icon(
-                                isTimeoutEnabled
-                                    ? Icons.pause_circle
-                                    : Icons.play_circle,
-                                color: isTimeoutEnabled
-                                    ? Colors.orange
-                                    : Colors.grey,
-                                size: 28.sp,
-                              ),
-                              tooltip: isTimeoutEnabled
-                                  ? 'Timeout o\'chirish'
-                                  : 'Timeout yoqish',
-                            ),
-                            // Stop waiting timer button
-                            IconButton(
-                              onPressed: onStopWaitingTimer,
-                              icon: Icon(
-                                Icons.stop_circle,
-                                color: Colors.red,
-                                size: 28.sp,
-                              ),
-                              tooltip: 'Kutishni to\'xtatish',
-                            ),
                           ],
                         ),
                       ),
                     ],
+
+                    // "Kutishni boshlash/tugatish" toggle button - show only during inProgress (after "Qani ketdik")
+                    // Don't show during goingToClient or waitingForClient
+                    if (!isWaitingForClient &&
+                        !isGoingToClient &&
+                        onToggleWaitingTimer != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: 12.h),
+                        child: Container(
+                          height: 60.h,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: waitingSeconds > 0
+                                  ? [
+                                      const Color(0xFFE53935),
+                                      const Color(0xFFC62828),
+                                    ]
+                                  : [
+                                      const Color(0xFFFF9800),
+                                      const Color(0xFFF57C00),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(30.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (waitingSeconds > 0
+                                            ? Colors.red
+                                            : Colors.orange)
+                                        .withOpacity(0.3),
+                                blurRadius: 8.r,
+                                offset: Offset(0, 3.h),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onToggleWaitingTimer,
+                              borderRadius: BorderRadius.circular(30.r),
+                              child: Center(
+                                child: Text(
+                                  waitingSeconds > 0
+                                      ? 'Kutishni tugatish ⏹️'
+                                      : 'Kutishni boshlash ⏱️',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
                     SizedBox(height: 16.h),
 
@@ -677,7 +713,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        Icons.check_circle,
+                                        Icons.flag_rounded,
                                         color: Colors.white,
                                         size: 22.w,
                                       ),

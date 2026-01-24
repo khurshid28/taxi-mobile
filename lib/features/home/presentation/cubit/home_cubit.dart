@@ -65,8 +65,8 @@ class HomeCubit extends Cubit<HomeState> {
     emit(state.copyWith(isOnline: newOnlineStatus));
 
     if (newOnlineStatus) {
-      // When going online, start order simulation after 7 seconds
-      Timer(const Duration(seconds: 7), () {
+      // When going online, start order simulation after 10 seconds
+      Timer(const Duration(seconds: 10), () {
         if (state.status == OrderStatus.initial && state.isOnline) {
           // Generate random destination 5-8 km away (farther for better testing)
           final destDistance = 5.0 + (_random.nextDouble() * 3); // 5-8 km
@@ -351,9 +351,10 @@ class HomeCubit extends Cubit<HomeState> {
     emit(
       state.copyWith(
         status: OrderStatus.orderAccepted,
-        currentPrice:
-            estimatedPrice, // Show estimated price during trip to client
+        currentPrice: 3000, // Always start with base price 3000
         traveledDistance: 0,
+        waitingSeconds: 0, // Reset waiting timer
+        isWaitingTimerActive: false,
       ),
     );
 
@@ -512,7 +513,9 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void markClientPickedUp() {
-    _stopWaitingTimer();
+    // DON'T stop waiting timer - let it continue to accumulate time
+    // Timer keeps running but toggle button will allow user to pause/resume
+    print('🚗 Client picked up - timer continues: ${state.waitingSeconds}s');
 
     // Generate random destination 4-5 km away from current location
     final randomDistance = 4.0 + (_random.nextDouble() * 1.0); // 4.0 to 5.0 km
@@ -648,6 +651,9 @@ class HomeCubit extends Cubit<HomeState> {
     }
 
     emit(state.copyWith(status: OrderStatus.completed));
+
+    // Clear route immediately to remove line from map
+    emit(state.copyWith(routePoints: [], routeGeometry: null));
 
     // Restart real location updates after simulation (both timer and stream)
     print('✅ Restarting real location tracking...');
@@ -881,13 +887,14 @@ class HomeCubit extends Cubit<HomeState> {
                   heading: heading,
                   distanceToClient: 0,
                   status: OrderStatus.waitingForClient,
+                  currentPrice: 3000, // Keep base price at 3000
                 ),
               );
               print('✅ Status changed to: ${state.status}');
 
-              print('⏱️ Starting waiting timer...');
-              // Start waiting timer AFTER status change
+              // Auto-start waiting timer when arrived at client
               _startWaitingTimer();
+              print('⏱️ Waiting timer auto-started');
 
               return; // Exit timer callback - don't emit again
             }
@@ -1028,19 +1035,38 @@ class HomeCubit extends Cubit<HomeState> {
       }
 
       final newWaitingSeconds = state.waitingSeconds + 1;
-      print('⏱️ Waiting: ${newWaitingSeconds}s (Status: ${state.status})');
+      print(
+        '⏱️ Waiting: ${newWaitingSeconds}s (Status: ${state.status}) | Current price: ${state.currentPrice} som',
+      );
       emit(state.copyWith(waitingSeconds: newWaitingSeconds));
 
-      // After 2 minutes (120 seconds), start charging 1000 som per minute (only if enabled)
-      if (newWaitingSeconds > 120 && state.isTimeoutEnabled) {
+      // After 2 minutes (120 seconds), start charging EVEN while waiting for client
+      if (newWaitingSeconds > 120) {
+        print('⚠️ Over 120 seconds! Calculating waiting charge...');
         final minutesOver = (newWaitingSeconds - 120) / 60.0;
         final waitingCharge = (minutesOver * 1000).round();
-        // Calculate total: base (3000) + road cost + waiting charge
-        final roadCost = (state.traveledDistance * 2500).round();
-        final totalPrice = 3000 + roadCost + waitingCharge;
-        // Round to nearest 500
-        final roundedPrice = ((totalPrice / 500).round() * 500).toInt();
-        emit(state.copyWith(currentPrice: roundedPrice));
+        print(
+          '⏰ Minutes over: ${minutesOver.toStringAsFixed(2)}, Charge: $waitingCharge som',
+        );
+
+        // During waitingForClient: only waiting charge (no road cost yet)
+        // During inProgress: distance tracking handles full price calculation
+        if (state.status == OrderStatus.waitingForClient) {
+          final totalPrice = 3000 + waitingCharge;
+          final roundedPrice = ((totalPrice / 500).round() * 500).toInt();
+          print(
+            '💰 UPDATING PRICE: 3000 + $waitingCharge = $totalPrice → $roundedPrice som',
+          );
+          emit(state.copyWith(currentPrice: roundedPrice));
+          print('✅ Price updated to: ${state.currentPrice} som');
+        } else {
+          print('ℹ️ InProgress status - distance tracking handles price');
+        }
+        // During inProgress, distance tracking handles price updates
+      } else {
+        print(
+          '✅ Still in free 2 minutes (${120 - newWaitingSeconds}s remaining)',
+        );
       }
     });
   }
@@ -1053,10 +1079,15 @@ class HomeCubit extends Cubit<HomeState> {
     print('✅ Waiting timer stopped and reset');
   }
 
-  // Manual stop waiting timer (user action)
-  void stopWaitingTimer() {
-    print('👤 User manually stopped waiting timer');
-    _stopWaitingTimer();
+  // Manual toggle waiting timer (user action - start or stop)
+  void toggleWaitingTimer() {
+    if (state.waitingSeconds == 0) {
+      print('👤 User manually started waiting timer');
+      _startWaitingTimer();
+    } else {
+      print('👤 User manually stopped waiting timer');
+      _stopWaitingTimer();
+    }
   }
 
   // Toggle timeout charging on/off
@@ -1068,8 +1099,11 @@ class HomeCubit extends Cubit<HomeState> {
   void _startDistanceTracking() {
     _distanceTimer?.cancel();
 
+    print('🚗 Starting distance tracking...');
+
     _distanceTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (state.status != OrderStatus.inProgress) {
+        print('⏹️ Distance tracking stopped - Status: ${state.status}');
         timer.cancel();
         return;
       }
@@ -1078,11 +1112,27 @@ class HomeCubit extends Cubit<HomeState> {
       final additionalDistance = 0.1;
       final newDistance = state.traveledDistance + additionalDistance;
 
-      // Calculate price: 3000 base + 2500 per km
-      final rawPrice = 3000 + (newDistance * 2500);
+      // Calculate price: 3000 base + 2500 per km + waiting charge (if applicable)
+      final roadCost = (newDistance * 2500).round();
+
+      // Calculate waiting charge (after 2 minutes, ALWAYS if timer is running)
+      int waitingCharge = 0;
+      if (state.waitingSeconds > 120) {
+        final minutesOver = (state.waitingSeconds - 120) / 60.0;
+        waitingCharge = (minutesOver * 1000).round();
+        print(
+          '💰 Waiting charge: $waitingCharge som (${state.waitingSeconds}s)',
+        );
+      }
+
+      final totalPrice = 3000 + roadCost + waitingCharge;
 
       // Round to nearest 500 (2500, 3000, 3500, etc.)
-      final roundedPrice = ((rawPrice / 500).round() * 500).toInt();
+      final roundedPrice = ((totalPrice / 500).round() * 500).toInt();
+
+      print(
+        '💵 Price update: Distance=${newDistance.toStringAsFixed(2)}km ($roadCost som) + Waiting=$waitingCharge som = $roundedPrice som',
+      );
 
       emit(
         state.copyWith(

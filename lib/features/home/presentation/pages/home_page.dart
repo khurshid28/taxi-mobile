@@ -9,6 +9,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/utils/yandex_arrow_animator.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
@@ -30,6 +31,10 @@ class _HomePageState extends State<HomePage> {
   final List<MapObject> _mapObjects = [];
   Point? _lastCameraPosition;
   bool _hasMovedToInitialLocation = false;
+
+  // Yandex-style arrow animator
+  YandexLikeArrowAnimator? _arrowAnimator;
+  bool _isAnimationRunning = false; // Prevent duplicate animations
 
   // Connectivity
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
@@ -95,10 +100,17 @@ class _HomePageState extends State<HomePage> {
             _hasMovedToInitialLocation = true;
           }
 
-          // Update map objects when state changes
-          _updateMapObjects(state).then((_) {
-            if (mounted) setState(() {});
-          });
+          // Update map objects when state changes (no setState needed)
+          _updateMapObjects(state);
+
+          // Animation is now manually controlled via toggle button
+          // Don't auto-start to give user control
+
+          // Stop animation when order is completed or cancelled
+          if (state.status == OrderStatus.completed ||
+              state.status == OrderStatus.initial) {
+            _stopYandexAnimation();
+          }
         },
         builder: (context, state) {
           return Stack(
@@ -107,8 +119,26 @@ class _HomePageState extends State<HomePage> {
               YandexMap(
                 onMapCreated: (controller) {
                   _mapController = controller;
+
+                  // Initialize Yandex-style arrow animator with callback
+                  _arrowAnimator = YandexLikeArrowAnimator(controller, (
+                    mapObject,
+                  ) {
+                    // Update map objects without setState to avoid infinite render loop
+                    // The map will update automatically through the controller
+                    _mapObjects.removeWhere(
+                      (obj) => obj.mapId == mapObject.mapId,
+                    );
+                    _mapObjects.add(mapObject);
+                  });
+
                   if (state.currentLocation != null) {
                     _moveToLocation(state.currentLocation!);
+                  }
+
+                  // Start animation if route points already exist
+                  if (state.routePoints.isNotEmpty) {
+                    _startYandexAnimation(state.routePoints);
                   }
                 },
                 mapObjects: _mapObjects,
@@ -312,12 +342,20 @@ class _HomePageState extends State<HomePage> {
                     onToggleTimeout: () {
                       context.read<HomeCubit>().toggleTimeout();
                     },
-                    onStopWaitingTimer: () {
-                      context.read<HomeCubit>().stopWaitingTimer();
+                    onToggleWaitingTimer: () {
+                      final cubit = context.read<HomeCubit>();
+                      final isStarting = cubit.state.waitingSeconds == 0;
+
+                      cubit.toggleWaitingTimer();
+
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('⏹️ Kutish to\'xtatildi'),
-                          duration: Duration(seconds: 2),
+                        SnackBar(
+                          content: Text(
+                            isStarting
+                                ? '⏱️ Kutish boshlandi'
+                                : '⏹️ Kutish to\'xtatildi',
+                          ),
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     },
@@ -340,27 +378,74 @@ class _HomePageState extends State<HomePage> {
                 Positioned(
                   bottom: 120.h,
                   right: 16.w,
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(16.r),
-                    child: FloatingActionButton(
-                      onPressed: () {
-                        if (state.currentLocation != null &&
-                            _mapController != null) {
-                          _moveToLocation(state.currentLocation!);
-                        }
-                      },
-                      backgroundColor: AppColors.primary,
-                      elevation: 8,
-                      child: Transform.rotate(
-                        angle: 35 * 3.14159 / 180,
-                        child: Icon(
-                          Icons.navigation,
-                          color: Colors.white,
-                          size: 24.w,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Animation toggle button (only show when order exists and route available)
+                      if (state.currentOrder != null &&
+                          (state.status == OrderStatus.goingToClient ||
+                              state.status == OrderStatus.inProgress))
+                        SizedBox(
+                          width: 56.w,
+                          height: 56.w,
+                          child: Material(
+                            elevation: 8,
+                            borderRadius: BorderRadius.circular(16.r),
+                            child: FloatingActionButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (_isAnimationRunning) {
+                                    _stopYandexAnimation();
+                                  } else if (state.routeGeometry != null &&
+                                      state.routeGeometry!.isNotEmpty) {
+                                    _startYandexAnimation(state.routeGeometry!);
+                                  }
+                                });
+                              },
+                              backgroundColor: _isAnimationRunning
+                                  ? Colors.red
+                                  : AppColors.primary,
+                              elevation: 0,
+                              child: Icon(
+                                _isAnimationRunning ? Icons.close : Icons.route,
+                                color: Colors.white,
+                                size: 24.w,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (state.currentOrder != null &&
+                          (state.status == OrderStatus.goingToClient ||
+                              state.status == OrderStatus.inProgress))
+                        SizedBox(height: 12.h),
+                      // My location button
+                      SizedBox(
+                        width: 56.w,
+                        height: 56.w,
+                        child: Material(
+                          elevation: 8,
+                          borderRadius: BorderRadius.circular(16.r),
+                          child: FloatingActionButton(
+                            onPressed: () {
+                              if (state.currentLocation != null &&
+                                  _mapController != null) {
+                                _moveToLocation(state.currentLocation!);
+                              }
+                            },
+                            backgroundColor: AppColors.primary,
+                            elevation: 0,
+                            child: Transform.rotate(
+                              angle: 35 * 3.14159 / 180,
+                              child: Icon(
+                                Icons.navigation,
+                                color: Colors.white,
+                                size: 24.w,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
             ],
@@ -503,24 +588,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _updateMapObjects(HomeState state) async {
-    // Remove old objects
-    _mapObjects.removeWhere(
-      (obj) =>
-          obj.mapId.value == 'current_location' ||
-          obj.mapId.value.toString().startsWith('current_location_'),
+    // Handle current location marker based on animation state
+    final hasCurrentLocationMarker = _mapObjects.any(
+      (obj) => obj.mapId.value == 'current_location',
     );
 
-    // Add current location marker (user) with rotation - navigation arrow
-    if (state.currentLocation != null) {
+    if (_isAnimationRunning && hasCurrentLocationMarker) {
+      // Remove current location when animation starts
+      _mapObjects.removeWhere(
+        (obj) =>
+            obj.mapId.value == 'current_location' ||
+            obj.mapId.value.toString().startsWith('current_location_'),
+      );
+    } else if (!_isAnimationRunning &&
+        !hasCurrentLocationMarker &&
+        state.currentLocation != null) {
+      // Add current location when animation is not running
       await _addUserLocationMarker(state.currentLocation!, state.heading);
     }
 
     // Remove old route polyline
     _mapObjects.removeWhere((obj) => obj.mapId.value == 'route_polyline');
 
-    // Add route polyline if we have route geometry
+    // Add route polyline if we have route geometry (updates when route changes)
     if (state.routeGeometry != null && state.routeGeometry!.isNotEmpty) {
-      print('🗺️ Drawing route: ${state.routeGeometry!.length} points');
+      print(
+        '🗺️ Drawing route: ${state.routeGeometry!.length} points (Status: ${state.status})',
+      );
       _mapObjects.add(
         PolylineMapObject(
           mapId: const MapObjectId('route_polyline'),
@@ -539,12 +633,14 @@ class _HomePageState extends State<HomePage> {
     }
 
     // Remove client marker if order completed, initial state, when going offline, or client picked up
+    // Also remove during inProgress to clean up after "Qani ketdik"
     if (state.status == OrderStatus.completed ||
         state.status == OrderStatus.initial ||
         !state.isOnline ||
         state.currentOrder == null ||
         state.status == OrderStatus.inProgress) {
       _mapObjects.removeWhere((obj) => obj.mapId.value == 'client_location');
+      print('🧹 Cleaned up client location marker');
     }
 
     // Add client location marker ONLY if going to client or waiting
@@ -567,64 +663,90 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _addDestinationMarker(Point location) async {
-    // Create custom finish flag marker
+    // Create custom finish flag marker with checkered pattern
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final size = 120.0;
+    final size = 140.0;
 
-    // Draw flag pole (black)
+    // Draw shadow
+    final shadowPaint = Paint()
+      ..color = Colors.black26
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawCircle(
+      Offset(size * 0.5, size * 0.92),
+      size * 0.18,
+      shadowPaint,
+    );
+
+    // Draw flag pole (dark gray)
     final polePaint = Paint()
-      ..color = Colors.black87
+      ..color = Colors.grey[800]!
       ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromLTWH(size * 0.45, size * 0.2, size * 0.08, size * 0.7),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size * 0.46, size * 0.15, size * 0.08, size * 0.75),
+        const Radius.circular(4),
+      ),
       polePaint,
     );
 
-    // Draw flag (checkered pattern - green and white)
-    final flagPaint1 = Paint()
-      ..color = Colors.green
+    // Draw checkered flag (3x4 pattern - black and white)
+    final blackPaint = Paint()
+      ..color = Colors.black
       ..style = PaintingStyle.fill;
-    final flagPaint2 = Paint()
+    final whitePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    // Checkered flag pattern
-    final squareSize = size * 0.08;
+    final flagWidth = size * 0.35;
+    final flagHeight = size * 0.28;
+    final squareW = flagWidth / 4;
+    final squareH = flagHeight / 3;
+
+    // Draw white background first
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size * 0.12, size * 0.15, flagWidth, flagHeight),
+        const Radius.circular(2),
+      ),
+      whitePaint,
+    );
+
+    // Draw checkered pattern
     for (int row = 0; row < 3; row++) {
-      for (int col = 0; col < 3; col++) {
-        final paint = (row + col) % 2 == 0 ? flagPaint1 : flagPaint2;
-        canvas.drawRect(
-          Rect.fromLTWH(
-            size * 0.15 + col * squareSize,
-            size * 0.2 + row * squareSize,
-            squareSize,
-            squareSize,
-          ),
-          paint,
-        );
+      for (int col = 0; col < 4; col++) {
+        if ((row + col) % 2 == 0) {
+          canvas.drawRect(
+            Rect.fromLTWH(
+              size * 0.12 + col * squareW,
+              size * 0.15 + row * squareH,
+              squareW,
+              squareH,
+            ),
+            blackPaint,
+          );
+        }
       }
     }
 
     // Draw flag border
     final borderPaint = Paint()
-      ..color = Colors.black
+      ..color = Colors.black87
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawRect(
-      Rect.fromLTWH(size * 0.15, size * 0.2, size * 0.24, size * 0.24),
+      ..strokeWidth = 2.5;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size * 0.12, size * 0.15, flagWidth, flagHeight),
+        const Radius.circular(2),
+      ),
       borderPaint,
     );
 
-    // Draw shadow circle at base
-    final shadowPaint = Paint()
-      ..color = Colors.black26
+    // Draw pole cap (circle on top)
+    final capPaint = Paint()
+      ..color = Colors.red
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      Offset(size * 0.49, size * 0.9),
-      size * 0.15,
-      shadowPaint,
-    );
+    canvas.drawCircle(Offset(size * 0.5, size * 0.12), size * 0.05, capPaint);
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
@@ -638,7 +760,7 @@ class _HomePageState extends State<HomePage> {
         icon: PlacemarkIcon.single(
           PlacemarkIconStyle(
             image: BitmapDescriptor.fromBytes(buffer),
-            scale: 1.3,
+            scale: 1.2,
           ),
         ),
       ),
@@ -646,49 +768,37 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _addUserLocationMarker(Point location, double heading) async {
-    // Create a simple canvas-based marker with the primary color
+    // Create a red circle marker with light red outer ring
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final size = 100.0;
+    final size = 80.0; // Larger for outer ring
 
-    // Save canvas state
-    canvas.save();
+    final center = Offset(size / 2, size / 2);
+    final radius = size / 5;
 
-    // Move to center and rotate
-    canvas.translate(size / 2, size / 2);
-    canvas.rotate(heading * 3.14159 / 180); // Convert degrees to radians
-    canvas.translate(-size / 2, -size / 2);
-
-    // Draw navigation arrow shape
-    final paint = Paint()
-      ..color = const Color(0xFF2196F3)
+    // Draw outer light red circle (wider)
+    final outerRingPaint = Paint()
+      ..color = Colors.red.withOpacity(0.3)
       ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius * 2.2, outerRingPaint);
 
-    final path = Path()
-      ..moveTo(size / 2, size * 0.15) // Top point (sharper)
-      ..lineTo(size * 0.25, size * 0.85) // Bottom left (wider)
-      ..lineTo(size / 2, size * 0.65) // Center bottom
-      ..lineTo(size * 0.75, size * 0.85) // Bottom right (wider)
-      ..close();
-
-    canvas.drawPath(path, paint);
-
-    // Draw thick white border for visibility
+    // Draw white border
     final borderPaint = Paint()
       ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    canvas.drawPath(path, borderPaint);
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius + 3, borderPaint);
 
-    // Draw inner shadow for depth
-    final shadowPaint = Paint()
-      ..color = Colors.black26
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    canvas.drawPath(path, shadowPaint);
+    // Draw inner circle (red)
+    final innerPaint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, innerPaint);
 
-    // Restore canvas
-    canvas.restore();
+    // Draw white dot in center
+    final dotPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius / 3, dotPaint);
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
@@ -882,6 +992,61 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _arrowAnimator?.dispose();
     super.dispose();
+  }
+
+  /// Start Yandex-style arrow animation
+  Future<void> _startYandexAnimation(List<Point> routePoints) async {
+    if (_arrowAnimator == null || routePoints.isEmpty || _isAnimationRunning) {
+      return;
+    }
+
+    _isAnimationRunning = true;
+
+    // Remove current_location marker before starting animation
+    setState(() {
+      _mapObjects.removeWhere(
+        (obj) =>
+            obj.mapId.value == 'current_location' ||
+            obj.mapId.value.toString().startsWith('current_location_'),
+      );
+    });
+
+    print(
+      '🚀 Starting Yandex-style navigation with ${routePoints.length} points',
+    );
+
+    try {
+      await _arrowAnimator!.startYandexStyleNavigation(
+        routePoints: routePoints,
+        speedKmH: 40.0, // Realistic speed
+        followCamera: true, // Camera follows arrow during animation
+        showRouteLine: false, // Don't show animator line, use route_polyline
+      );
+    } catch (e) {
+      print('❌ Error starting Yandex animation: $e');
+      _isAnimationRunning = false;
+    }
+  }
+
+  /// Stop Yandex-style arrow animation
+  void _stopYandexAnimation() {
+    if (_arrowAnimator != null && _isAnimationRunning) {
+      print('⏹️ Stopping Yandex animation');
+      _arrowAnimator!.stop();
+      _isAnimationRunning = false;
+
+      // Remove only arrow marker and restore current_location
+      setState(() {
+        _mapObjects.removeWhere((obj) => obj.mapId.value == 'yandex_arrow');
+      });
+
+      // Trigger update to restore current_location marker
+      final cubit = context.read<HomeCubit>();
+      if (cubit.state.currentLocation != null) {
+        _updateMapObjects(cubit.state);
+      }
+    }
   }
 }

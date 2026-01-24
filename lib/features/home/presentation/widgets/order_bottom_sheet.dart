@@ -54,12 +54,12 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     ).animate(CurvedAnimation(parent: _timerController, curve: Curves.linear));
 
     _scaleAnimation = Tween<double>(
-      begin: 0.8,
+      begin: 0.98,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _slideAnimation = Tween<double>(
-      begin: 100.0,
+      begin: 30.0,
       end: 0.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
@@ -356,51 +356,38 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                         // Action Buttons with Sliders
                         Column(
                           children: [
-                            // Accept Order Slider with Timer Animation
-                            Stack(
-                              children: [
-                                // Background - primary color
-                                Container(
-                                  height: 60.h,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(30.r),
-                                  ),
-                                ),
-                                // Slider without timer overlay - cleaner and easier to slide
-                                SlideAction(
-                                  height: 60.h,
-                                  sliderButtonIconSize: 22.r,
-                                  sliderButtonIconPadding: 14.r,
-                                  borderRadius: 30.r,
-                                  innerColor: Colors.white,
-                                  outerColor: Colors.transparent,
-                                  sliderRotate: false,
-                                  animationDuration: const Duration(
-                                    milliseconds: 300,
-                                  ),
-                                  text: 'Qabul qilish',
-                                  textStyle: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.3,
-                                  ),
-                                  sliderButtonIcon: Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: AppColors.primary,
-                                    size: 22.r,
-                                  ),
-                                  onSubmit: () {
-                                    setState(() {
-                                      _isAccepted = true;
-                                    });
-                                    _timerController.stop();
-                                    widget.onAccept();
-                                    return null;
-                                  },
-                                ),
-                              ],
+                            // Accept Order Slider - simple and fast
+                            SlideAction(
+                              height: 60.h,
+                              sliderButtonIconSize: 22.r,
+                              sliderButtonIconPadding: 14.r,
+                              borderRadius: 30.r,
+                              innerColor: Colors.white,
+                              outerColor: AppColors.primary,
+                              sliderRotate: false,
+                              animationDuration: const Duration(
+                                milliseconds: 300,
+                              ),
+                              text: 'Qabul qilish',
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                              sliderButtonIcon: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: AppColors.primary,
+                                size: 22.r,
+                              ),
+                              onSubmit: () {
+                                setState(() {
+                                  _isAccepted = true;
+                                });
+                                _timerController.stop();
+                                widget.onAccept();
+                                return null;
+                              },
                             ),
                             SizedBox(height: 12.h),
                             // Reject Button with Gradient
