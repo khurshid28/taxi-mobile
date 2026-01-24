@@ -76,6 +76,10 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20.w),
+          onPressed: () => context.pop(),
+        ),
         title: Text(
           'Tasdiqlash',
           style: TextStyle(
@@ -86,7 +90,6 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           ),
         ),
         centerTitle: true,
-        automaticallyImplyLeading: false,
       ),
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -109,16 +112,17 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
               colors: [Colors.white, AppColors.primary.withOpacity(0.05)],
             ),
           ),
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 24.w,
-              right: 24.w,
-              top: 24.h,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 24.w,
+                right: 24.w,
+                top: 24.h,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 SizedBox(height: 40.h),
                 Container(
                   width: 100.w,
@@ -353,7 +357,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
             ),
           ),
         ),
-      ),
+      ),)
     );
   }
 }

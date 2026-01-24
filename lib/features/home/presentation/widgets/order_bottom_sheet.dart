@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
@@ -23,10 +24,15 @@ class OrderBottomSheet extends StatefulWidget {
 }
 
 class _OrderBottomSheetState extends State<OrderBottomSheet>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _timerController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
+  late Animation<double> _timerAnimation;
+  int _remainingSeconds = 10;
+  bool _isAutoRejecting = false;
+  bool _isAccepted = false; // Flag to prevent auto-reject after accept
 
   @override
   void initState() {
@@ -35,6 +41,17 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+
+    // Timer animation for smooth progress
+    _timerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+
+    _timerAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _timerController, curve: Curves.linear));
 
     _scaleAnimation = Tween<double>(
       begin: 0.8,
@@ -47,11 +64,43 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
+    _timerController.forward();
+    _startAutoRejectTimer();
+  }
+
+  void _startAutoRejectTimer() {
+    Future.doWhile(() async {
+      if (_remainingSeconds <= 0 || !mounted || _isAccepted) {
+        if (mounted && !_isAutoRejecting && !_isAccepted) {
+          _isAutoRejecting = true;
+          _autoReject();
+        }
+        return false;
+      }
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted && !_isAccepted) {
+        _remainingSeconds--;
+      }
+      return !_isAccepted;
+    });
+  }
+
+  void _autoReject() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Buyurtma avtomatik rad qilindi'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    widget.onReject();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _timerController.dispose();
     super.dispose();
   }
 
@@ -110,7 +159,51 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                       ],
                     ),
                   ),
-                  SizedBox(height: 20.h),
+                  SizedBox(height: 12.h),
+                  // Timer display at top
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 24.w),
+                    padding: EdgeInsets.symmetric(
+                      vertical: 12.h,
+                      horizontal: 16.w,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _remainingSeconds <= 3
+                          ? Colors.red.shade50
+                          : Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: _remainingSeconds <= 3
+                            ? Colors.red
+                            : Colors.blue,
+                        width: 2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          color: _remainingSeconds <= 3
+                              ? Colors.red
+                              : Colors.blue,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          '$_remainingSeconds soniya',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: _remainingSeconds <= 3
+                                ? Colors.red
+                                : Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24.w),
                     child: Column(
@@ -260,108 +353,101 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                           Colors.red,
                         ),
                         SizedBox(height: 24.h),
-                        // Action Buttons
-                        Row(
+                        // Action Buttons with Sliders
+                        Column(
                           children: [
-                            Expanded(
-                              child: Container(
-                                height: 60.h,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 2.w,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 15.r,
-                                      offset: Offset(0, 4.h),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: widget.onReject,
-                                    borderRadius: BorderRadius.circular(20.r),
-                                    child: Center(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.close_rounded,
-                                            color: Colors.red[600],
-                                            size: 24.w,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            'Rad etish',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                            // Accept Order Slider with Timer Animation
+                            Stack(
+                              children: [
+                                // Background - primary color
+                                Container(
+                                  height: 60.h,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(30.r),
                                   ),
                                 ),
-                              ),
+                                // Slider without timer overlay - cleaner and easier to slide
+                                SlideAction(
+                                  height: 60.h,
+                                  sliderButtonIconSize: 22.r,
+                                  sliderButtonIconPadding: 14.r,
+                                  borderRadius: 30.r,
+                                  innerColor: Colors.white,
+                                  outerColor: Colors.transparent,
+                                  sliderRotate: false,
+                                  animationDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  text: 'Qabul qilish',
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                  sliderButtonIcon: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: AppColors.primary,
+                                    size: 22.r,
+                                  ),
+                                  onSubmit: () {
+                                    setState(() {
+                                      _isAccepted = true;
+                                    });
+                                    _timerController.stop();
+                                    widget.onAccept();
+                                    return null;
+                                  },
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                height: 60.h,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF90EE90),
-                                      Color(0xFF7FD97F),
-                                    ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.4),
-                                      blurRadius: 20.r,
-                                      offset: Offset(0, 8.h),
-                                    ),
-                                  ],
+                            SizedBox(height: 12.h),
+                            // Reject Button with Gradient
+                            Container(
+                              height: 60.h,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.red[400]!, Colors.red[600]!],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: widget.onAccept,
-                                    borderRadius: BorderRadius.circular(20.r),
-                                    child: Center(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.check_circle_rounded,
+                                borderRadius: BorderRadius.circular(30.r),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.3),
+                                    blurRadius: 15.r,
+                                    offset: Offset(0, 4.h),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: widget.onReject,
+                                  borderRadius: BorderRadius.circular(30.r),
+                                  splashColor: Colors.white.withOpacity(0.3),
+                                  highlightColor: Colors.white.withOpacity(0.1),
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.white,
+                                          size: 24.w,
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          'Rad etish',
+                                          style: TextStyle(
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w700,
                                             color: Colors.white,
-                                            size: 24.w,
                                           ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            'Qabul qilish',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18.sp,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

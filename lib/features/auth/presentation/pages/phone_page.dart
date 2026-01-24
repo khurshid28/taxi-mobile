@@ -189,9 +189,9 @@ class _PhonePageState extends State<PhonePage> {
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 56.w,
-                          height: 56.h,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          height: 40.h,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -199,19 +199,19 @@ class _PhonePageState extends State<PhonePage> {
                                 AppColors.primary.withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
                             child: SvgPicture.asset(
                               'assets/icons/phone_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
+                              width: 20.w,
+                              height: 20.h,
                             ),
                           ),
                         ),
                         prefixIconConstraints: BoxConstraints(
-                          minWidth: 56.w,
-                          minHeight: 56.h,
+                          minWidth: 48.w,
+                          minHeight: 48.h,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.r),
@@ -236,8 +236,8 @@ class _PhonePageState extends State<PhonePage> {
                           borderSide: BorderSide(color: Colors.red, width: 2.w),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       validator: (value) {

@@ -12,9 +12,6 @@ import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await di.init();
-  await NotificationService().initialize();
-  await SoundService().initialize();
   runApp(const MyApp());
 }
 

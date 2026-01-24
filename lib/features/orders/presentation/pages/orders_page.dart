@@ -3,10 +3,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:convert';
+import 'package:yandex_mapkit/yandex_mapkit.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/mock_data.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/utils/storage_helper.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -36,12 +39,52 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 800));
+
+    // Load orders from both mock data and storage
+    final mockOrders = MockData.getOrders();
+    final storedOrders = await _loadStoredOrders();
+
     setState(() {
-      _orders = MockData.getOrders();
+      _orders = [...storedOrders, ...mockOrders];
       _filteredOrders = _orders;
       _isLoading = false;
     });
     _animationController.forward();
+  }
+
+  Future<List<OrderModel>> _loadStoredOrders() async {
+    try {
+      final ordersJson =
+          await StorageHelper.getString('completed_orders') ?? '[]';
+      final List<dynamic> ordersList = jsonDecode(ordersJson);
+
+      return ordersList.map((json) {
+        return OrderModel(
+          id: json['id'],
+          clientName: json['clientName'],
+          clientPhone: json['clientPhone'],
+          pickupLocation: const Point(
+            latitude: 41.2995,
+            longitude: 69.2401,
+          ), // Default location
+          destinationLocation: const Point(
+            latitude: 41.3111,
+            longitude: 69.2797,
+          ), // Default location
+          pickupAddress: json['pickupAddress'],
+          destinationAddress: json['destinationAddress'],
+          distance: (json['distance'] as num).toDouble(),
+          price: (json['price'] as num).toDouble(),
+          createdAt: DateTime.parse(json['createdAt']),
+          status: json['status'] == 'completed'
+              ? OrderStatusType.completed
+              : OrderStatusType.inProgress,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error loading stored orders: $e');
+      return [];
+    }
   }
 
   @override
@@ -68,8 +111,13 @@ class _OrdersPageState extends State<OrdersPage>
   Future<void> _refreshOrders() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 700));
+
+    // Reload from both sources
+    final mockOrders = MockData.getOrders();
+    final storedOrders = await _loadStoredOrders();
+
     setState(() {
-      _orders = MockData.getOrders();
+      _orders = [...storedOrders, ...mockOrders];
       _filterOrders(_selectedFilter);
       _isLoading = false;
     });
@@ -326,7 +374,7 @@ class _OrdersPageState extends State<OrdersPage>
               color: AppColors.primary,
             ),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 32.h),
           Text(
             'Buyurtmalar yo\'q',
             style: TextStyle(
@@ -335,7 +383,7 @@ class _OrdersPageState extends State<OrdersPage>
               color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 12.h),
           Text(
             'Hozircha buyurtmalar mavjud emas',
             style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),

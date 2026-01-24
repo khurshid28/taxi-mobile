@@ -475,7 +475,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                   ),
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/chart_duotone.svg',
+                    svgIcon: 'assets/icons/history_duotone.svg',
                     title: 'Aktivligim',
                     onTap: () {
                       Navigator.push(

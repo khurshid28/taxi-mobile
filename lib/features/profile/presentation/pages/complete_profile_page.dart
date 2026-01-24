@@ -23,14 +23,16 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final _emailController = TextEditingController();
   final _carNumberController = TextEditingController();
   final _carTypeController = TextEditingController();
+  final _carColorController = TextEditingController();
   final _imagePicker = ImagePicker();
   File? _passportImage;
   File? _carImage;
   String? _selectedCarType;
+  String? _selectedCarColor;
 
   final _carNumberMask = MaskTextInputFormatter(
     mask: '## A ### AA',
-    filter: {'#': RegExp(r'[0-9]'), 'A': RegExp(r'[A-Za-z]')},
+    filter: {'#': RegExp(r'[0-9]'), 'A': RegExp(r'[A-Z]')},
   );
 
   @override
@@ -40,6 +42,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     _emailController.dispose();
     _carNumberController.dispose();
     _carTypeController.dispose();
+    _carColorController.dispose();
     super.dispose();
   }
 
@@ -131,6 +134,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
             child: Form(
               key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -159,97 +163,104 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   ),
                   SizedBox(height: 32.h),
                   // Passport Image
-                  Center(
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: 180.w,
-                        height: 180.h,
-                        decoration: BoxDecoration(
-                          gradient: _passportImage != null
-                              ? null
-                              : LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withOpacity(0.1),
-                                    AppColors.primary.withOpacity(0.05),
-                                  ],
-                                ),
-                          color: _passportImage != null ? null : null,
-                          borderRadius: BorderRadius.circular(24.r),
-                          border: Border.all(
-                            color: _passportImage != null
-                                ? AppColors.primary
-                                : Colors.grey[300]!,
-                            width: _passportImage != null ? 3.w : 2.w,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _passportImage != null
-                                  ? AppColors.primary.withOpacity(0.2)
-                                  : Colors.black.withOpacity(0.05),
-                              blurRadius: 20.r,
-                              offset: Offset(0, 8.h),
-                            ),
-                          ],
-                        ),
-                        child: _passportImage != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(22.r),
-                                child: Image.file(
-                                  _passportImage!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 70.w,
-                                    height: 70.h,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(20.r),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withOpacity(
-                                            0.1,
-                                          ),
-                                          blurRadius: 10.r,
-                                          offset: Offset(0, 4.h),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: SvgPicture.asset(
-                                        'assets/icons/document_duotone.svg',
-                                        width: 40.w,
-                                        height: 40.h,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 16.h),
-                                  Text(
-                                    'Passport rasmini yuklang',
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Text(
-                                    'Rasmni tanlash uchun bosing',
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
+                  Text(
+                    'Passport rasmi',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: double.infinity,
+                      height: 180.h,
+                      decoration: BoxDecoration(
+                        gradient: _passportImage != null
+                            ? null
+                            : LinearGradient(
+                                colors: [
+                                  AppColors.primary.withOpacity(0.1),
+                                  AppColors.primary.withOpacity(0.05),
                                 ],
                               ),
+                        color: _passportImage != null ? null : null,
+                        borderRadius: BorderRadius.circular(24.r),
+                        border: Border.all(
+                          color: _passportImage != null
+                              ? AppColors.primary
+                              : Colors.grey[300]!,
+                          width: _passportImage != null ? 3.w : 2.w,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _passportImage != null
+                                ? AppColors.primary.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.05),
+                            blurRadius: 20.r,
+                            offset: Offset(0, 8.h),
+                          ),
+                        ],
                       ),
+                      child: _passportImage != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(22.r),
+                              child: Image.file(
+                                _passportImage!,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 70.w,
+                                  height: 70.h,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20.r),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
+                                        blurRadius: 10.r,
+                                        offset: Offset(0, 4.h),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: SvgPicture.asset(
+                                      'assets/icons/document_duotone.svg',
+                                      width: 40.w,
+                                      height: 40.h,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 16.h),
+                                Text(
+                                  'Passport rasmini yuklang',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 6.h),
+                                Text(
+                                  'Rasmni tanlash uchun bosing',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   SizedBox(height: 24.h),
@@ -385,8 +396,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 48.w,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -394,13 +405,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 const Color(0xFF9C27B0).withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
                             child: SvgPicture.asset(
                               'assets/icons/user_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
+                              width: 20.w,
+                              height: 20.h,
                             ),
                           ),
                         ),
@@ -417,8 +428,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       validator: (value) {
@@ -454,16 +465,16 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
-                        labelText: 'To\'liq ism',
-                        hintText: 'Masalan: Aziz Azizov',
+                        labelText: 'Familiya',
+                        hintText: 'Masalan: Azizov',
                         hintStyle: TextStyle(color: Colors.grey[400]),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 48.w,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -471,13 +482,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 const Color(0xFF9C27B0).withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
                             child: SvgPicture.asset(
                               'assets/icons/user_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
+                              width: 20.w,
+                              height: 20.h,
                             ),
                           ),
                         ),
@@ -493,13 +504,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'To\'liq ismingizni kiriting';
+                          return 'Familiyangizni kiriting';
                         }
                         return null;
                       },
@@ -539,8 +550,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 48.w,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -548,13 +559,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 const Color(0xFF00BCD4).withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
                             child: SvgPicture.asset(
                               'assets/icons/email_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
+                              width: 20.w,
+                              height: 20.h,
                             ),
                           ),
                         ),
@@ -570,8 +581,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       validator: (value) {
@@ -606,6 +617,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     child: TextFormField(
                       controller: _carNumberController,
                       keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
                       inputFormatters: [_carNumberMask],
                       style: TextStyle(
                         fontSize: 16.sp,
@@ -620,8 +632,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 48.w,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -629,14 +641,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 const Color(0xFF00BCD4).withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/car_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
-                            ),
+                          child: Icon(
+                            Icons.pin,
+                            color: const Color(0xFF00BCD4),
+                            size: 20.w,
                           ),
                         ),
                         border: OutlineInputBorder(
@@ -651,8 +661,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       validator: (value) {
@@ -696,8 +706,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           fontWeight: FontWeight.w600,
                         ),
                         prefixIcon: Container(
-                          width: 48.w,
-                          margin: EdgeInsets.all(12.w),
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -705,14 +715,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 const Color(0xFF00BCD4).withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/car_duotone.svg',
-                              width: 24.w,
-                              height: 24.h,
-                            ),
+                          child: Icon(
+                            Icons.directions_car,
+                            color: const Color(0xFF00BCD4),
+                            size: 20.w,
                           ),
                         ),
                         border: OutlineInputBorder(
@@ -727,8 +735,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 20.h,
+                          horizontal: 16.w,
+                          vertical: 14.h,
                         ),
                       ),
                       items:
@@ -766,6 +774,116 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Mashina turini tanlang';
+                        }
+                        return null;
+                      },
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.primary,
+                        size: 28.sp,
+                      ),
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+
+                  // Car Color
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1.5.w,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 15.r,
+                          offset: Offset(0, 4.h),
+                        ),
+                      ],
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCarColor,
+                      decoration: InputDecoration(
+                        labelText: 'Mashina rangi',
+                        hintText: 'Mashina rangini tanlang',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        labelStyle: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        prefixIcon: Container(
+                          width: 40.w,
+                          margin: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF00BCD4).withOpacity(0.2),
+                                const Color(0xFF00BCD4).withOpacity(0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(
+                            Icons.palette,
+                            color: const Color(0xFF00BCD4),
+                            size: 20.w,
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 2.w,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 14.h,
+                        ),
+                      ),
+                      items:
+                          [
+                            'Oq',
+                            'Qora',
+                            'Kulrang',
+                            'Kumush',
+                            'Qizil',
+                            'Ko\'k',
+                            'Moviy',
+                            'Yashil',
+                            'Sariq',
+                            'Jigarrang',
+                            'Pushti',
+                            'Boshqa',
+                          ].map((String color) {
+                            return DropdownMenuItem<String>(
+                              value: color,
+                              child: Text(
+                                color,
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedCarColor = newValue;
+                          _carColorController.text = newValue ?? '';
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Mashina rangini tanlang';
                         }
                         return null;
                       },

@@ -102,33 +102,32 @@ class _PaymentsPageState extends State<PaymentsPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AnimatedPadding(
+      builder: (context) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-            border: Border(
-              top: BorderSide(color: AppColors.primary, width: 3.w),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 40.r,
-                offset: Offset(0, -10.h),
+        child: SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+              border: Border(
+                top: BorderSide(color: AppColors.primary, width: 3.w),
               ),
-            ],
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 40.r,
+                  offset: Offset(0, -10.h),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 Center(
                   child: Container(
                     width: 50.w,
@@ -242,7 +241,9 @@ class _PaymentsPageState extends State<PaymentsPage>
                         fontWeight: FontWeight.w600,
                       ),
                       prefixIcon: Container(
-                        margin: EdgeInsets.all(12.w),
+                        width: 40.w,
+                        height: 40.h,
+                        margin: EdgeInsets.only(left: 8.w, right: 8.w),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -250,19 +251,19 @@ class _PaymentsPageState extends State<PaymentsPage>
                               const Color(0xFF4CAF50).withOpacity(0.1),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                         child: Center(
                           child: SvgPicture.asset(
                             'assets/icons/payment_duotone.svg',
-                            width: 24.w,
-                            height: 24.h,
+                            width: 20.w,
+                            height: 20.h,
                           ),
                         ),
                       ),
                       prefixIconConstraints: BoxConstraints(
                         minWidth: 56.w,
-                        minHeight: 56.h,
+                        minHeight: 40.h,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20.r),
@@ -276,8 +277,8 @@ class _PaymentsPageState extends State<PaymentsPage>
                         ),
                       ),
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 20.h,
+                        horizontal: 16.w,
+                        vertical: 14.h,
                       ),
                     ),
                   ),
@@ -380,7 +381,7 @@ class _PaymentsPageState extends State<PaymentsPage>
             ),
           ),
         ),
-      ),
+      ),)
     );
   }
 

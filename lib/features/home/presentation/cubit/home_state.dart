@@ -29,6 +29,12 @@ class HomeState extends Equatable {
   final int currentPrice; // Current price (increases with waiting time)
   final double traveledDistance; // Kilometers traveled
   final bool isWaitingTimerActive; // Waiting timer active flag
+  final bool isOnline; // Driver online/offline status
+  final bool isTimeoutEnabled; // Enable/disable waiting charge
+  final List<Point>? routeGeometry; // Actual route points from Yandex
+  final int currentRouteIndex; // Current position on route
+  final int? routeDurationMinutes; // Estimated route duration in minutes
+  final String? routeDistanceKm; // Route distance in km
 
   const HomeState({
     this.status = OrderStatus.initial,
@@ -45,6 +51,12 @@ class HomeState extends Equatable {
     this.currentPrice = 0,
     this.traveledDistance = 0.0,
     this.isWaitingTimerActive = false,
+    this.isOnline = false,
+    this.isTimeoutEnabled = true,
+    this.routeGeometry,
+    this.currentRouteIndex = 0,
+    this.routeDurationMinutes,
+    this.routeDistanceKm,
   });
 
   HomeState copyWith({
@@ -62,6 +74,12 @@ class HomeState extends Equatable {
     int? currentPrice,
     double? traveledDistance,
     bool? isWaitingTimerActive,
+    int? routeDurationMinutes,
+    String? routeDistanceKm,
+    bool? isOnline,
+    bool? isTimeoutEnabled,
+    List<Point>? routeGeometry,
+    int? currentRouteIndex,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -78,24 +96,39 @@ class HomeState extends Equatable {
       currentPrice: currentPrice ?? this.currentPrice,
       traveledDistance: traveledDistance ?? this.traveledDistance,
       isWaitingTimerActive: isWaitingTimerActive ?? this.isWaitingTimerActive,
+      isOnline: isOnline ?? this.isOnline,
+      isTimeoutEnabled: isTimeoutEnabled ?? this.isTimeoutEnabled,
+      routeGeometry: routeGeometry ?? this.routeGeometry,
+      currentRouteIndex: currentRouteIndex ?? this.currentRouteIndex,
+      routeDurationMinutes: routeDurationMinutes ?? this.routeDurationMinutes,
+      routeDistanceKm: routeDistanceKm ?? this.routeDistanceKm,
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        currentLocation,
-        destinationLocation,
-        routePoints,
-        currentOrder,
-        isLoading,
-        error,
-        heading,
-        distanceToClient,
-        clientPickedUp,
-        waitingSeconds,
-        currentPrice,
-        traveledDistance,
-        isWaitingTimerActive,
-      ];
+    status,
+    currentLocation,
+    destinationLocation,
+    routePoints,
+    currentOrder,
+    isLoading,
+    error,
+    heading,
+    distanceToClient,
+    clientPickedUp,
+    waitingSeconds,
+    currentPrice,
+    traveledDistance,
+    isWaitingTimerActive,
+    isOnline,
+    isTimeoutEnabled,
+    routeGeometry,
+    currentRouteIndex,
+    routeDurationMinutes,
+    routeDistanceKm,
+    isOnline,
+    routeGeometry,
+    currentRouteIndex,
+  ];
 }

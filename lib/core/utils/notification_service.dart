@@ -10,7 +10,9 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -36,15 +38,13 @@ class NotificationService {
       channelDescription: 'Taxi order notifications',
       importance: Importance.high,
       priority: Priority.high,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('notification'),
+      playSound: false,
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
-      presentSound: true,
-      sound: 'notification.mp3',
+      presentSound: false,
     );
 
     const details = NotificationDetails(
@@ -52,12 +52,7 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(
-      DateTime.now().millisecond,
-      title,
-      body,
-      details,
-    );
+    await _notifications.show(DateTime.now().millisecond, title, body, details);
 
     // Play custom sound through SoundService
     if (playSound) {

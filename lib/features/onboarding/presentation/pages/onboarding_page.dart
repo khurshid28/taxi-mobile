@@ -95,8 +95,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   children: [
                     SizedBox(width: 100.w),
                     _buildPageIndicator(),
-                    SizedBox(
-                      width: 100.w,
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: _currentPage < _items.length - 1
                           ? Container(
                               decoration: BoxDecoration(
@@ -202,7 +202,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _items.length,
         (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: EdgeInsets.symmetric(horizontal: 4.w),
+          margin: EdgeInsets.symmetric(horizontal: 2.w),
           height: 8.h,
           width: _currentPage == index ? 32 : 8,
           decoration: BoxDecoration(

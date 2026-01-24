@@ -208,25 +208,33 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                                 0.6,
                               ),
                               period: const Duration(milliseconds: 1500),
-                              child: Text(
-                                priceText,
-                                style: TextStyle(
-                                  fontSize: 40.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary,
-                                  letterSpacing: -1.5,
-                                  height: 1.h,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  priceText,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 38.sp,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.primary,
+                                    letterSpacing: -1.5,
+                                    height: 1.1,
+                                  ),
                                 ),
                               ),
                             )
-                          : Text(
-                              priceText,
-                              style: TextStyle(
-                                fontSize: 40.sp,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.primary,
-                                letterSpacing: -1.5,
-                                height: 1.h,
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                priceText,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 38.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
+                                  letterSpacing: -1.5,
+                                  height: 1.1,
+                                ),
                               ),
                             );
                     },
