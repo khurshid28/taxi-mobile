@@ -11,13 +11,14 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {}
 
-class OtpSent extends AuthState {
-  final String phoneNumber;
+/// Mashina raqami kiritildi -> parol sahifasiga o'tish.
+class CarNumberEntered extends AuthState {
+  final String carNumber;
 
-  const OtpSent(this.phoneNumber);
+  const CarNumberEntered(this.carNumber);
 
   @override
-  List<Object> get props => [phoneNumber];
+  List<Object> get props => [carNumber];
 }
 
 class AuthSuccess extends AuthState {}

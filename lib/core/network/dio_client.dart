@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../constants/app_constants.dart';
+import 'auth_interceptor.dart';
 
 class DioClient {
   late Dio dio;
@@ -12,13 +13,16 @@ class DioClient {
         connectTimeout: const Duration(milliseconds: AppConstants.connectionTimeout),
         receiveTimeout: const Duration(milliseconds: AppConstants.receiveTimeout),
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Content-Type': 'application/ld+json',
+          'Accept': 'application/ld+json, application/json',
         },
       ),
     );
 
-    // Add interceptors
+    // Auth interceptor (Bearer + 401 refresh)
+    dio.interceptors.add(AuthInterceptor(dio));
+
+    // Logger
     dio.interceptors.add(
       PrettyDioLogger(
         requestHeader: true,

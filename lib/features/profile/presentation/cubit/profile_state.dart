@@ -22,6 +22,16 @@ class ProfileImageSelected extends ProfileState {
 
 class ProfileCompleted extends ProfileState {}
 
+class ProfileLoaded extends ProfileState {
+  final DriverProfileModel profile;
+  final DriverDataModel? data;
+
+  const ProfileLoaded({required this.profile, this.data});
+
+  @override
+  List<Object?> get props => [profile, data];
+}
+
 class ProfileError extends ProfileState {
   final String message;
 

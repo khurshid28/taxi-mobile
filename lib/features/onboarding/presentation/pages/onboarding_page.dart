@@ -14,54 +14,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingItem> _items = [
-    OnboardingItem(
+  final List<_OnboardingItem> _items = const [
+    _OnboardingItem(
       title: 'Tez va Qulay',
       description:
           'Mijozlarni tez topib, yo\'lga chiqing. Har bir buyurtma sizning eshigingizgacha keladi.',
-      image: '🚖',
-      gradient: const [Color(0xFF90EE90), Color(0xFF7FD97F)],
+      icon: Icons.directions_car_filled_rounded,
+      accent: AppColors.primary,
     ),
-    OnboardingItem(
+    _OnboardingItem(
       title: 'Ortiq Daromad',
       description:
           'Har bir safar uchun adolatli to\'lov. Qancha ishlasangiz, shuncha topasiz.',
-      image: '💰',
-      gradient: const [Color(0xFF4CAF50), Color(0xFF45A049)],
+      icon: Icons.payments_rounded,
+      accent: AppColors.success,
     ),
-    OnboardingItem(
+    _OnboardingItem(
       title: 'Xavfsiz va Ishonchli',
       description:
           'Har bir safar kuzatiladi. Siz va mijozlaringiz xavfsizligi birinchi o\'rinda.',
-      image: '🛡️',
-      gradient: const [Color(0xFF2196F3), Color(0xFF1976D2)],
+      icon: Icons.shield_rounded,
+      accent: AppColors.info,
     ),
   ];
 
   void _onPageChanged(int page) {
-    setState(() {
-      _currentPage = page;
-    });
+    setState(() => _currentPage = page);
   }
 
   void _nextPage() {
     if (_currentPage < _items.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
       );
     } else {
       _completeOnboarding();
     }
   }
 
-  void _skipOnboarding() {
-    _completeOnboarding();
-  }
+  void _skipOnboarding() => _completeOnboarding();
 
-  void _completeOnboarding() {
-    context.go('/phone');
-  }
+  void _completeOnboarding() => context.go('/phone');
 
   @override
   void dispose() {
@@ -72,124 +66,95 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              _items[_currentPage].gradient[0].withOpacity(0.1),
-              _items[_currentPage].gradient[1].withOpacity(0.15),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Skip button
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SizedBox(width: 100.w),
-                    _buildPageIndicator(),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _currentPage < _items.length - 1
-                          ? Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white,
-                                    _items[_currentPage].gradient[0]
-                                        .withOpacity(0.1),
-                                  ],
+      backgroundColor: AppColors.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Left placeholder to balance the skip button
+                  SizedBox(width: 96.w, height: 40.h),
+                  Expanded(child: Center(child: _buildPageIndicator())),
+                  SizedBox(
+                    width: 96.w,
+                    height: 40.h,
+                    child: _currentPage < _items.length - 1
+                        ? Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _skipOnboarding,
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 6.h,
                                 ),
-                                borderRadius: BorderRadius.circular(20.r),
-                                border: Border.all(
-                                  color: _items[_currentPage].gradient[0]
-                                      .withOpacity(0.3),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _items[_currentPage].gradient[0]
-                                        .withOpacity(0.2),
-                                    blurRadius: 12.r,
-                                    offset: Offset(0.w, 4.h),
-                                  ),
-                                ],
+                                minimumSize: Size.zero,
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _skipOnboarding,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16.w,
-                                      vertical: 10.h,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'O\'tkazish',
-                                          style: TextStyle(
-                                            color: _items[_currentPage]
-                                                .gradient[1],
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: -0.2,
-                                          ),
-                                        ),
-                                        SizedBox(width: 4.w),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
-                                          color:
-                                              _items[_currentPage].gradient[1],
-                                          size: 18.w,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                              child: Text(
+                                "O'tkazish",
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                softWrap: false,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            )
-                          : const SizedBox(),
-                    ),
-                  ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                itemCount: _items.length,
+                itemBuilder: (_, i) => _buildPageContent(_items[i]),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 28.h),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56.h,
+                child: ElevatedButton(
+                  onPressed: _nextPage,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _currentPage == _items.length - 1
+                            ? 'Boshlash'
+                            : 'Keyingisi',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 20.w,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              // PageView
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    return _buildPageContent(_items[index]);
-                  },
-                ),
-              ),
-
-              // Next/Get Started button
-              Padding(
-                padding: EdgeInsets.all(32.w),
-                child: Column(
-                  children: [
-                    _buildNextButton(),
-                    SizedBox(height: 20.h),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -202,190 +167,88 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _items.length,
         (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: EdgeInsets.symmetric(horizontal: 2.w),
-          height: 8.h,
-          width: _currentPage == index ? 32 : 8,
+          curve: Curves.easeOut,
+          margin: EdgeInsets.symmetric(horizontal: 3.w),
+          height: 6.h,
+          width: _currentPage == index ? 24.w : 6.w,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4.r),
-            color: _currentPage == index
-                ? _items[_currentPage].gradient[0]
-                : Colors.grey[300],
-            boxShadow: _currentPage == index
-                ? [
-                    BoxShadow(
-                      color: _items[_currentPage].gradient[0].withOpacity(0.4),
-                      blurRadius: 8.r,
-                      offset: Offset(0.w, 2.h),
-                    ),
-                  ]
-                : null,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            color:
+                _currentPage == index ? AppColors.primary : AppColors.divider,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPageContent(OnboardingItem item) {
+  Widget _buildPageContent(_OnboardingItem item) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 32.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Image container with gradient background
           Container(
-            width: 280.w,
-            height: 280.h,
+            width: 200.w,
+            height: 200.w,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  item.gradient[0].withOpacity(0.2),
-                  item.gradient[1].withOpacity(0.3),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: item.accent.withOpacity(0.08),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: item.gradient[0].withOpacity(0.3),
-                  blurRadius: 60.r,
-                  offset: Offset(0.w, 20.h),
-                  spreadRadius: -10,
-                ),
-              ],
             ),
             child: Center(
               child: Container(
-                width: 220.w,
-                height: 220.h,
+                width: 120.w,
+                height: 120.w,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: item.gradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: item.accent.withOpacity(0.12),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: item.gradient[1].withOpacity(0.4),
-                      blurRadius: 30.r,
-                      offset: Offset(0.w, 15.h),
-                    ),
-                  ],
                 ),
-                child: Center(
-                  child: Text(
-                    item.image,
-                    style: TextStyle(fontSize: 100.sp, height: 1.h),
-                  ),
+                child: Icon(
+                  item.icon,
+                  size: 56.sp,
+                  color: item.accent,
                 ),
               ),
             ),
           ),
-          SizedBox(height: 60.h),
-
-          // Title
+          SizedBox(height: 48.h),
           Text(
             item.title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 32.sp,
-              fontWeight: FontWeight.w900,
+              fontSize: 26.sp,
+              fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
-              letterSpacing: -1.2,
+              letterSpacing: -0.8,
               height: 1.2,
-              shadows: [
-                Shadow(
-                  color: item.gradient[0].withOpacity(0.3),
-                  blurRadius: 20.r,
-                  offset: Offset(0.w, 4.h),
-                ),
-              ],
             ),
           ),
-          SizedBox(height: 20.h),
-
-          // Description
+          SizedBox(height: 14.h),
           Text(
             item.description,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey[700],
+              fontSize: 14.sp,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
-              height: 1.6,
-              letterSpacing: 0.2,
+              height: 1.55,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNextButton() {
-    final isLastPage = _currentPage == _items.length - 1;
-    return Container(
-      width: double.infinity,
-      height: 60.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _items[_currentPage].gradient,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: _items[_currentPage].gradient[0].withOpacity(0.4),
-            blurRadius: 20.r,
-            offset: Offset(0.w, 8.h),
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _nextPage,
-          borderRadius: BorderRadius.circular(20.r),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  isLastPage ? 'Boshlash' : 'Keyingisi',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 24.w,
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
 }
 
-class OnboardingItem {
+class _OnboardingItem {
   final String title;
   final String description;
-  final String image;
-  final List<Color> gradient;
+  final IconData icon;
+  final Color accent;
 
-  OnboardingItem({
+  const _OnboardingItem({
     required this.title,
     required this.description,
-    required this.image,
-    required this.gradient,
+    required this.icon,
+    required this.accent,
   });
 }

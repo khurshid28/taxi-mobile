@@ -8,6 +8,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/app_messenger.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/utils/yandex_arrow_animator.dart';
 import '../cubit/home_cubit.dart';
@@ -84,12 +85,7 @@ class _HomePageState extends State<HomePage> {
       body: BlocConsumer<HomeCubit, HomeState>(
         listener: (context, state) {
           if (state.error != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            AppMessenger.error(context, state.error!);
           }
 
           // Move to initial location automatically when first determined

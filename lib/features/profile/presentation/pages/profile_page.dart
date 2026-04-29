@@ -257,95 +257,92 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 240.h,
+            expandedHeight: 220.h,
             floating: false,
             pinned: true,
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: AppColors.textPrimary),
+            title: Text(
+              'Profil',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
+            ),
+            centerTitle: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primary.withOpacity(0.8),
-                    ],
-                  ),
-                ),
+                color: AppColors.surface,
                 child: SafeArea(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 36.h),
                       Container(
+                        width: 84.w,
+                        height: 84.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3.w),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10.r,
-                              offset: Offset(0.w, 4.h),
-                            ),
-                          ],
+                          color: AppColors.primary.withOpacity(0.10),
                         ),
-                        child: CircleAvatar(
-                          radius: 42.r,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 48.sp,
-                            color: AppColors.primary,
-                          ),
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 44.sp,
+                          color: AppColors.primary,
                         ),
                       ),
                       SizedBox(height: 12.h),
                       Text(
                         _name,
                         style: TextStyle(
-                          fontSize: 22.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.4,
                         ),
                       ),
                       SizedBox(height: 4.h),
                       Text(
                         _phone,
                         style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white70,
+                          fontSize: 13.sp,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 10.h),
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 14.w,
-                          vertical: 6.h,
+                          horizontal: 12.w,
+                          vertical: 5.h,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20.r),
+                          color: AppColors.warning.withOpacity(0.10),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.star_rounded,
-                              color: Colors.amber,
-                              size: 18.sp,
+                              color: AppColors.warning,
+                              size: 16.sp,
                             ),
-                            SizedBox(width: 6.w),
+                            SizedBox(width: 4.w),
                             Text(
                               'Reyting: $_rating',
                               style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.warning,
                               ),
                             ),
                           ],
@@ -697,62 +694,55 @@ class _ProfilePageState extends State<ProfilePage> {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          expandedHeight: 280,
+          expandedHeight: 220,
           floating: false,
           pinned: true,
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
           flexibleSpace: FlexibleSpaceBar(
             background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
-                  ],
-                ),
-              ),
+              color: AppColors.surface,
               child: SafeArea(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: 20.h),
+                    SizedBox(height: 36.h),
                     Shimmer.fromColors(
-                      baseColor: Colors.white.withOpacity(0.3),
-                      highlightColor: Colors.white.withOpacity(0.5),
+                      baseColor: AppColors.divider,
+                      highlightColor: AppColors.surfaceVariant,
                       child: Container(
-                        width: 100.w,
-                        height: 100.h,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                        width: 84.w,
+                        height: 84.w,
+                        decoration: const BoxDecoration(
+                          color: AppColors.divider,
                           shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 14.h),
                     Shimmer.fromColors(
-                      baseColor: Colors.white.withOpacity(0.3),
-                      highlightColor: Colors.white.withOpacity(0.5),
+                      baseColor: AppColors.divider,
+                      highlightColor: AppColors.surfaceVariant,
                       child: Container(
-                        width: 150.w,
-                        height: 24.h,
+                        width: 140.w,
+                        height: 18.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
                       ),
                     ),
                     SizedBox(height: 8.h),
                     Shimmer.fromColors(
-                      baseColor: Colors.white.withOpacity(0.3),
-                      highlightColor: Colors.white.withOpacity(0.5),
+                      baseColor: AppColors.divider,
+                      highlightColor: AppColors.surfaceVariant,
                       child: Container(
                         width: 100.w,
-                        height: 14.h,
+                        height: 12.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(7.r),
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(6.r),
                         ),
                       ),
                     ),
@@ -767,8 +757,8 @@ class _ProfilePageState extends State<ProfilePage> {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
+                baseColor: AppColors.divider,
+                highlightColor: AppColors.surfaceVariant,
                 child: Container(
                   height: 120.h,
                   decoration: BoxDecoration(
@@ -782,8 +772,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Expanded(
                     child: Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
+                      baseColor: AppColors.divider,
+                      highlightColor: AppColors.surfaceVariant,
                       child: Container(
                         height: 100.h,
                         decoration: BoxDecoration(
@@ -796,8 +786,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
+                      baseColor: AppColors.divider,
+                      highlightColor: AppColors.surfaceVariant,
                       child: Container(
                         height: 100.h,
                         decoration: BoxDecoration(
@@ -815,8 +805,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 (index) => Padding(
                   padding: EdgeInsets.only(bottom: 8.h),
                   child: Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
+                    baseColor: AppColors.divider,
+                    highlightColor: AppColors.surfaceVariant,
                     child: Container(
                       height: 60.h,
                       decoration: BoxDecoration(

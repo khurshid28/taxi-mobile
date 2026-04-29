@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
-import '../../features/auth/presentation/pages/phone_page.dart';
-import '../../features/auth/presentation/pages/verify_otp_page.dart';
+import '../../features/auth/presentation/pages/car_number_page.dart';
+import '../../features/auth/presentation/pages/password_page.dart';
 import '../../features/profile/presentation/pages/complete_profile_page.dart';
 import '../../features/home/presentation/pages/main_wrapper.dart';
 
 class AppRouter {
+  static final GlobalKey<NavigatorState> rootNavigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final GoRouter router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     routes: [
       GoRoute(
@@ -43,23 +47,23 @@ class AppRouter {
         path: '/phone',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const PhonePage(),
+          child: const CarNumberPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
       ),
       GoRoute(
-        path: '/verify-otp',
+        path: '/password',
         pageBuilder: (context, state) {
-          final phoneNumber = state.extra as String;
+          final carNumber = state.extra as String;
           return CustomTransitionPage(
             key: state.pageKey,
-            child: VerifyOtpPage(phoneNumber: phoneNumber),
+            child: PasswordPage(carNumber: carNumber),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
+              return FadeTransition(opacity: animation, child: child);
+            },
           );
         },
       ),

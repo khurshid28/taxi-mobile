@@ -111,21 +111,18 @@ class OrderInProgressWidget extends StatelessWidget {
                           vertical: 8.h,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isWaitingForClient
-                                ? [Color(0xFFFF9800), Color(0xFFF57C00)]
-                                : [Color(0xFF9C27B0), Color(0xFF7B1FA2)],
-                          ),
-                          borderRadius: BorderRadius.circular(14.r),
+                          color: isWaitingForClient
+                              ? AppColors.warning
+                              : AppColors.primary,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                           boxShadow: [
                             BoxShadow(
-                              color:
-                                  (isWaitingForClient
-                                          ? Colors.orange
-                                          : Colors.purple)
-                                      .withOpacity(0.3),
-                              blurRadius: 8.r,
-                              offset: Offset(0, 3.h),
+                              color: (isWaitingForClient
+                                      ? AppColors.warning
+                                      : AppColors.primary)
+                                  .withOpacity(0.25),
+                              blurRadius: 12.r,
+                              offset: Offset(0, 4.h),
                             ),
                           ],
                         ),
@@ -155,22 +152,13 @@ class OrderInProgressWidget extends StatelessWidget {
                     ),
                     SizedBox(height: 16.h),
 
-                    // Client info section (blue container)
+                    // Client info section
                     if (clientName != null || clientPhone != null)
                       Container(
                         padding: EdgeInsets.all(14.w),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(0xFF2196F3).withOpacity(0.15),
-                              Color(0xFF1976D2).withOpacity(0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Color(0xFF2196F3).withOpacity(0.3),
-                            width: 1.w,
-                          ),
+                          color: AppColors.info.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +167,7 @@ class OrderInProgressWidget extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.person,
-                                  color: Color(0xFF1976D2),
+                                  color: AppColors.info,
                                   size: 20.w,
                                 ),
                                 SizedBox(width: 8.w),
@@ -188,7 +176,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1976D2),
+                                    color: AppColors.info,
                                   ),
                                 ),
                               ],
@@ -200,7 +188,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   icon: Icons.person_outline,
                                   label: 'Ism',
                                   value: clientName!,
-                                  color: Color(0xFF1976D2),
+                                  color: AppColors.info,
                                 ),
                               if (clientName != null && clientPhone != null)
                                 SizedBox(height: 8.h),
@@ -209,7 +197,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   icon: Icons.phone_outlined,
                                   label: 'Telefon',
                                   value: clientPhone!,
-                                  color: Color(0xFF1976D2),
+                                  color: AppColors.info,
                                 ),
                             ],
                           ],
@@ -223,17 +211,8 @@ class OrderInProgressWidget extends StatelessWidget {
                       Container(
                         padding: EdgeInsets.all(14.w),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(0xFF9C27B0).withOpacity(0.15),
-                              Color(0xFF7B1FA2).withOpacity(0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Color(0xFF9C27B0).withOpacity(0.3),
-                            width: 1.w,
-                          ),
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +221,7 @@ class OrderInProgressWidget extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.location_on,
-                                  color: Color(0xFF7B1FA2),
+                                  color: AppColors.primary,
                                   size: 20.w,
                                 ),
                                 SizedBox(width: 8.w),
@@ -251,7 +230,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF7B1FA2),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ],
@@ -264,7 +243,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   icon: Icons.trip_origin,
                                   label: 'Qayerdan',
                                   value: pickupAddress!,
-                                  color: Color(0xFF7B1FA2),
+                                  color: AppColors.primary,
                                 ),
                               if (pickupAddress != null &&
                                   destinationAddress != null)
@@ -274,7 +253,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   icon: Icons.location_on_outlined,
                                   label: 'Qayerga',
                                   value: destinationAddress!,
-                                  color: Color(0xFF7B1FA2),
+                                  color: AppColors.primary,
                                 ),
                             ],
                           ],
@@ -406,7 +385,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                       const Color(0xFFC62828),
                                     ]
                                   : [
-                                      const Color(0xFFFF9800),
+                                      AppColors.warning,
                                       const Color(0xFFF57C00),
                                     ],
                             ),

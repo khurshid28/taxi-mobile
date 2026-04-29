@@ -1,0 +1,138 @@
+📱 Flutter va Mercure Integration (Qo'llanma)
+Ushbu qo'llanma Taxi ilovasida haydovchi qismida Mercure orqali buyurtmalarni real-vaqtda qabul qilish va tariflar bo'yicha filtrlashni o'z ichiga oladi.
+
+1. Bog'liqliklarni o'rnatish (pubspec.yaml)
+Loyiha sozlamalariga quyidagi paketlarni qo'shish kerak:
+
+YAML
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mercure_client: ^2.0.0 # Mercure Hub bilan ulanish uchun
+  audioplayers: ^5.2.1   # Yangi buyurtma kelganda ovoz chiqarish uchun
+
+flutter:
+  assets:
+    - assets/sounds/new_order.mp3 # Ovoz fayli yo'li
+2. Mercure Xizmati Klassi (lib/services/mercure_service.dart)
+Ushbu klass ulanishni boshqaradi, xabarlarni qabul qiladi va haydovchi tanlagan tariflariga mosligini tekshiradi.
+
+Dart
+
+import 'dart:async';
+import 'dart:convert';
+import 'package:mercure_client/mercure_client.dart';
+import 'package:audioplayers/audioplayers.dart';
+
+class MercureService {
+  // Singleton pattern
+  static final MercureService _instance = MercureService._internal();
+  factory MercureService() => _instance;
+  MercureService._internal();
+
+  Mercure? _mercure;
+  StreamSubscription? _subscription;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  bool isConnected = false;
+
+  /// Mercure hub-ga ulanish
+  void connect({
+    required int companyId,
+    required List<String> myActiveTariffs, // Haydovchi yoqqan tariflari: ['start', 'comfort']
+    String? jwtToken, // Backend-dan keladigan xavfsizlik tokeni
+  }) {
+    disconnect(); // Eski ulanishni yopish
+
+    const String hubUrl = 'https://mercure.sizning-serveringiz.uz/.well-known/mercure';
+    final String topic = 'company/$companyId/orders/global';
+
+    _mercure = Mercure(
+      url: hubUrl,
+      topics: [topic],
+      token: jwtToken,
+    );
+
+    try {
+      _subscription = _mercure!.listen().listen(
+        (event) {
+          isConnected = true;
+          _processMessage(event.data, myActiveTariffs);
+        },
+        onError: (error) {
+          isConnected = false;
+          print('Mercure Error: $error');
+        },
+        onDone: () => isConnected = false,
+      );
+      print('Mercure: $topic kanaliga ulanish o\'rnatildi.');
+    } catch (e) {
+      print('Mercure Connection Failed: $e');
+    }
+  }
+
+  /// Kelgan JSON xabarni tahlil qilish
+  void _processMessage(String rawData, List<String> myTariffs) {
+    try {
+      final Map<String, dynamic> data = jsonDecode(rawData);
+
+      // JSON ichidan tarifni ajratib olish
+      final String incomingTariff = (data['tariff'] ?? '').toString().toLowerCase();
+      
+      // Haydovchi tanlagan tariflariga mosligini tekshirish
+      bool isMatch = myTariffs.any((t) => t.toLowerCase() == incomingTariff);
+
+      if (isMatch) {
+        _playOrderSound();
+        print('YANGI BUYURTMA KELDI: ID #${data['orderId']}');
+        // Bu yerda UI-da Modal yoki Notification chiqarish funksiyasi chaqiriladi
+      } else {
+        print('Buyurtma tarifi ($incomingTariff) haydovchiga mos emas.');
+      }
+    } catch (e) {
+      print('JSON Decode Error: $e');
+    }
+  }
+
+  Future<void> _playOrderSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/new_order.mp3'));
+    } catch (e) {
+      print('Ovoz chiqarishda xato: $e');
+    }
+  }
+
+  void disconnect() {
+    _subscription?.cancel();
+    _mercure?.close();
+    isConnected = false;
+    print('Mercure ulanishi uzildi.');
+  }
+}
+3. Ilovada Ishlatish Namunasi
+Haydovchi profilida "Ishga chiqish" tugmasi bosilganda:
+
+Dart
+
+final _mercure = MercureService();
+
+// Online bo'lish
+void goOnline() {
+  _mercure.connect(
+    companyId: 5, // Kompaniya ID
+    myActiveTariffs: ['start', 'comfort', 'business'], // Haydovchi tariflari
+    // jwtToken: 'backend_bergan_token', 
+  );
+}
+
+// Offline bo'lish
+void goOffline() {
+  _mercure.disconnect();
+}
+💡 Do'stingiz uchun eslatmalar:
+JSON Strukturasi: Backend yuborayotgan JSON ichida albatta tariff kaliti bo'lishi kerak.
+
+JWT: Xavfsizlik uchun backend'dan JWT token olish va u orqali ulanish shart.
+
+Background: Ilova yopiq bo'lganda ham xabar kelishi uchun flutter_background_service paketini qo'shish tavsiya etiladi.

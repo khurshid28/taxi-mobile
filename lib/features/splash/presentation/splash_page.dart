@@ -62,15 +62,10 @@ class _SplashPageState extends State<SplashPage>
     // Check authentication status
     final isLoggedIn =
         await StorageHelper.getBool(AppConstants.keyIsLoggedIn) ?? false;
-    final profileCompleted =
-        await StorageHelper.getBool(AppConstants.keyProfileCompleted) ?? false;
 
     if (isLoggedIn) {
-      if (profileCompleted) {
-        context.go('/home');
-      } else {
-        context.go('/complete-profile');
-      }
+      // Backend'da profil/registration yo'q - to'g'ridan-to'g'ri home'ga
+      context.go('/home');
     } else {
       context.go('/phone');
     }

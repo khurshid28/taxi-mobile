@@ -109,16 +109,14 @@ class _PaymentsPageState extends State<PaymentsPage>
         child: SafeArea(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-              border: Border(
-                top: BorderSide(color: AppColors.primary, width: 3.w),
-              ),
-              boxShadow: [
+              color: AppColors.surface,
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 40.r,
-                  offset: Offset(0, -10.h),
+                  color: Color(0x1F000000),
+                  blurRadius: 32,
+                  offset: Offset(0, -8),
                 ),
               ],
             ),
@@ -151,14 +149,14 @@ class _PaymentsPageState extends State<PaymentsPage>
                   height: 80.h,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                      colors: [AppColors.primary, AppColors.primaryDark],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(24.r),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4CAF50).withOpacity(0.4),
+                        color: AppColors.primary.withOpacity(0.25),
                         blurRadius: 20.r,
                         offset: Offset(0, 8.h),
                       ),
@@ -216,7 +214,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(color: Colors.grey[300]!, width: 1.5.w),
+                    border: Border.all(color: AppColors.divider, width: 1.5.w),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.03),
@@ -247,8 +245,8 @@ class _PaymentsPageState extends State<PaymentsPage>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              const Color(0xFF4CAF50).withOpacity(0.2),
-                              const Color(0xFF4CAF50).withOpacity(0.1),
+                              AppColors.primary.withOpacity(0.2),
+                              AppColors.primary.withOpacity(0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(10.r),
@@ -432,7 +430,7 @@ class _PaymentsPageState extends State<PaymentsPage>
       case PaymentType.topUp:
         return const Color(0xFF2196F3);
       case PaymentType.earning:
-        return const Color(0xFF4CAF50);
+        return AppColors.primary;
       case PaymentType.withdrawal:
         return const Color(0xFFFF9800);
       case PaymentType.bonus:
@@ -456,7 +454,7 @@ class _PaymentsPageState extends State<PaymentsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: _refreshPayments,
         color: AppColors.primary,
@@ -603,7 +601,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                     (_dateRange != null ||
                                         _selectedTypes.isNotEmpty)
                                     ? AppColors.primary
-                                    : Colors.grey[300]!,
+                                    : AppColors.divider,
                                 width: 2.w,
                               ),
                               boxShadow: [
@@ -897,8 +895,8 @@ class _PaymentsPageState extends State<PaymentsPage>
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               return Shimmer.fromColors(
-                baseColor: Colors.grey[300]!,
-                highlightColor: Colors.grey[100]!,
+                baseColor: AppColors.divider,
+                highlightColor: AppColors.surfaceVariant,
                 child: Container(
                   margin: EdgeInsets.only(bottom: 12.h),
                   decoration: BoxDecoration(
@@ -1104,7 +1102,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
@@ -1258,7 +1256,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                     border: Border.all(
                       color: tempDateRange != null
                           ? AppColors.primary
-                          : Colors.grey[300]!,
+                          : AppColors.divider,
                       width: 2.w,
                     ),
                   ),
@@ -1329,7 +1327,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   ),
                   _buildTypeChip(
                     'Daromad',
-                    const Color(0xFF4CAF50),
+                    AppColors.primary,
                     tempTypes.contains(PaymentType.earning),
                     () {
                       setModalState(() {
@@ -1391,7 +1389,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.r),
                         ),
-                        side: BorderSide(color: Colors.grey[300]!, width: 2.w),
+                        side: BorderSide(color: AppColors.divider, width: 2.w),
                       ),
                       child: Text(
                         'Tozalash',

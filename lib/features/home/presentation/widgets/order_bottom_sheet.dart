@@ -122,16 +122,14 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
             scale: _scaleAnimation.value,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-                border: Border(
-                  top: BorderSide(color: AppColors.primary, width: 3.w),
-                ),
-                boxShadow: [
+                color: AppColors.surface,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 40.r,
-                    offset: Offset(0, -10.h),
+                    color: Color(0x1F000000),
+                    blurRadius: 32,
+                    offset: Offset(0, -8),
                   ),
                 ],
               ),

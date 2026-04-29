@@ -126,15 +126,15 @@ class _OrdersPageState extends State<OrdersPage>
   Color _getStatusColor(OrderStatusType status) {
     switch (status) {
       case OrderStatusType.completed:
-        return Colors.green;
+        return AppColors.success;
       case OrderStatusType.cancelled:
-        return Colors.red;
+        return AppColors.error;
       case OrderStatusType.inProgress:
-        return Colors.orange;
+        return AppColors.warning;
       case OrderStatusType.accepted:
-        return Colors.blue;
+        return AppColors.info;
       default:
-        return Colors.grey;
+        return AppColors.textHint;
     }
   }
 
@@ -156,7 +156,7 @@ class _OrdersPageState extends State<OrdersPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         elevation: 0,
         title: const Text(
@@ -236,8 +236,8 @@ class _OrdersPageState extends State<OrdersPage>
       itemCount: 5,
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: AppColors.divider,
+          highlightColor: AppColors.surfaceVariant,
           child: Container(
             margin: EdgeInsets.only(bottom: 16.h),
             decoration: BoxDecoration(
@@ -398,23 +398,17 @@ class _OrdersPageState extends State<OrdersPage>
     final statusColor = _getStatusColor(order.status);
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 14.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: statusColor.withOpacity(0.15), width: 2.w),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15.r,
-            offset: Offset(0.w, 4.h),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.divider, width: 1),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: () => _showOrderDetails(order),
           child: Padding(
             padding: EdgeInsets.all(16.w),
@@ -527,9 +521,8 @@ class _OrdersPageState extends State<OrdersPage>
                 Container(
                   padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(color: Colors.grey[200]!, width: 1.w),
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Column(
                     children: [
@@ -539,7 +532,7 @@ class _OrdersPageState extends State<OrdersPage>
                             width: 6.w,
                             height: 6.h,
                             decoration: const BoxDecoration(
-                              color: Colors.green,
+                              color: AppColors.success,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -565,7 +558,7 @@ class _OrdersPageState extends State<OrdersPage>
                             width: 6.w,
                             height: 6.h,
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: AppColors.error,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -596,12 +589,8 @@ class _OrdersPageState extends State<OrdersPage>
                         vertical: 8.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: Colors.grey[200]!,
-                          width: 1.w,
-                        ),
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -610,8 +599,8 @@ class _OrdersPageState extends State<OrdersPage>
                             'assets/icons/route_duotone.svg',
                             width: 14.w,
                             height: 14.h,
-                            colorFilter: ColorFilter.mode(
-                              Colors.grey[600]!,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.textSecondary,
                               BlendMode.srcIn,
                             ),
                           ),
@@ -620,7 +609,7 @@ class _OrdersPageState extends State<OrdersPage>
                             '${order.distance.toStringAsFixed(1)} km',
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey[700],
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -634,12 +623,8 @@ class _OrdersPageState extends State<OrdersPage>
                         vertical: 8.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: Colors.grey[200]!,
-                          width: 1.w,
-                        ),
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1128,7 +1113,7 @@ class _OrdersPageState extends State<OrdersPage>
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
-                          color: Colors.grey[300]!,
+                          color: AppColors.divider,
                           width: 1.5.w,
                         ),
                       ),

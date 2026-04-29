@@ -27,8 +27,8 @@ class HomeShimmerLoading extends StatelessWidget {
         children: [
           // Map skeleton
           Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: AppColors.divider,
+            highlightColor: AppColors.surfaceVariant,
             period: const Duration(milliseconds: 1500),
             child: Container(
               height: 200.h,
@@ -43,8 +43,8 @@ class HomeShimmerLoading extends StatelessWidget {
           
           // Text skeleton
           Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: AppColors.divider,
+            highlightColor: AppColors.surfaceVariant,
             period: const Duration(milliseconds: 1500),
             child: Column(
               children: [
