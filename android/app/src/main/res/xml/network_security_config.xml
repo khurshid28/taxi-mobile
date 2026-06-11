@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backend cleartext (HTTP) ruxsati.
+  Backend HTTPS emas (http://89.39.95.62), shuning uchun Android 9+ (API 28+)
+  da standart bo'yicha bloklanadi. Faqat backend IP uchun cleartext ochamiz —
+  qolgan barcha trafik xavfsiz (HTTPS) bo'lib qoladi.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">89.39.95.62</domain>
+    </domain-config>
+</network-security-config>
