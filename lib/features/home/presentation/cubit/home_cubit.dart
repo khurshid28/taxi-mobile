@@ -485,6 +485,9 @@ class HomeCubit extends Cubit<HomeState> {
     }
     if (tripMinutes < 1) tripMinutes = 1;
 
+    // Kutish vaqti (daqiqa) - waitTime maydoni uchun.
+    final waitMinutes = (state.waitingSeconds / 60).round();
+
     final order = state.currentOrder;
     if (order != null) {
       final completed = OrderModel(
@@ -501,15 +504,20 @@ class HomeCubit extends Cubit<HomeState> {
         status: OrderStatusType.completed,
       );
 
+      // Safar tugagan nuqta: haydovchining haqiqiy joriy joylashuvi,
+      // bo'lmasa manzil koordinatalari.
+      final endPoint = state.currentLocation ?? completed.destinationLocation;
+
       try {
         await sl<OrderService>().complete(
           orderId: completed.id,
           distance: completed.distance,
           minut: tripMinutes,
+          waitTime: waitMinutes,
           price: completed.price,
           adress: completed.destinationAddress,
-          startLat: completed.pickupLocation.latitude,
-          startLng: completed.pickupLocation.longitude,
+          endLat: endPoint.latitude,
+          endLng: endPoint.longitude,
         );
       } catch (e) {
         // ignore: avoid_print

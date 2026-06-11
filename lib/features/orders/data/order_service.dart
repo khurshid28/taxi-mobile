@@ -46,24 +46,31 @@ class OrderService {
   }
 
   /// `POST /api/orders/{id}/completed`
+  ///
+  /// Haydovchi buyurtmani o'zi yakunlaganda yuboriladigan maydonlar
+  /// (backend sxemasi): distance(km), minut(safar daqiqasi), waitTime(kutish
+  /// daqiqasi), price(hisoblangan narx), adress(manzil), endLat/endLng
+  /// (safar tugagan nuqta koordinatalari).
   Future<Map<String, dynamic>> complete({
     required String orderId,
     required double distance,
     required int minut,
+    required int waitTime,
     required double price,
     required String adress,
-    required double startLat,
-    required double startLng,
+    required double endLat,
+    required double endLng,
   }) async {
     final res = await _client.post(
       'orders/$orderId/completed',
       data: {
         'distance': distance,
         'minut': minut,
+        'waitTime': waitTime,
         'price': price,
         'adress': adress,
-        'startLat': startLat,
-        'startLng': startLng,
+        'endLat': endLat,
+        'endLng': endLng,
       },
     );
     return _asMap(res.data);
