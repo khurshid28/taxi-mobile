@@ -36,14 +36,14 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
           bottom: MediaQuery.of(context).viewInsets.bottom + 24.w,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
           border: Border(
             top: BorderSide(color: Colors.red, width: 3.w),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: AppColors.shadow,
               blurRadius: 40.r,
               offset: Offset(0.w, -10.h),
               spreadRadius: -5,
@@ -111,7 +111,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
               'Iltimos, bekor qilish sababini tanlang',
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.1,
               ),
@@ -134,12 +134,12 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                   decoration: BoxDecoration(
                     color: _selectedReason == index
                         ? Colors.red[50]
-                        : Colors.white,
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(
                       color: _selectedReason == index
                           ? Colors.red
-                          : Colors.grey[300]!,
+                          : AppColors.divider,
                       width: 2.w,
                     ),
                     boxShadow: _selectedReason == index
@@ -153,7 +153,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                           ]
                         : [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: AppColors.shadow,
                               blurRadius: 8.r,
                               offset: Offset(0.w, 2.h),
                             ),
@@ -169,7 +169,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                           border: Border.all(
                             color: _selectedReason == index
                                 ? Colors.red
-                                : Colors.grey[400]!,
+                                : AppColors.textHint,
                             width: 2.w,
                           ),
                           color: _selectedReason == index
@@ -213,7 +213,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16.h),
-                      side: const BorderSide(color: AppColors.divider),
+                      side: BorderSide(color: AppColors.divider),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -240,7 +240,7 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16.h),
                       backgroundColor: Colors.red,
-                      disabledBackgroundColor: Colors.grey[300],
+                      disabledBackgroundColor: AppColors.divider,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),

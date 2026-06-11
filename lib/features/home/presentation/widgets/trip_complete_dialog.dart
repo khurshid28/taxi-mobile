@@ -73,7 +73,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
       child: Container(
         padding: EdgeInsets.all(32.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(32.r),
           border: Border.all(
             color: AppColors.primary.withOpacity(0.2),
@@ -149,7 +149,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               'Muvaffaqiyatli yakunlandi',
               style: TextStyle(
                 fontSize: 15.sp,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
@@ -187,7 +187,7 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                     'Jami summa',
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: Colors.grey[700],
+                      color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),

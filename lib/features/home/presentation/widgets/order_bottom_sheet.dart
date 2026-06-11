@@ -559,7 +559,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
             title,
             style: TextStyle(
               fontSize: 12.sp,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),
@@ -586,7 +586,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: color.withOpacity(0.2), width: 2.w),
         boxShadow: [

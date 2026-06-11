@@ -10,18 +10,18 @@ class InfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.surfaceVariant,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         shadowColor: Colors.black.withOpacity(0.05),
         surfaceTintColor: Colors.transparent,
         leading: Container(
           margin: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey[200]!, width: 1.w),
+            border: Border.all(color: AppColors.divider, width: 1.w),
           ),
           child: IconButton(
             icon: Icon(
@@ -71,7 +71,7 @@ class InfoPage extends StatelessWidget {
                   width: 80.w,
                   height: 80.h,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Icon(
@@ -170,7 +170,7 @@ class InfoPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey[500],
+                color: AppColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -190,11 +190,11 @@ class InfoPage extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.shadow,
             blurRadius: 15.r,
             offset: Offset(0, 4.h),
           ),
@@ -231,7 +231,7 @@ class InfoPage extends StatelessWidget {
             content,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[700],
+              color: AppColors.textSecondary,
               height: 1.6,
             ),
           ),
@@ -253,9 +253,9 @@ class InfoPage extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey[200]!, width: 1.w),
+          border: Border.all(color: AppColors.divider, width: 1.w),
         ),
         child: Row(
           children: [
@@ -268,7 +268,7 @@ class InfoPage extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: Colors.grey[600],
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -286,7 +286,7 @@ class InfoPage extends StatelessWidget {
             Icon(
               Iconsax.arrow_right_3,
               size: 16.sp,
-              color: Colors.grey[400],
+              color: AppColors.textHint,
             ),
           ],
         ),

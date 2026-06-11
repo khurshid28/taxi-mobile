@@ -12,6 +12,7 @@ import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
 import '../../../home/presentation/cubit/home_state.dart';
+import '../../../../core/widgets/error_retry_view.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -27,6 +28,7 @@ class _OrdersPageState extends State<OrdersPage>
   OrderStatusType? _selectedFilter;
   late AnimationController _animationController;
   bool _isLoading = true;
+  bool _hasError = false;
   int _selectedTab = 0; // 0 = Faol, 1 = Tugatilgan
 
   @override
@@ -40,18 +42,28 @@ class _OrdersPageState extends State<OrdersPage>
   }
 
   Future<void> _loadOrders() async {
-    setState(() => _isLoading = true);
-
-    // Real completed trips saved locally on this device.
-    final storedOrders = await _loadStoredOrders();
-
-    if (!mounted) return;
     setState(() {
-      _orders = storedOrders;
-      _filteredOrders = _orders;
-      _isLoading = false;
+      _isLoading = true;
+      _hasError = false;
     });
-    _animationController.forward();
+
+    try {
+      // Real completed trips saved locally on this device.
+      final storedOrders = await _loadStoredOrders();
+      if (!mounted) return;
+      setState(() {
+        _orders = storedOrders;
+        _filteredOrders = _orders;
+        _isLoading = false;
+      });
+      _animationController.forward();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<List<OrderModel>> _loadStoredOrders() async {
@@ -82,8 +94,9 @@ class _OrdersPageState extends State<OrdersPage>
         );
       }).toList();
     } catch (e) {
+      // ignore: avoid_print
       print('Error loading stored orders: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -109,16 +122,26 @@ class _OrdersPageState extends State<OrdersPage>
   }
 
   Future<void> _refreshOrders() async {
-    setState(() => _isLoading = true);
-
-    final storedOrders = await _loadStoredOrders();
-
-    if (!mounted) return;
     setState(() {
-      _orders = storedOrders;
-      _filterOrders(_selectedFilter);
-      _isLoading = false;
+      _isLoading = true;
+      _hasError = false;
     });
+
+    try {
+      final storedOrders = await _loadStoredOrders();
+      if (!mounted) return;
+      setState(() {
+        _orders = storedOrders;
+        _filterOrders(_selectedFilter);
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
   }
 
   Color _getStatusColor(OrderStatusType status) {
@@ -394,14 +417,14 @@ class _OrdersPageState extends State<OrdersPage>
                           Icon(
                             Iconsax.call,
                             size: 14.w,
-                            color: Colors.grey[500],
+                            color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 6.w),
                           Text(
                             order.clientPhone,
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey[600],
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -605,6 +628,8 @@ class _OrdersPageState extends State<OrdersPage>
       color: AppColors.primary,
       child: _isLoading
           ? _buildShimmerLoading()
+          : _hasError
+          ? ErrorRetryView(onRetry: _refreshOrders)
           : _filteredOrders.isEmpty
           ? _buildEmptyState(
               title: 'Tugatilgan buyurtmalar yo\'q',
@@ -650,7 +675,7 @@ class _OrdersPageState extends State<OrdersPage>
           child: Container(
             margin: EdgeInsets.only(bottom: 16.h),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(16.r),
             ),
             child: Column(
@@ -664,7 +689,7 @@ class _OrdersPageState extends State<OrdersPage>
                         width: 48.w,
                         height: 48.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
@@ -677,7 +702,7 @@ class _OrdersPageState extends State<OrdersPage>
                               width: double.infinity,
                               height: 16.h,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(4.r),
                               ),
                             ),
@@ -686,7 +711,7 @@ class _OrdersPageState extends State<OrdersPage>
                               width: 120.w,
                               height: 14.h,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(4.r),
                               ),
                             ),
@@ -697,7 +722,7 @@ class _OrdersPageState extends State<OrdersPage>
                         width: 70.w,
                         height: 24.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                       ),
@@ -714,8 +739,8 @@ class _OrdersPageState extends State<OrdersPage>
                           Container(
                             width: 20.w,
                             height: 20.h,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -724,7 +749,7 @@ class _OrdersPageState extends State<OrdersPage>
                             child: Container(
                               height: 14.h,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(4.r),
                               ),
                             ),
@@ -737,8 +762,8 @@ class _OrdersPageState extends State<OrdersPage>
                           Container(
                             width: 20.w,
                             height: 20.h,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -747,7 +772,7 @@ class _OrdersPageState extends State<OrdersPage>
                             child: Container(
                               height: 14.h,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(4.r),
                               ),
                             ),
@@ -875,14 +900,14 @@ class _OrdersPageState extends State<OrdersPage>
                               Icon(
                                 Iconsax.call,
                                 size: 14.w,
-                                color: Colors.grey[500],
+                                color: AppColors.textSecondary,
                               ),
                               SizedBox(width: 6.w),
                               Text(
                                 order.clientPhone,
                                 style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1032,14 +1057,14 @@ class _OrdersPageState extends State<OrdersPage>
                           Icon(
                             Iconsax.clock,
                             size: 14.w,
-                            color: Colors.grey[600],
+                            color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 6.w),
                           Text(
                             dateFormat.format(order.createdAt),
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey[700],
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1095,14 +1120,14 @@ class _OrdersPageState extends State<OrdersPage>
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
           border: Border(
             top: BorderSide(color: AppColors.primary, width: 3.w),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: AppColors.shadow,
               blurRadius: 40.r,
               offset: Offset(0, -10.h),
             ),
@@ -1188,14 +1213,14 @@ class _OrdersPageState extends State<OrdersPage>
                                   Icon(
                                     Iconsax.call,
                                     size: 16.w,
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary,
                                   ),
                                   SizedBox(width: 6.w),
                                   Text(
                                     order.clientPhone,
                                     style: TextStyle(
                                       fontSize: 14.sp,
-                                      color: Colors.grey[600],
+                                      color: AppColors.textSecondary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1286,7 +1311,7 @@ class _OrdersPageState extends State<OrdersPage>
                                   'Masofa',
                                   style: TextStyle(
                                     fontSize: 12.sp,
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1329,7 +1354,7 @@ class _OrdersPageState extends State<OrdersPage>
                                   'Narx',
                                   style: TextStyle(
                                     fontSize: 12.sp,
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1362,7 +1387,7 @@ class _OrdersPageState extends State<OrdersPage>
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
                           color: Colors.green.withOpacity(0.2),
@@ -1427,7 +1452,7 @@ class _OrdersPageState extends State<OrdersPage>
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
                           color: Colors.red.withOpacity(0.2),
@@ -1492,7 +1517,7 @@ class _OrdersPageState extends State<OrdersPage>
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
                           color: AppColors.divider,
@@ -1504,14 +1529,14 @@ class _OrdersPageState extends State<OrdersPage>
                           Icon(
                             Iconsax.clock,
                             size: 20.w,
-                            color: Colors.grey[600],
+                            color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 12.w),
                           Text(
                             dateFormat.format(order.createdAt),
                             style: TextStyle(
                               fontSize: 14.sp,
-                              color: Colors.grey[700],
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

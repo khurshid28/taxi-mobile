@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Color
+  /// Global dark-mode flag. Set by MaterialApp.builder from the resolved theme
+  /// brightness so that every widget reading these tokens adapts automatically
+  /// (including system mode). Theme tokens below are getters backed by this.
+  static bool isDark = false;
+
+  // Primary Color (brand — same in both themes)
   static const Color primary = Color(0xFF4CAF50);
   static const Color primaryDark = Color(0xFF388E3C);
   static const Color primaryLight = Color(0xFF66BB6A);
 
-  // Background — modern minimal: pure white surfaces
-  static const Color background = Colors.white;
-  static const Color surface = Colors.white;
-  static const Color surfaceVariant = Color(0xFFF7F8FA); // very subtle off-white
+  // Background / surface — theme-aware. Dark ramp keeps cards (surface)
+  // slightly lighter than the scaffold (surfaceVariant/background) so they pop.
+  static Color get background =>
+      isDark ? const Color(0xFF0E1013) : Colors.white;
+  static Color get surface =>
+      isDark ? const Color(0xFF1E2127) : Colors.white;
+  static Color get surfaceVariant =>
+      isDark ? const Color(0xFF16191E) : const Color(0xFFF7F8FA);
 
-  // Text
-  static const Color textPrimary = Color(0xFF111418);
-  static const Color textSecondary = Color(0xFF5C6470);
-  static const Color textHint = Color(0xFF9AA3AF);
-  static const Color textMuted = Color(0xFFB7BDC6);
+  // Text — theme-aware
+  static Color get textPrimary =>
+      isDark ? const Color(0xFFF1F3F6) : const Color(0xFF111418);
+  static Color get textSecondary =>
+      isDark ? const Color(0xFFA8B0BB) : const Color(0xFF5C6470);
+  static Color get textHint =>
+      isDark ? const Color(0xFF79818C) : const Color(0xFF9AA3AF);
+  static Color get textMuted =>
+      isDark ? const Color(0xFF565D67) : const Color(0xFFB7BDC6);
 
-  // Status
+  // Status (brand — same in both themes)
   static const Color success = Color(0xFF22C55E);
   static const Color error = Color(0xFFEF4444);
   static const Color warning = Color(0xFFF59E0B);
@@ -28,10 +41,13 @@ class AppColors {
   static const Color orderActive = Color(0xFF22C55E);
   static const Color orderCompleted = Color(0xFF3B82F6);
 
-  // Others
-  static const Color divider = Color(0xFFEDEFF3);
-  static const Color dividerLight = Color(0xFFF1F3F6);
-  static const Color shadow = Color(0x0A000000); // 4% black for soft shadows
+  // Others — theme-aware where structural
+  static Color get divider =>
+      isDark ? const Color(0xFF2A2E35) : const Color(0xFFEDEFF3);
+  static Color get dividerLight =>
+      isDark ? const Color(0xFF20242A) : const Color(0xFFF1F3F6);
+  static Color get shadow =>
+      isDark ? const Color(0x33000000) : const Color(0x0A000000);
   static const Color overlay = Color(0x66000000);
 
   /// Canonical soft elevation used by cards/sheets in the modern minimal UI.

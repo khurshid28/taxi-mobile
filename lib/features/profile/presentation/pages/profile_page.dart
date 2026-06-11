@@ -13,6 +13,7 @@ import '../../data/driver_service.dart';
 import 'activity_page.dart';
 import 'settings_page.dart';
 import 'info_page.dart';
+import '../../../../core/widgets/error_retry_view.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -28,6 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   double _balance = 0.0;
   int _totalTrips = 0;
   bool _isLoading = true;
+  bool _loadError = false;
 
   @override
   void initState() {
@@ -36,7 +38,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadUserData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = false;
+    });
 
     // Keshlangan ma'lumotlar (server javobigacha ko'rsatiladi)
     var name = await StorageHelper.getString('user_name') ?? 'Haydovchi';
@@ -62,6 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _name = name;
         _phone = phone;
+        _loadError = true;
         _isLoading = false;
       });
     }
@@ -116,7 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: AppColors.surfaceVariant,
         body: _buildShimmerLoading(),
       );
     }
@@ -132,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
             backgroundColor: AppColors.surface,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
-            iconTheme: const IconThemeData(color: AppColors.textPrimary),
+            iconTheme: IconThemeData(color: AppColors.textPrimary),
             title: Text(
               'Profil',
               style: TextStyle(
@@ -224,6 +230,11 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
+                  if (_loadError)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: ErrorRetryBanner(onRetry: _loadUserData),
+                    ),
                   // Balance Card
                   Container(
                     decoration: BoxDecoration(
@@ -408,11 +419,11 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadow,
             blurRadius: 10.r,
             offset: Offset(0.w, 4.h),
           ),
@@ -458,7 +469,7 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white,
+            AppColors.surface,
             (isDestructive ? Colors.red : AppColors.primary).withOpacity(0.01),
           ],
           begin: Alignment.centerLeft,
@@ -473,7 +484,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.shadow,
             blurRadius: 12.r,
             offset: Offset(0.w, 4.h),
           ),
@@ -531,7 +542,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 Icon(
                   Iconsax.arrow_right_3,
-                  color: Colors.grey[400],
+                  color: AppColors.textHint,
                   size: 28.w,
                 ),
               ],
@@ -566,7 +577,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Container(
                         width: 84.w,
                         height: 84.w,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.divider,
                           shape: BoxShape.circle,
                         ),
@@ -614,7 +625,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Container(
                   height: 120.h,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16.r),
                   ),
                 ),
@@ -629,7 +640,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Container(
                         height: 100.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(16.r),
                         ),
                       ),
@@ -643,7 +654,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Container(
                         height: 100.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(16.r),
                         ),
                       ),
@@ -662,7 +673,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Container(
                       height: 60.h,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),

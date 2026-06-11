@@ -48,7 +48,7 @@ class _PasswordPageState extends State<PasswordPage> {
       backgroundColor: AppColors.surface,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(

@@ -8,6 +8,7 @@ import '../../../../injection_container.dart';
 import '../../../profile/data/driver_service.dart';
 import '../../../../core/models/payment_model.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/widgets/error_retry_view.dart';
 
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key});
@@ -23,6 +24,7 @@ class _PaymentsPageState extends State<PaymentsPage>
   double _balance = 0;
   late AnimationController _animationController;
   bool _isLoading = true;
+  bool _hasError = false;
 
   // Filter parameters
   DateTimeRange? _dateRange;
@@ -40,7 +42,10 @@ class _PaymentsPageState extends State<PaymentsPage>
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
     _payments = [];
     _filterPayments();
     await _loadBalance();
@@ -59,12 +64,15 @@ class _PaymentsPageState extends State<PaymentsPage>
       final data = await sl<DriverService>().aboutMyData();
       if (mounted) setState(() => _balance = data.balance ?? 0);
     } catch (_) {
-      // Balansni olishda xatolik bo'lsa, 0 ko'rsatiladi.
+      if (mounted) setState(() => _hasError = true);
     }
   }
 
   Future<void> _refreshPayments() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
     await _loadBalance();
     if (!mounted) return;
     setState(() {
@@ -132,6 +140,8 @@ class _PaymentsPageState extends State<PaymentsPage>
         color: AppColors.primary,
         child: _isLoading
             ? _buildShimmerLoading()
+            : _hasError
+            ? ErrorRetryView(onRetry: _loadData)
             : CustomScrollView(
                 slivers: [
                   SliverAppBar(
@@ -208,7 +218,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                               vertical: 14.h,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(16.r),
                               border: Border.all(
                                 color:
@@ -220,7 +230,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: AppColors.shadow,
                                   blurRadius: 12.r,
                                   offset: Offset(0, 3.h),
                                 ),
@@ -237,7 +247,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                           (_dateRange != null ||
                                               _selectedTypes.isNotEmpty)
                                           ? AppColors.primary
-                                          : Colors.grey[600],
+                                          : AppColors.textSecondary,
                                       size: 22.sp,
                                     ),
                                     if (_dateRange != null ||
@@ -252,7 +262,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                             color: Colors.amber,
                                             shape: BoxShape.circle,
                                             border: Border.all(
-                                              color: Colors.white,
+                                              color: AppColors.surface,
                                               width: 1.5.w,
                                             ),
                                           ),
@@ -270,7 +280,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                         (_dateRange != null ||
                                             _selectedTypes.isNotEmpty)
                                         ? AppColors.primary
-                                        : Colors.grey[700],
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -344,7 +354,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           SizedBox(height: 8.h),
           Text(
             'To\'lovlar tarixi shu yerda ko\'rinadi',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -360,12 +370,12 @@ class _PaymentsPageState extends State<PaymentsPage>
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: color.withOpacity(0.15), width: 2.w),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.shadow,
             blurRadius: 15.r,
             offset: Offset(0.w, 4.h),
           ),
@@ -426,14 +436,14 @@ class _PaymentsPageState extends State<PaymentsPage>
                           Icon(
                             Iconsax.clock,
                             size: 14.w,
-                            color: Colors.grey[500],
+                            color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 6.w),
                           Text(
                             dateFormat.format(payment.createdAt),
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey[600],
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -554,7 +564,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                 child: Container(
                   margin: EdgeInsets.only(bottom: 12.h),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16.r),
                   ),
                   child: Padding(
@@ -565,7 +575,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                           width: 48.w,
                           height: 48.h,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
@@ -578,7 +588,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                 width: double.infinity,
                                 height: 16.h,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppColors.surface,
                                   borderRadius: BorderRadius.circular(4.r),
                                 ),
                               ),
@@ -587,7 +597,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                 width: 100.w,
                                 height: 12.h,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppColors.surface,
                                   borderRadius: BorderRadius.circular(4.r),
                                 ),
                               ),
@@ -598,7 +608,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                           width: 80.w,
                           height: 16.h,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(4.r),
                           ),
                         ),
@@ -639,14 +649,14 @@ class _PaymentsPageState extends State<PaymentsPage>
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.65,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
           border: Border(
             top: BorderSide(color: color, width: 3.w),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: AppColors.shadow,
               blurRadius: 40.r,
               offset: Offset(0, -10.h),
             ),
@@ -749,7 +759,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   Container(
                     padding: EdgeInsets.all(20.w),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
                         color: AppColors.divider,
@@ -757,7 +767,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -771,17 +781,17 @@ class _PaymentsPageState extends State<PaymentsPage>
                           color,
                         ),
                         SizedBox(height: 16.h),
-                        Divider(color: Colors.grey[200], height: 1.h),
+                        Divider(color: AppColors.divider, height: 1.h),
                         SizedBox(height: 16.h),
                         _buildDetailRow(
                           'Sana',
                           dateFormat.format(payment.createdAt),
-                          Colors.grey[700]!,
+                          AppColors.textSecondary,
                         ),
                         SizedBox(height: 16.h),
-                        Divider(color: Colors.grey[200], height: 1.h),
+                        Divider(color: AppColors.divider, height: 1.h),
                         SizedBox(height: 16.h),
-                        _buildDetailRow('ID', payment.id, Colors.grey[700]!),
+                        _buildDetailRow('ID', payment.id, AppColors.textSecondary),
                       ],
                     ),
                   ),
@@ -803,7 +813,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: AppColors.textSecondary,
           ),
         ),
         Flexible(
@@ -834,7 +844,7 @@ class _PaymentsPageState extends State<PaymentsPage>
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.75,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
           ),
           padding: EdgeInsets.all(24.w),
@@ -847,7 +857,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   width: 40.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
@@ -901,7 +911,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                 child: Container(
                   padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(
                       color: tempDateRange != null
@@ -916,7 +926,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                         Iconsax.calendar,
                         color: tempDateRange != null
                             ? AppColors.primary
-                            : Colors.grey[600],
+                            : AppColors.textSecondary,
                         size: 20.sp,
                       ),
                       SizedBox(width: 12.w),
@@ -930,7 +940,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                             fontWeight: FontWeight.w600,
                             color: tempDateRange != null
                                 ? AppColors.textPrimary
-                                : Colors.grey[600],
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -1046,7 +1056,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w700,
-                          color: Colors.grey[700],
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -1110,7 +1120,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: isSelected ? null : Colors.white,
+          color: isSelected ? null : AppColors.surface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isSelected ? color : color.withOpacity(0.3),
@@ -1120,7 +1130,7 @@ class _PaymentsPageState extends State<PaymentsPage>
             BoxShadow(
               color: isSelected
                   ? color.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.03),
+                  : AppColors.shadow,
               blurRadius: isSelected ? 12.r : 8.r,
               offset: Offset(0, isSelected ? 4.h : 2.h),
             ),

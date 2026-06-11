@@ -86,10 +86,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.surfaceVariant,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: Text(
@@ -155,7 +155,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     'Iltimos, haqiqiy ma\'lumotlaringizni kiriting.\nBu sizning xavfsizligingiz uchun muhim.',
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                       height: 1.5,
                     ),
@@ -191,14 +191,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         border: Border.all(
                           color: _passportImage != null
                               ? AppColors.primary
-                              : Colors.grey[300]!,
+                              : AppColors.divider,
                           width: _passportImage != null ? 3.w : 2.w,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: _passportImage != null
                                 ? AppColors.primary.withOpacity(0.2)
-                                : Colors.black.withOpacity(0.05),
+                                : AppColors.shadow,
                             blurRadius: 20.r,
                             offset: Offset(0, 8.h),
                           ),
@@ -219,7 +219,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                   width: 70.w,
                                   height: 70.h,
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                     borderRadius: BorderRadius.circular(20.r),
                                     boxShadow: [
                                       BoxShadow(
@@ -243,7 +243,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 Text(
                                   'Passport rasmini yuklang',
                                   style: TextStyle(
-                                    color: Colors.grey[700],
+                                    color: AppColors.textSecondary,
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -253,7 +253,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 Text(
                                   'Rasmni tanlash uchun bosing',
                                   style: TextStyle(
-                                    color: Colors.grey[500],
+                                    color: AppColors.textSecondary,
                                     fontSize: 12.sp,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -294,14 +294,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         border: Border.all(
                           color: _carImage != null
                               ? AppColors.primary
-                              : Colors.grey[300]!,
+                              : AppColors.divider,
                           width: _carImage != null ? 3.w : 2.w,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: _carImage != null
                                 ? AppColors.primary.withOpacity(0.2)
-                                : Colors.black.withOpacity(0.05),
+                                : AppColors.shadow,
                             blurRadius: 20.r,
                             offset: Offset(0, 8.h),
                           ),
@@ -319,7 +319,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                   width: 70.w,
                                   height: 70.h,
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: AppColors.surface,
                                     borderRadius: BorderRadius.circular(20.r),
                                     boxShadow: [
                                       BoxShadow(
@@ -343,7 +343,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 Text(
                                   'Mashina rasmini yuklang',
                                   style: TextStyle(
-                                    color: Colors.grey[700],
+                                    color: AppColors.textSecondary,
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -353,7 +353,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                 Text(
                                   'Rasmni tanlash uchun bosing',
                                   style: TextStyle(
-                                    color: Colors.grey[500],
+                                    color: AppColors.textSecondary,
                                     fontSize: 12.sp,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -367,15 +367,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Name
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -390,7 +390,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Ism',
                         hintText: 'Masalan: Aziz',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -444,15 +444,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Full Name
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -467,7 +467,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Familiya',
                         hintText: 'Masalan: Azizov',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -520,15 +520,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Email (optional)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -544,7 +544,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Email (ixtiyoriy)',
                         hintText: 'example@mail.com',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -600,15 +600,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Car Number
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -626,7 +626,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Mashina raqami',
                         hintText: '01 A 123 BC',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -681,15 +681,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Car Type
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -700,7 +700,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Mashina turi',
                         hintText: 'Mashina turini tanlang',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -783,7 +783,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         size: 28.sp,
                       ),
                       isExpanded: true,
-                      dropdownColor: Colors.white,
+                      dropdownColor: AppColors.surface,
                     ),
                   ),
                   SizedBox(height: 24.h),
@@ -791,15 +791,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   // Car Color
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: AppColors.divider,
                         width: 1.5.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
+                          color: AppColors.shadow,
                           blurRadius: 15.r,
                           offset: Offset(0, 4.h),
                         ),
@@ -810,7 +810,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: InputDecoration(
                         labelText: 'Mashina rangi',
                         hintText: 'Mashina rangini tanlang',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        hintStyle: TextStyle(color: AppColors.textHint),
                         labelStyle: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -893,7 +893,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         size: 28.sp,
                       ),
                       isExpanded: true,
-                      dropdownColor: Colors.white,
+                      dropdownColor: AppColors.surface,
                     ),
                   ),
                   SizedBox(height: 40.h),

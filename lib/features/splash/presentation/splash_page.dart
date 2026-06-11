@@ -96,11 +96,11 @@ class _SplashPageState extends State<SplashPage>
                       width: 150,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: AppColors.shadow,
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),

@@ -393,12 +393,12 @@ class _HomePageState extends State<HomePage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 27.5.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: statusColor.withOpacity(0.2), width: 1.5.w),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: AppColors.shadow,
             blurRadius: 16.r,
             offset: Offset(0, 4.h),
           ),
@@ -444,7 +444,7 @@ class _HomePageState extends State<HomePage> {
               NumberFormatter.formatPriceWithCurrency(state.currentPrice),
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),

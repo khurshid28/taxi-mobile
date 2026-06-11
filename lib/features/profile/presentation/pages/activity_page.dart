@@ -147,18 +147,18 @@ class _ActivityPageState extends State<ActivityPage>
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.surfaceVariant,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         shadowColor: Colors.black.withOpacity(0.05),
         surfaceTintColor: Colors.transparent,
         leading: Container(
           margin: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey[200]!, width: 1.w),
+            border: Border.all(color: AppColors.divider, width: 1.w),
           ),
           child: IconButton(
             icon: Icon(
@@ -184,7 +184,7 @@ class _ActivityPageState extends State<ActivityPage>
           controller: _tabController,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey[600],
+          unselectedLabelColor: AppColors.textSecondary,
           labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
           unselectedLabelStyle: TextStyle(
             fontSize: 15.sp,
@@ -540,7 +540,7 @@ class _ActivityPageState extends State<ActivityPage>
                 SizedBox(height: 4.h),
                 Text(
                   'Oxirgi 12 oyning tahlili',
-                  style: TextStyle(fontSize: 13.sp, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -551,7 +551,7 @@ class _ActivityPageState extends State<ActivityPage>
             margin: EdgeInsets.symmetric(horizontal: 16.w),
             padding: EdgeInsets.all(24.w),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24.r),
               border: Border.all(
                 color: AppColors.primary.withOpacity(0.1),
@@ -627,7 +627,7 @@ class _ActivityPageState extends State<ActivityPage>
                             getTitlesWidget: (value, meta) {
                               return Text(
                                 '${(value / 1000000).toStringAsFixed(1)}M',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 10,
                                 ),
@@ -643,7 +643,7 @@ class _ActivityPageState extends State<ActivityPage>
                         horizontalInterval: 500000,
                         getDrawingHorizontalLine: (value) {
                           return FlLine(
-                            color: Colors.grey[200],
+                            color: AppColors.divider,
                             strokeWidth: 1,
                           );
                         },
@@ -688,14 +688,14 @@ class _ActivityPageState extends State<ActivityPage>
                         label: selectedMonth.month,
                         color: AppColors.primary,
                       ),
-                      Container(width: 1, height: 35, color: Colors.grey[300]),
+                      Container(width: 1, height: 35, color: AppColors.divider),
                       _buildChartDetailItem(
                         icon: Iconsax.wallet,
                         label:
                             '${(selectedMonth.earnings / 1000000).toStringAsFixed(2)} mln',
                         color: const Color(0xFF4CAF50),
                       ),
-                      Container(width: 1, height: 35, color: Colors.grey[300]),
+                      Container(width: 1, height: 35, color: AppColors.divider),
                       _buildChartDetailItem(
                         icon: Iconsax.people,
                         label: '${selectedMonth.clients} ta',
@@ -774,7 +774,7 @@ class _ActivityPageState extends State<ActivityPage>
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(18.r),
         border: Border.all(color: color.withOpacity(0.1), width: 1.5.w),
         boxShadow: [
@@ -801,7 +801,7 @@ class _ActivityPageState extends State<ActivityPage>
             title,
             style: TextStyle(
               fontSize: 11.sp,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
@@ -877,17 +877,17 @@ class _ActivityPageState extends State<ActivityPage>
         margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(18.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isExpanded ? AppColors.primary : Colors.grey[200]!,
+            color: isExpanded ? AppColors.primary : AppColors.divider,
             width: isExpanded ? 2.w : 1.5.w,
           ),
           boxShadow: [
             BoxShadow(
               color: isExpanded
                   ? AppColors.primary.withOpacity(0.15)
-                  : Colors.black.withOpacity(0.03),
+                  : AppColors.shadow,
               blurRadius: isExpanded ? 25.r : 20.r,
               offset: Offset(0, 4.h),
               spreadRadius: isExpanded ? 0 : -2.w,
@@ -1031,7 +1031,7 @@ class _ActivityPageState extends State<ActivityPage>
                               'Maqsad: 150 safar',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1051,7 +1051,7 @@ class _ActivityPageState extends State<ActivityPage>
                           child: LinearProgressIndicator(
                             value: month.clients / 150,
                             minHeight: 8.h,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: AppColors.divider,
                             valueColor: AlwaysStoppedAnimation<Color>(
                               AppColors.primary,
                             ),
@@ -1094,7 +1094,7 @@ class _ActivityPageState extends State<ActivityPage>
                 label,
                 style: TextStyle(
                   fontSize: 12.sp,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1143,12 +1143,12 @@ class _ActivityPageState extends State<ActivityPage>
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.grey[200]!, width: 1.5.w),
+        border: Border.all(color: AppColors.divider, width: 1.5.w),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: AppColors.shadow,
             blurRadius: 20.r,
             offset: Offset(0, 4.h),
             spreadRadius: -2.w,

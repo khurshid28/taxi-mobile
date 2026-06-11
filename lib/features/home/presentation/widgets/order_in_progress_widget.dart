@@ -71,11 +71,11 @@ class OrderInProgressWidget extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: AppColors.shadow,
                 blurRadius: 20.r,
                 offset: Offset(0, -5.h),
               ),
@@ -92,7 +92,7 @@ class OrderInProgressWidget extends StatelessWidget {
                   width: 40.w,
                   height: 5.h,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(3.r),
                   ),
                 ),
@@ -398,7 +398,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                         fontSize: 12.sp,
                                         color: isTimeoutEnabled
                                             ? Colors.orange[700]
-                                            : Colors.grey[600],
+                                            : AppColors.textSecondary,
                                       ),
                                     ),
                                 ],
@@ -606,7 +606,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                     'Taxminiy vaqt',
                                     style: TextStyle(
                                       fontSize: 12.sp,
-                                      color: Colors.grey.shade600,
+                                      color: AppColors.textSecondary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -666,7 +666,7 @@ class OrderInProgressWidget extends StatelessWidget {
                           child: Container(
                             height: 52.h,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(12.r),
                               border: Border.all(color: Colors.red, width: 2.w),
                             ),

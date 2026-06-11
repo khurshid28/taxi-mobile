@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/sound_service.dart';
 import '../../../../core/utils/storage_helper.dart';
 
@@ -29,7 +30,35 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _soundEnabled = soundEnabled;
       SoundService().setSoundEnabled(soundEnabled);
+      _theme = _labelForMode(ThemeController.instance.mode.value);
     });
+  }
+
+  String _labelForMode(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return 'Qorong\'i';
+      case ThemeMode.system:
+        return 'Tizim';
+      case ThemeMode.light:
+        return 'Yorqin';
+    }
+  }
+
+  Future<void> _applyTheme(String label) async {
+    final ThemeMode mode;
+    switch (label) {
+      case 'Qorong\'i':
+        mode = ThemeMode.dark;
+        break;
+      case 'Tizim':
+        mode = ThemeMode.system;
+        break;
+      default:
+        mode = ThemeMode.light;
+    }
+    await ThemeController.instance.setMode(mode);
+    setState(() => _theme = label);
   }
 
   Future<void> _saveSoundSetting(bool value) async {
@@ -48,18 +77,18 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.surfaceVariant,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.05),
+        shadowColor: AppColors.shadow,
         surfaceTintColor: Colors.transparent,
         leading: Container(
           margin: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey[200]!, width: 1.w),
+            border: Border.all(color: AppColors.divider, width: 1.w),
           ),
           child: IconButton(
             icon: Icon(
@@ -115,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _theme,
               Iconsax.color_swatch,
               ['Yorqin', 'Qorong\'i', 'Tizim'],
-              (value) => setState(() => _theme = value),
+              (value) => _applyTheme(value),
             ),
           ]),
           SizedBox(height: 16.h),
@@ -138,18 +167,18 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w700,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
               letterSpacing: 0.5,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(20.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: AppColors.shadow,
                 blurRadius: 15.r,
                 offset: Offset(0, 4.h),
               ),
@@ -188,7 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 13.sp, color: Colors.grey[600]),
+        style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
       ),
       trailing: Switch(
         value: value,
@@ -226,9 +255,9 @@ class _SettingsPageState extends State<SettingsPage> {
       trailing: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: Colors.grey[300]!, width: 1.w),
+          border: Border.all(color: AppColors.divider, width: 1.w),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -242,7 +271,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             SizedBox(width: 4.w),
-            Icon(Iconsax.arrow_down_1, size: 20.sp, color: Colors.grey[600]),
+            Icon(Iconsax.arrow_down_1, size: 20.sp, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -252,7 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
           backgroundColor: Colors.transparent,
           builder: (context) => Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
             ),
             padding: EdgeInsets.all(20.w),
@@ -263,7 +292,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   width: 40.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
@@ -327,7 +356,7 @@ class _SettingsPageState extends State<SettingsPage> {
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w600,
-          color: Colors.grey[600],
+          color: AppColors.textSecondary,
         ),
       ),
     );

@@ -56,7 +56,7 @@ class NoInternetPage extends StatelessWidget {
                   'Internet aloqasi yo\'q. Iltimos, internetga ulanganingizni tekshiring va qaytadan urinib ko\'ring.',
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: Colors.grey[600],
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,

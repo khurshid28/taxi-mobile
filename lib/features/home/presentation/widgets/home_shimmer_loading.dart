@@ -13,7 +13,7 @@ class HomeShimmerLoading extends StatelessWidget {
       margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 100.h),
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -34,7 +34,7 @@ class HomeShimmerLoading extends StatelessWidget {
             child: Container(
               height: 200.h,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16.r),
               ),
             ),
@@ -53,7 +53,7 @@ class HomeShimmerLoading extends StatelessWidget {
                   height: 24.h,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
@@ -62,7 +62,7 @@ class HomeShimmerLoading extends StatelessWidget {
                   height: 16.h,
                   width: 200.w,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),

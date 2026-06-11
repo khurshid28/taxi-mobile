@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/auth/auth_events.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'core/routes/app_router.dart';
 import 'core/utils/notification_service.dart';
 import 'core/utils/sound_service.dart';
@@ -14,6 +16,8 @@ import 'injection_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  // Tema rejimini (yorqin/qorong'i/tizim) yuklab olamiz.
+  await ThemeController.instance.load();
   // Bildirishnoma va ovoz servislarini ishga tushiramiz (aks holda
   // notification ko'rinmaydi va ovoz birinchi marta kechikadi).
   await NotificationService().initialize();
@@ -64,11 +68,25 @@ class _MyAppState extends State<MyApp> {
             BlocProvider(create: (_) => ProfileCubit()),
             BlocProvider(create: (_) => HomeCubit()),
           ],
-          child: MaterialApp.router(
-            title: 'Taxi Mobile',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            routerConfig: AppRouter.router,
+          child: ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController.instance.mode,
+            builder: (context, themeMode, _) {
+              return MaterialApp.router(
+                title: 'Taxi Mobile',
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeMode,
+                builder: (context, child) {
+                  // Material hal qilgan brightness'ga qarab global dark
+                  // flag'ni o'rnatamiz (tizim rejimi ham to'g'ri ishlashi uchun).
+                  AppColors.isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  return child ?? const SizedBox.shrink();
+                },
+                routerConfig: AppRouter.router,
+              );
+            },
           ),
         );
       },
