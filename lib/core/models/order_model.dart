@@ -31,6 +31,18 @@ class OrderModel {
 
   /// Mercure / REST javoblari uchun parser. Backend bir nechta
   /// nom variantlarini ishlatadi - imkon qadar moslashuvchan.
+  ///
+  /// Haqiqiy backend tuzilishi (API Platform / JSON-LD):
+  /// ```json
+  /// {
+  ///   "id": 1,
+  ///   "client": { "phone": "+998..." },
+  ///   "startLocation": { "lat": .., "lng": .., "adress": ".." },
+  ///   "endLocation":   { "lat": .., "lng": .., "adress": ".." },
+  ///   "price": 0, "status": "new",
+  ///   "orderType": { "@id": "/api/order_types/1", "name": "Start" }
+  /// }
+  /// ```
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     double toDouble(dynamic v) {
       if (v is num) return v.toDouble();
@@ -41,25 +53,61 @@ class OrderModel {
     Point point(dynamic lat, dynamic lng) =>
         Point(latitude: toDouble(lat), longitude: toDouble(lng));
 
+    Map<String, dynamic>? asMap(dynamic v) =>
+        v is Map<String, dynamic> ? v : null;
+
     final id = (json['id'] ?? json['orderId'] ?? json['@id'] ?? '').toString();
 
-    final pickupLat = json['startLat'] ??
-        json['pickupLat'] ??
-        json['fromLat'] ??
-        (json['pickup'] is Map ? json['pickup']['lat'] : null);
-    final pickupLng = json['startLng'] ??
-        json['pickupLng'] ??
-        json['fromLng'] ??
-        (json['pickup'] is Map ? json['pickup']['lng'] : null);
+    // Mijoz (nested `client` obyekti yoki yassi maydonlar)
+    final client = asMap(json['client']);
+    final clientName = (client?['name'] ??
+            client?['fullName'] ??
+            json['clientName'] ??
+            json['userName'] ??
+            'Mijoz')
+        .toString();
+    final clientPhone = (client?['phone'] ??
+            json['clientPhone'] ??
+            json['userPhone'] ??
+            '')
+        .toString();
 
-    final destLat = json['endLat'] ??
-        json['destLat'] ??
-        json['toLat'] ??
-        (json['destination'] is Map ? json['destination']['lat'] : null);
-    final destLng = json['endLng'] ??
-        json['destLng'] ??
-        json['toLng'] ??
-        (json['destination'] is Map ? json['destination']['lng'] : null);
+    // Boshlanish / tugash nuqtalari (nested `startLocation`/`endLocation`)
+    final start = asMap(json['startLocation']) ?? asMap(json['pickup']);
+    final end = asMap(json['endLocation']) ?? asMap(json['destination']);
+
+    final pickupLat = start?['lat'] ??
+        json['startLat'] ??
+        json['pickupLat'] ??
+        json['fromLat'];
+    final pickupLng = start?['lng'] ??
+        json['startLng'] ??
+        json['pickupLng'] ??
+        json['fromLng'];
+
+    final destLat =
+        end?['lat'] ?? json['endLat'] ?? json['destLat'] ?? json['toLat'];
+    final destLng =
+        end?['lng'] ?? json['endLng'] ?? json['destLng'] ?? json['toLng'];
+
+    final pickupAddress = (start?['adress'] ??
+            start?['address'] ??
+            json['pickupAddress'] ??
+            json['startAddress'] ??
+            json['adress'] ??
+            '')
+        .toString();
+    final destinationAddress = (end?['adress'] ??
+            end?['address'] ??
+            json['destinationAddress'] ??
+            json['endAddress'] ??
+            '')
+        .toString();
+
+    // Tarif: `orderType.name` (nested) yoki yassi `tariff`/`tarif`
+    final orderType = asMap(json['orderType']);
+    final tariff =
+        (orderType?['name'] ?? json['tariff'] ?? json['tarif'])?.toString();
 
     DateTime created;
     final c = json['createdAt'] ?? json['created_at'];
@@ -71,24 +119,19 @@ class OrderModel {
 
     return OrderModel(
       id: id,
-      clientName:
-          (json['clientName'] ?? json['userName'] ?? 'Mijoz').toString(),
-      clientPhone:
-          (json['clientPhone'] ?? json['userPhone'] ?? '').toString(),
+      clientName: clientName,
+      clientPhone: clientPhone,
       pickupLocation: point(pickupLat, pickupLng),
       destinationLocation: point(destLat, destLng),
-      pickupAddress:
-          (json['pickupAddress'] ?? json['startAddress'] ?? json['adress'] ?? '')
-              .toString(),
-      destinationAddress:
-          (json['destinationAddress'] ?? json['endAddress'] ?? '').toString(),
+      pickupAddress: pickupAddress,
+      destinationAddress: destinationAddress,
       distance: toDouble(json['distance']),
       price: toDouble(json['price'] ?? json['cost'] ?? json['amount']),
       createdAt: created,
       status: OrderStatusType.fromString(
         (json['status'] ?? json['orderStatus'] ?? json['state'])?.toString(),
       ),
-      tariff: (json['tariff'] ?? json['tarif'])?.toString(),
+      tariff: tariff,
     );
   }
 

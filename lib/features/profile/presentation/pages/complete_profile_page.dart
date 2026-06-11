@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -644,7 +645,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
-                            Icons.pin,
+                            Iconsax.hashtag,
                             color: const Color(0xFF00BCD4),
                             size: 20.w,
                           ),
@@ -718,7 +719,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
-                            Icons.directions_car,
+                            Iconsax.car,
                             color: const Color(0xFF00BCD4),
                             size: 20.w,
                           ),
@@ -778,7 +779,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         return null;
                       },
                       icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
+                        Iconsax.arrow_down_1,
                         color: AppColors.primary,
                         size: 28.sp,
                       ),
@@ -828,7 +829,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
-                            Icons.palette,
+                            Iconsax.color_swatch,
                             color: const Color(0xFF00BCD4),
                             size: 20.w,
                           ),
@@ -888,7 +889,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         return null;
                       },
                       icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
+                        Iconsax.arrow_down_1,
                         color: AppColors.primary,
                         size: 28.sp,
                       ),

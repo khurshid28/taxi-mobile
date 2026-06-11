@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:taxi_mobile/core/theme/app_colors.dart';
@@ -19,21 +20,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
       title: 'Tez va Qulay',
       description:
           'Mijozlarni tez topib, yo\'lga chiqing. Har bir buyurtma sizning eshigingizgacha keladi.',
-      icon: Icons.directions_car_filled_rounded,
+      icon: Iconsax.car,
       accent: AppColors.primary,
     ),
     _OnboardingItem(
       title: 'Ortiq Daromad',
       description:
           'Har bir safar uchun adolatli to\'lov. Qancha ishlasangiz, shuncha topasiz.',
-      icon: Icons.payments_rounded,
+      icon: Iconsax.wallet,
       accent: AppColors.success,
     ),
     _OnboardingItem(
       title: 'Xavfsiz va Ishonchli',
       description:
           'Har bir safar kuzatiladi. Siz va mijozlaringiz xavfsizligi birinchi o\'rinda.',
-      icon: Icons.shield_rounded,
+      icon: Iconsax.shield_tick,
       accent: AppColors.info,
     ),
   ];
@@ -145,7 +146,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                       SizedBox(width: 8.w),
                       Icon(
-                        Icons.arrow_forward_rounded,
+                        Iconsax.arrow_right_3,
                         color: Colors.white,
                         size: 20.w,
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
@@ -250,13 +251,13 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildDetailItem(
-                  icon: Icons.route,
+                  icon: Iconsax.routing,
                   label: 'Masofa',
                   value: '${widget.distance.toStringAsFixed(1)} km',
                 ),
                 Container(width: 1.w, height: 40.h, color: AppColors.divider),
                 _buildDetailItem(
-                  icon: Icons.timer,
+                  icon: Iconsax.timer_1,
                   label: 'Vaqt',
                   value: '${widget.duration} min',
                 ),

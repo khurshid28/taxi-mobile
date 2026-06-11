@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -161,7 +162,7 @@ class _ActivityPageState extends State<ActivityPage>
           ),
           child: IconButton(
             icon: Icon(
-              Icons.arrow_back_ios_new,
+              Iconsax.arrow_left_2,
               color: AppColors.textPrimary,
               size: 18.sp,
             ),
@@ -246,7 +247,7 @@ class _ActivityPageState extends State<ActivityPage>
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(
-                        Icons.trending_up,
+                        Iconsax.trend_up,
                         color: Colors.white,
                         size: 32.w,
                       ),
@@ -291,7 +292,7 @@ class _ActivityPageState extends State<ActivityPage>
                 children: [
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.account_balance_wallet,
+                      icon: Iconsax.wallet,
                       title: 'Daromad',
                       value: '${(totalEarnings / 1000000).toStringAsFixed(1)}',
                       subtitle: 'mln',
@@ -302,7 +303,7 @@ class _ActivityPageState extends State<ActivityPage>
                   SizedBox(width: 12.w),
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.directions_car,
+                      icon: Iconsax.car,
                       title: 'Masofa',
                       value: '$totalDistance',
                       subtitle: 'km',
@@ -313,7 +314,7 @@ class _ActivityPageState extends State<ActivityPage>
                   SizedBox(width: 12.w),
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.people_alt,
+                      icon: Iconsax.people,
                       title: 'Safar',
                       value: '$totalClients',
                       subtitle: 'ta',
@@ -398,7 +399,7 @@ class _ActivityPageState extends State<ActivityPage>
                         dropdownColor: AppColors.primary,
                         underline: SizedBox(),
                         icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
+                          Iconsax.arrow_down_1,
                           color: Colors.white,
                           size: 20.sp,
                         ),
@@ -441,7 +442,7 @@ class _ActivityPageState extends State<ActivityPage>
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(
-                        Icons.trending_up,
+                        Iconsax.trend_up,
                         color: Colors.white,
                         size: 32.w,
                       ),
@@ -486,7 +487,7 @@ class _ActivityPageState extends State<ActivityPage>
                 children: [
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.account_balance_wallet,
+                      icon: Iconsax.wallet,
                       title: 'Daromad',
                       value: '${(totalEarnings / 1000000).toStringAsFixed(1)}',
                       subtitle: 'mln',
@@ -497,7 +498,7 @@ class _ActivityPageState extends State<ActivityPage>
                   SizedBox(width: 12.w),
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.directions_car,
+                      icon: Iconsax.car,
                       title: 'Masofa',
                       value: '$totalDistance',
                       subtitle: 'km',
@@ -508,7 +509,7 @@ class _ActivityPageState extends State<ActivityPage>
                   SizedBox(width: 12.w),
                   Expanded(
                     child: _buildModernSummaryCard(
-                      icon: Icons.people_alt,
+                      icon: Iconsax.people,
                       title: 'Clientlar',
                       value: '$totalClients',
                       subtitle: 'safar',
@@ -683,20 +684,20 @@ class _ActivityPageState extends State<ActivityPage>
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildChartDetailItem(
-                        icon: Icons.calendar_today,
+                        icon: Iconsax.calendar,
                         label: selectedMonth.month,
                         color: AppColors.primary,
                       ),
                       Container(width: 1, height: 35, color: Colors.grey[300]),
                       _buildChartDetailItem(
-                        icon: Icons.account_balance_wallet,
+                        icon: Iconsax.wallet,
                         label:
                             '${(selectedMonth.earnings / 1000000).toStringAsFixed(2)} mln',
                         color: const Color(0xFF4CAF50),
                       ),
                       Container(width: 1, height: 35, color: Colors.grey[300]),
                       _buildChartDetailItem(
-                        icon: Icons.people_alt,
+                        icon: Iconsax.people,
                         label: '${selectedMonth.clients} ta',
                         color: const Color(0xFFFF9800),
                       ),
@@ -907,7 +908,7 @@ class _ActivityPageState extends State<ActivityPage>
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                   child: Icon(
-                    Icons.calendar_month,
+                    Iconsax.calendar,
                     color: AppColors.primary,
                     size: 28.w,
                   ),
@@ -932,19 +933,19 @@ class _ActivityPageState extends State<ActivityPage>
                         Row(
                           children: [
                             _buildModernMonthStat(
-                              Icons.account_balance_wallet,
+                              Iconsax.wallet,
                               '${(month.earnings / 1000000).toStringAsFixed(2)} mln',
                               const Color(0xFF4CAF50),
                             ),
                             SizedBox(width: 16.w),
                             _buildModernMonthStat(
-                              Icons.directions_car,
+                              Iconsax.car,
                               '${month.distance}km',
                               const Color(0xFF2196F3),
                             ),
                             SizedBox(width: 16.w),
                             _buildModernMonthStat(
-                              Icons.people_alt,
+                              Iconsax.people,
                               '${month.clients}',
                               const Color(0xFFFF9800),
                             ),
@@ -964,7 +965,7 @@ class _ActivityPageState extends State<ActivityPage>
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Icon(
-                      Icons.arrow_forward_ios,
+                      Iconsax.arrow_right_3,
                       size: 14.w,
                       color: AppColors.primary,
                     ),
@@ -991,7 +992,7 @@ class _ActivityPageState extends State<ActivityPage>
                     _buildExpandedStat(
                       'Umumiy daromad',
                       NumberFormatter.formatPriceWithCurrency(month.earnings),
-                      Icons.account_balance_wallet,
+                      Iconsax.wallet,
                       const Color(0xFF4CAF50),
                     ),
                     SizedBox(height: 12.h),
@@ -999,7 +1000,7 @@ class _ActivityPageState extends State<ActivityPage>
                     _buildExpandedStat(
                       'Umumiy masofa',
                       '${month.distance} km',
-                      Icons.directions_car,
+                      Iconsax.car,
                       const Color(0xFF2196F3),
                     ),
                     SizedBox(height: 12.h),
@@ -1007,7 +1008,7 @@ class _ActivityPageState extends State<ActivityPage>
                     _buildExpandedStat(
                       'Jami safarlar',
                       '${month.clients} ta',
-                      Icons.people_alt,
+                      Iconsax.people,
                       const Color(0xFFFF9800),
                     ),
                     SizedBox(height: 12.h),
@@ -1015,7 +1016,7 @@ class _ActivityPageState extends State<ActivityPage>
                     _buildExpandedStat(
                       'Bajarish foizi',
                       '$completionRate%',
-                      Icons.check_circle,
+                      Iconsax.tick_circle,
                       const Color(0xFF9C27B0),
                     ),
                     SizedBox(height: 12.h),
@@ -1203,13 +1204,13 @@ class _ActivityPageState extends State<ActivityPage>
                 Row(
                   children: [
                     _buildModernMonthStat(
-                      Icons.directions_car,
+                      Iconsax.car,
                       '${day.distance}km',
                       const Color(0xFF2196F3),
                     ),
                     SizedBox(width: 16.w),
                     _buildModernMonthStat(
-                      Icons.people_alt,
+                      Iconsax.people,
                       '${day.clients}',
                       const Color(0xFFFF9800),
                     ),

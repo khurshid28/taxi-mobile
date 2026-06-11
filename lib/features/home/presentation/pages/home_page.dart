@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
@@ -201,7 +202,7 @@ class _HomePageState extends State<HomePage> {
                       letterSpacing: 0.3,
                     ),
                     sliderButtonIcon: Icon(
-                      Icons.arrow_forward_rounded,
+                      Iconsax.arrow_right_3,
                       color: AppColors.primary,
                       size: 22.r,
                     ),
@@ -368,7 +369,7 @@ class _HomePageState extends State<HomePage> {
                             child: Transform.rotate(
                               angle: 35 * 3.14159 / 180,
                               child: Icon(
-                                Icons.navigation,
+                                Iconsax.gps,
                                 color: Colors.white,
                                 size: 24.w,
                               ),
@@ -478,20 +479,20 @@ class _HomePageState extends State<HomePage> {
     switch (status) {
       case OrderStatus.initial:
       case OrderStatus.drawingRoute:
-        return Icons.check_circle_rounded;
+        return Iconsax.tick_circle;
       case OrderStatus.waitingForOrder:
-        return Icons.hourglass_empty_rounded;
+        return Iconsax.clock;
       case OrderStatus.orderReceived:
-        return Icons.notifications_active_rounded;
+        return Iconsax.notification_bing;
       case OrderStatus.orderAccepted:
       case OrderStatus.goingToClient:
-        return Icons.directions_car_rounded;
+        return Iconsax.car;
       case OrderStatus.waitingForClient:
-        return Icons.person_pin_circle_rounded;
+        return Iconsax.location;
       case OrderStatus.inProgress:
-        return Icons.navigation_rounded;
+        return Iconsax.gps;
       case OrderStatus.completed:
-        return Icons.check_circle_outline_rounded;
+        return Iconsax.tick_circle;
     }
   }
 

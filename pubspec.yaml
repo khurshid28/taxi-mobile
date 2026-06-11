@@ -94,6 +94,7 @@ dependencies:
   # Slide to Action
   slide_to_act: ^2.0.2
   google_fonts: ^8.1.0
+  iconsax: ^0.0.8
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:slide_to_act/slide_to_act.dart';
@@ -135,8 +136,8 @@ class OrderInProgressWidget extends StatelessWidget {
                           children: [
                             Icon(
                               isWaitingForClient
-                                  ? Icons.timer_outlined
-                                  : Icons.local_shipping_outlined,
+                                  ? Iconsax.timer_1
+                                  : Iconsax.truck,
                               color: Colors.white,
                               size: 20.w,
                             ),
@@ -170,7 +171,7 @@ class OrderInProgressWidget extends StatelessWidget {
                             Row(
                               children: [
                                 Icon(
-                                  Icons.person,
+                                  Iconsax.user,
                                   color: AppColors.info,
                                   size: 20.w,
                                 ),
@@ -189,7 +190,7 @@ class OrderInProgressWidget extends StatelessWidget {
                               SizedBox(height: 10.h),
                               if (clientName != null)
                                 _buildInfoRow(
-                                  icon: Icons.person_outline,
+                                  icon: Iconsax.user,
                                   label: 'Ism',
                                   value: clientName!,
                                   color: AppColors.info,
@@ -198,7 +199,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                 SizedBox(height: 8.h),
                               if (clientPhone != null)
                                 _buildInfoRow(
-                                  icon: Icons.phone_outlined,
+                                  icon: Iconsax.call,
                                   label: 'Telefon',
                                   value: clientPhone!,
                                   color: AppColors.info,
@@ -224,7 +225,7 @@ class OrderInProgressWidget extends StatelessWidget {
                             Row(
                               children: [
                                 Icon(
-                                  Icons.location_on,
+                                  Iconsax.location,
                                   color: AppColors.primary,
                                   size: 20.w,
                                 ),
@@ -244,7 +245,7 @@ class OrderInProgressWidget extends StatelessWidget {
                               SizedBox(height: 10.h),
                               if (pickupAddress != null)
                                 _buildInfoRow(
-                                  icon: Icons.trip_origin,
+                                  icon: Iconsax.gps,
                                   label: 'Qayerdan',
                                   value: pickupAddress!,
                                   color: AppColors.primary,
@@ -254,7 +255,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                 SizedBox(height: 8.h),
                               if (destinationAddress != null)
                                 _buildInfoRow(
-                                  icon: Icons.location_on_outlined,
+                                  icon: Iconsax.location,
                                   label: 'Qayerga',
                                   value: destinationAddress!,
                                   color: AppColors.primary,
@@ -278,7 +279,7 @@ class OrderInProgressWidget extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _buildInfoItem(
-                            icon: Icons.attach_money,
+                            icon: Iconsax.dollar_circle,
                             label: 'Narx',
                             value: NumberFormatter.formatPriceWithCurrency(
                               currentPrice,
@@ -291,7 +292,7 @@ class OrderInProgressWidget extends StatelessWidget {
                             color: AppColors.divider,
                           ),
                           _buildInfoItem(
-                            icon: Icons.route,
+                            icon: Iconsax.routing,
                             label: 'Masofa',
                             value: '${traveledDistance.toStringAsFixed(2)} km',
                             color: AppColors.primary,
@@ -316,7 +317,7 @@ class OrderInProgressWidget extends StatelessWidget {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.timelapse,
+                              Iconsax.clock,
                               color: AppColors.primary,
                               size: 24.sp,
                             ),
@@ -358,7 +359,7 @@ class OrderInProgressWidget extends StatelessWidget {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.timer,
+                              Iconsax.timer_1,
                               color: waitingSeconds > 120
                                   ? Colors.orange
                                   : Colors.green,
@@ -499,7 +500,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.phone,
+                                      Iconsax.call,
                                       color: Colors.white,
                                       size: 22.w,
                                     ),
@@ -549,7 +550,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.map,
+                                      Iconsax.map,
                                       color: Colors.white,
                                       size: 22.w,
                                     ),
@@ -592,7 +593,7 @@ class OrderInProgressWidget extends StatelessWidget {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.route_rounded,
+                              Iconsax.routing,
                               color: Colors.blue.shade700,
                               size: 24.r,
                             ),
@@ -646,7 +647,7 @@ class OrderInProgressWidget extends StatelessWidget {
                             letterSpacing: 0.3,
                           ),
                           sliderButtonIcon: Icon(
-                            Icons.arrow_forward_rounded,
+                            Iconsax.arrow_right_3,
                             color: Colors.green,
                             size: 22.r,
                           ),
@@ -678,7 +679,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.cancel,
+                                      Iconsax.close_circle,
                                       color: Colors.red,
                                       size: 22.w,
                                     ),
@@ -732,7 +733,7 @@ class OrderInProgressWidget extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        Icons.flag_rounded,
+                                        Iconsax.flag,
                                         color: Colors.white,
                                         size: 22.w,
                                       ),

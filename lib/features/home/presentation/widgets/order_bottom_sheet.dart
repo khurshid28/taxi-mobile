@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -181,7 +182,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.timer_outlined,
+                          Iconsax.timer_1,
                           color: _remainingSeconds <= 3
                               ? Colors.red
                               : Colors.blue,
@@ -302,7 +303,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                               child: IconButton(
                                 onPressed: _callClient,
                                 icon: Icon(
-                                  Icons.phone,
+                                  Iconsax.call,
                                   color: Colors.white,
                                   size: 24.w,
                                 ),
@@ -311,6 +312,11 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                             ),
                           ],
                         ),
+                        if (widget.order.tariff != null &&
+                            widget.order.tariff!.isNotEmpty) ...[
+                          SizedBox(height: 16.h),
+                          _buildTariffBadge(widget.order.tariff!),
+                        ],
                         SizedBox(height: 24.h),
                         // Distance and Price
                         Row(
@@ -374,7 +380,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                                 letterSpacing: 0.3,
                               ),
                               sliderButtonIcon: Icon(
-                                Icons.arrow_forward_rounded,
+                                Iconsax.arrow_right_3,
                                 color: AppColors.primary,
                                 size: 22.r,
                               ),
@@ -419,7 +425,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                                           MainAxisAlignment.center,
                                       children: [
                                         Icon(
-                                          Icons.close_rounded,
+                                          Iconsax.close_circle,
                                           color: Colors.white,
                                           size: 24.w,
                                         ),
@@ -450,6 +456,48 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTariffBadge(String tariff) {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30.r),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.35),
+              blurRadius: 12.r,
+              offset: Offset(0, 4.h),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Iconsax.car, color: Colors.white, size: 18.w),
+            SizedBox(width: 8.w),
+            Text(
+              tariff.toUpperCase(),
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -574,8 +622,8 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
             ),
             child: Icon(
               label == 'Boshlanish'
-                  ? Icons.location_on_rounded
-                  : Icons.flag_rounded,
+                  ? Iconsax.location
+                  : Iconsax.flag,
               color: Colors.white,
               size: 20.w,
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,7 +11,7 @@ class SearchingAnimationWidget extends StatefulWidget {
   const SearchingAnimationWidget({
     super.key,
     required this.text,
-    this.icon = Icons.search,
+    this.icon = Iconsax.search_normal,
   });
 
   @override

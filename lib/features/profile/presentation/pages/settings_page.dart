@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/sound_service.dart';
@@ -62,7 +63,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           child: IconButton(
             icon: Icon(
-              Icons.arrow_back_ios_new,
+              Iconsax.arrow_left_2,
               color: AppColors.textPrimary,
               size: 18.sp,
             ),
@@ -88,14 +89,14 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSwitchTile(
               'Bildirishnomalar',
               'Yangi buyurtmalar haqida xabarnomalar',
-              Icons.notifications_active_rounded,
+              Iconsax.notification_bing,
               _notifications,
               (value) => setState(() => _notifications = value),
             ),
             _buildSwitchTile(
               'Ovoz',
               'Bildirishnoma ovozlari',
-              Icons.volume_up_rounded,
+              Iconsax.volume_high,
               _soundEnabled,
               (value) => _saveSoundSetting(value),
             ),
@@ -105,21 +106,21 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSelectTile(
               'Til',
               _language,
-              Icons.language_rounded,
+              Iconsax.language_square,
               ['O\'zbek', 'Русский', 'English'],
               (value) => setState(() => _language = value),
             ),
             _buildSelectTile(
               'Tema',
               _theme,
-              Icons.palette_rounded,
+              Iconsax.color_swatch,
               ['Yorqin', 'Qorong\'i', 'Tizim'],
               (value) => setState(() => _theme = value),
             ),
           ]),
           SizedBox(height: 16.h),
           _buildSection('Dastur haqida', [
-            _buildInfoTile('Versiya', '1.0.0', Icons.info_rounded),
+            _buildInfoTile('Versiya', '1.0.0', Iconsax.info_circle),
           ]),
         ],
       ),
@@ -241,7 +242,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             SizedBox(width: 4.w),
-            Icon(Icons.arrow_drop_down, size: 20.sp, color: Colors.grey[600]),
+            Icon(Iconsax.arrow_down_1, size: 20.sp, color: Colors.grey[600]),
           ],
         ),
       ),
@@ -285,7 +286,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     trailing: option == value
-                        ? Icon(Icons.check, color: AppColors.primary)
+                        ? Icon(Iconsax.tick_circle, color: AppColors.primary)
                         : null,
                     onTap: () {
                       onChanged(option);

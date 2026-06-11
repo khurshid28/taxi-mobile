@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -232,7 +233,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                                 Stack(
                                   children: [
                                     Icon(
-                                      Icons.filter_list_rounded,
+                                      Iconsax.filter,
                                       color:
                                           (_dateRange != null ||
                                               _selectedTypes.isNotEmpty)
@@ -929,7 +930,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                   child: Row(
                     children: [
                       Icon(
-                        Icons.calendar_today_rounded,
+                        Iconsax.calendar,
                         color: tempDateRange != null
                             ? AppColors.primary
                             : Colors.grey[600],
@@ -952,7 +953,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                       ),
                       if (tempDateRange != null)
                         IconButton(
-                          icon: Icon(Icons.close, size: 20.sp),
+                          icon: Icon(Iconsax.close_circle, size: 20.sp),
                           onPressed: () {
                             setModalState(() => tempDateRange = null);
                           },

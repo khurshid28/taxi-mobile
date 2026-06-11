@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -128,7 +129,7 @@ class _CarNumberPageState extends State<CarNumberPage> {
                         vertical: 14.h,
                       ),
                       child: Icon(
-                        Icons.directions_car_rounded,
+                        Iconsax.car,
                         color: AppColors.primary,
                         size: 22.w,
                       ),
@@ -168,7 +169,7 @@ class _CarNumberPageState extends State<CarNumberPage> {
                         ),
                         SizedBox(width: 8.w),
                         Icon(
-                          Icons.arrow_forward_rounded,
+                          Iconsax.arrow_right_3,
                           color: Colors.white,
                           size: 20.w,
                         ),

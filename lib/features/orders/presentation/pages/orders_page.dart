@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
@@ -194,12 +195,12 @@ class _OrdersPageState extends State<OrdersPage>
           _buildTabButton(
             label: 'Faol',
             index: 0,
-            icon: Icons.local_taxi_rounded,
+            icon: Iconsax.car,
           ),
           _buildTabButton(
             label: 'Tugatilgan',
             index: 1,
-            icon: Icons.check_circle_rounded,
+            icon: Iconsax.tick_circle,
           ),
         ],
       ),
@@ -263,7 +264,7 @@ class _OrdersPageState extends State<OrdersPage>
           return _buildEmptyState(
             title: 'Faol buyurtma yo\'q',
             subtitle: 'Yangi buyurtmalar asosiy oynada qabul qilinadi',
-            icon: Icons.local_taxi_rounded,
+            icon: Iconsax.car,
           );
         }
         return ListView(
@@ -619,7 +620,7 @@ class _OrdersPageState extends State<OrdersPage>
           ? _buildEmptyState(
               title: 'Tugatilgan buyurtmalar yo\'q',
               subtitle: 'Yakunlangan safarlar shu yerda ko\'rinadi',
-              icon: Icons.history_rounded,
+              icon: Iconsax.clock,
             )
           : AnimatedBuilder(
               animation: _animationController,
@@ -778,7 +779,7 @@ class _OrdersPageState extends State<OrdersPage>
   Widget _buildEmptyState({
     String title = 'Buyurtmalar yo\'q',
     String subtitle = 'Hozircha buyurtmalar mavjud emas',
-    IconData icon = Icons.inbox_outlined,
+    IconData icon = Iconsax.box,
   }) {
     return Center(
       child: Column(
@@ -1426,7 +1427,7 @@ class _OrdersPageState extends State<OrdersPage>
                               borderRadius: BorderRadius.circular(12.r),
                             ),
                             child: Icon(
-                              Icons.location_on_rounded,
+                              Iconsax.location,
                               color: Colors.white,
                               size: 20.w,
                             ),
@@ -1491,7 +1492,7 @@ class _OrdersPageState extends State<OrdersPage>
                               borderRadius: BorderRadius.circular(12.r),
                             ),
                             child: Icon(
-                              Icons.flag_rounded,
+                              Iconsax.flag,
                               color: Colors.white,
                               size: 20.w,
                             ),

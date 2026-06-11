@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -52,7 +53,7 @@ class _PasswordPageState extends State<PasswordPage> {
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Iconsax.arrow_left_2,
             color: AppColors.textPrimary,
             size: 20.w,
           ),
@@ -116,7 +117,7 @@ class _PasswordPageState extends State<PasswordPage> {
                       ],
                     ),
                     child: Icon(
-                      Icons.lock_outline_rounded,
+                      Iconsax.lock_1,
                       size: 48.w,
                       color: AppColors.primary,
                     ),
@@ -169,7 +170,7 @@ class _PasswordPageState extends State<PasswordPage> {
                         vertical: 14.h,
                       ),
                       child: Icon(
-                        Icons.lock_outline_rounded,
+                        Iconsax.lock_1,
                         color: AppColors.primary,
                         size: 22.w,
                       ),
@@ -181,8 +182,8 @@ class _PasswordPageState extends State<PasswordPage> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+                            ? Iconsax.eye_slash
+                            : Iconsax.eye,
                         color: AppColors.textSecondary,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),

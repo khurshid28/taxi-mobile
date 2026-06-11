@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../theme/app_colors.dart';
 
@@ -83,15 +84,15 @@ class AppMessenger {
   static _Scheme _scheme(AppMessageType t) {
     switch (t) {
       case AppMessageType.error:
-        return const _Scheme(AppColors.error, Icons.error_outline_rounded);
+        return const _Scheme(AppColors.error, Iconsax.danger);
       case AppMessageType.success:
         return const _Scheme(
-            AppColors.success, Icons.check_circle_outline_rounded);
+            AppColors.success, Iconsax.tick_circle);
       case AppMessageType.info:
-        return const _Scheme(AppColors.info, Icons.info_outline_rounded);
+        return const _Scheme(AppColors.info, Iconsax.info_circle);
       case AppMessageType.warning:
         return const _Scheme(
-            AppColors.warning, Icons.warning_amber_rounded);
+            AppColors.warning, Iconsax.warning_2);
     }
   }
 }

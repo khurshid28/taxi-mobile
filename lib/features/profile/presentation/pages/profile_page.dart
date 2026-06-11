@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -159,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           color: AppColors.primary.withOpacity(0.10),
                         ),
                         child: Icon(
-                          Icons.person_rounded,
+                          Iconsax.user,
                           size: 44.sp,
                           color: AppColors.primary,
                         ),
@@ -197,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.star_rounded,
+                              Iconsax.star_1,
                               color: AppColors.warning,
                               size: 16.sp,
                             ),
@@ -292,7 +293,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
-                                  Icons.account_balance_wallet_rounded,
+                                  Iconsax.wallet,
                                   color: Colors.white,
                                 ),
                               ),
@@ -308,7 +309,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       Expanded(
                         child: _buildStatCard(
-                          icon: Icons.local_taxi,
+                          icon: Iconsax.car,
                           title: 'Safar',
                           value: _totalTrips.toString(),
                           color: Colors.blue,
@@ -317,7 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       SizedBox(width: 12.w),
                       Expanded(
                         child: _buildStatCard(
-                          icon: Icons.star,
+                          icon: Iconsax.star_1,
                           title: 'Reyting',
                           value: _rating.toString(),
                           color: _getRatingColor(_rating),
@@ -385,7 +386,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(height: 16.h),
                   _buildMenuItem(
-                    icon: Icons.logout,
+                    icon: Iconsax.logout,
                     title: 'Chiqish',
                     onTap: _logout,
                     isDestructive: true,
@@ -541,7 +542,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right_rounded,
+                  Iconsax.arrow_right_3,
                   color: Colors.grey[400],
                   size: 28.w,
                 ),

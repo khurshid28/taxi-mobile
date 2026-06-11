@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -24,7 +25,7 @@ class InfoPage extends StatelessWidget {
           ),
           child: IconButton(
             icon: Icon(
-              Icons.arrow_back_ios_new,
+              Iconsax.arrow_left_2,
               color: AppColors.textPrimary,
               size: 18.sp,
             ),
@@ -74,7 +75,7 @@ class InfoPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Icon(
-                    Icons.local_taxi_rounded,
+                    Iconsax.car,
                     size: 48.sp,
                     color: AppColors.primary,
                   ),
@@ -105,20 +106,20 @@ class InfoPage extends StatelessWidget {
           _buildInfoSection(
             'Biz haqimizda',
             'Taxi Driver ilovasi haydovchilarga qulay va tez buyurtmalarni qabul qilish imkonini beradi. Ilova orqali daromadingizni kuzatib boring va mijozlar bilan samarali ishlang.',
-            Icons.info_rounded,
+            Iconsax.info_circle,
           ),
           SizedBox(height: 16.h),
 
           _buildInfoSection(
             'Aloqa',
             'Muammo yuzaga kelsa yoki savollaringiz bo\'lsa, biz bilan bog\'laning:',
-            Icons.contact_support_rounded,
+            Iconsax.headphone,
             children: [
               SizedBox(height: 12.h),
               _buildContactItem(
                 'Telefon',
                 '+998 90 123 45 67',
-                Icons.phone_rounded,
+                Iconsax.call,
                 () async {
                   final Uri phoneUri = Uri(
                     scheme: 'tel',
@@ -133,7 +134,7 @@ class InfoPage extends StatelessWidget {
               _buildContactItem(
                 'Email',
                 'support@taxidriver.uz',
-                Icons.email_rounded,
+                Iconsax.sms,
                 () async {
                   final Uri emailUri = Uri(
                     scheme: 'mailto',
@@ -151,14 +152,14 @@ class InfoPage extends StatelessWidget {
           _buildInfoSection(
             'Foydalanish shartlari',
             'Ilovadan foydalanish orqali siz bizning shartlarimizga rozilik bildirasiz. Barcha haydovchilar xavfsizlik qoidalariga rioya qilishlari shart.',
-            Icons.gavel_rounded,
+            Iconsax.judge,
           ),
           SizedBox(height: 16.h),
 
           _buildInfoSection(
             'Maxfiylik siyosati',
             'Biz sizning shaxsiy ma\'lumotlaringizni himoya qilamiz va uchinchi shaxslarga bermаymiz. Ma\'lumotlar faqat xizmat sifatini yaxshilash uchun ishlatiladi.',
-            Icons.privacy_tip_rounded,
+            Iconsax.shield_tick,
           ),
           SizedBox(height: 24.h),
 
@@ -283,7 +284,7 @@ class InfoPage extends StatelessWidget {
             ),
             Spacer(),
             Icon(
-              Icons.arrow_forward_ios_rounded,
+              Iconsax.arrow_right_3,
               size: 16.sp,
               color: Colors.grey[400],
             ),

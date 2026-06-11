@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -80,7 +81,7 @@ class NoInternetPage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.refresh_rounded,
+                          Iconsax.refresh,
                           color: Colors.white,
                           size: 20.w,
                         ),
