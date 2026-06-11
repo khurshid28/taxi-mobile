@@ -196,7 +196,8 @@ class HomeCubit extends Cubit<HomeState> {
             status: OrderStatus.orderReceived,
             currentOrder: event.order,
           ));
-          SoundService().playNewOrderSound();
+          // Ovoz showNewOrderNotification ichida bir marta ijro etiladi
+          // (ikki marta chaqirilsa player qotib qolardi).
           NotificationService().showNewOrderNotification();
         }
         break;
@@ -379,7 +380,8 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> acceptOrder() async {
     if (state.currentOrder == null || _driverId == null) return;
 
-    await SoundService().playOrderAcceptedSound();
+    // Ovozni kutmaymiz (fire-and-forget) — accept jarayonini sekinlatmaslik uchun.
+    SoundService().playOrderAcceptedSound();
 
     try {
       await sl<OrderService>()

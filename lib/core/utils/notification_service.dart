@@ -25,6 +25,12 @@ class NotificationService {
     );
 
     await _notifications.initialize(settings);
+
+    // Android 13+ (API 33) uchun runtime bildirishnoma ruxsatini so'raymiz.
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   Future<void> showNotification({

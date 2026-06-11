@@ -14,6 +14,10 @@ import 'injection_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  // Bildirishnoma va ovoz servislarini ishga tushiramiz (aks holda
+  // notification ko'rinmaydi va ovoz birinchi marta kechikadi).
+  await NotificationService().initialize();
+  await SoundService().initialize();
   runApp(const MyApp());
 }
 

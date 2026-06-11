@@ -7,11 +7,18 @@ class SoundService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _soundEnabled = true;
+  bool _initialized = false;
 
   // Load sound settings from storage
   Future<void> initialize() async {
-    // You can load settings from SharedPreferences here
-    await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    if (_initialized) return;
+    try {
+      // lowLatency (Android'da SoundPool) — qisqa ovozlar uchun yengil va
+      // tez. MediaPlayer'dan farqli ravishda UI'ni qotirib qo'ymaydi.
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+      _initialized = true;
+    } catch (_) {}
   }
 
   void setSoundEnabled(bool enabled) {
@@ -20,53 +27,29 @@ class SoundService {
 
   bool get isSoundEnabled => _soundEnabled;
 
-  // Play notification sound for new order
-  Future<void> playNewOrderSound() async {
+  // Umumiy yengil ijro: stop()+play() o'rniga to'g'ridan-to'g'ri play().
+  // lowLatency rejimida play() har safar ovozni boshidan ijro etadi.
+  Future<void> _play(String asset) async {
     if (!_soundEnabled) return;
-    
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/new_order.ogg'));
+      await _audioPlayer.play(AssetSource(asset));
     } catch (e) {
+      // ignore: avoid_print
       print('Error playing sound: $e');
     }
   }
+
+  // Play notification sound for new order
+  Future<void> playNewOrderSound() => _play('sounds/new_order.ogg');
 
   // Play notification sound for order accepted
-  Future<void> playOrderAcceptedSound() async {
-    if (!_soundEnabled) return;
-    
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/order_accepted.mp3'));
-    } catch (e) {
-      print('Error playing sound: $e');
-    }
-  }
+  Future<void> playOrderAcceptedSound() => _play('sounds/order_accepted.mp3');
 
   // Play notification sound for arriving at destination
-  Future<void> playArrivingSound() async {
-    if (!_soundEnabled) return;
-    
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/arriving.mp3'));
-    } catch (e) {
-      print('Error playing sound: $e');
-    }
-  }
+  Future<void> playArrivingSound() => _play('sounds/arriving.mp3');
 
   // Play success sound for completed trip
-  Future<void> playSuccessSound() async {
-    if (!_soundEnabled) return;
-    
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/success.mp3'));
-    } catch (e) {
-      print('Error playing sound: $e');
-    }
-  }
+  Future<void> playSuccessSound() => _play('sounds/success.mp3');
 
   void dispose() {
     _audioPlayer.dispose();
