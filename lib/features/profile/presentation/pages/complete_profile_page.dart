@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -233,10 +232,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                     ],
                                   ),
                                   child: Center(
-                                    child: SvgPicture.asset(
-                                      'assets/icons/document_duotone.svg',
-                                      width: 40.w,
-                                      height: 40.h,
+                                    child: Icon(
+                                      Iconsax.document,
+                                      size: 40.w,
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -333,10 +332,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                                     ],
                                   ),
                                   child: Center(
-                                    child: SvgPicture.asset(
-                                      'assets/icons/car_duotone.svg',
-                                      width: 40.w,
-                                      height: 40.h,
+                                    child: Icon(
+                                      Iconsax.car,
+                                      size: 40.w,
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -409,10 +408,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/user_duotone.svg',
-                              width: 20.w,
-                              height: 20.h,
+                            child: Icon(
+                              Iconsax.user,
+                              size: 20.w,
+                              color: const Color(0xFF9C27B0),
                             ),
                           ),
                         ),
@@ -486,10 +485,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/user_duotone.svg',
-                              width: 20.w,
-                              height: 20.h,
+                            child: Icon(
+                              Iconsax.user,
+                              size: 20.w,
+                              color: const Color(0xFF9C27B0),
                             ),
                           ),
                         ),
@@ -563,10 +562,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/email_duotone.svg',
-                              width: 20.w,
-                              height: 20.h,
+                            child: Icon(
+                              Iconsax.sms,
+                              size: 20.w,
+                              color: const Color(0xFF00BCD4),
                             ),
                           ),
                         ),
@@ -697,7 +696,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       ],
                     ),
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCarType,
+                      initialValue: _selectedCarType,
                       decoration: InputDecoration(
                         labelText: 'Mashina turi',
                         hintText: 'Mashina turini tanlang',
@@ -807,7 +806,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       ],
                     ),
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCarColor,
+                      initialValue: _selectedCarColor,
                       decoration: InputDecoration(
                         labelText: 'Mashina rangi',
                         hintText: 'Mashina rangini tanlang',

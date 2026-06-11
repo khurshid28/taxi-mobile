@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -122,10 +121,10 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                         ],
                       ),
                       child: Center(
-                        child: SvgPicture.asset(
-                          'assets/icons/success_duotone.svg',
-                          width: 60.w,
-                          height: 60.h,
+                        child: Icon(
+                          Iconsax.tick_circle,
+                          size: 60.w,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),

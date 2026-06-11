@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:slide_to_act/slide_to_act.dart';
@@ -233,10 +232,10 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                                 ],
                               ),
                               child: Center(
-                                child: SvgPicture.asset(
-                                  'assets/icons/user_duotone.svg',
-                                  width: 36.w,
-                                  height: 36.h,
+                                child: Icon(
+                                  Iconsax.user,
+                                  size: 36.w,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -257,10 +256,10 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                                   SizedBox(height: 6.h),
                                   Row(
                                     children: [
-                                      SvgPicture.asset(
-                                        'assets/icons/phone_duotone.svg',
-                                        width: 18.w,
-                                        height: 18.h,
+                                      Icon(
+                                        Iconsax.call,
+                                        size: 18.w,
+                                        color: AppColors.textSecondary,
                                       ),
                                       SizedBox(width: 8.w),
                                       Text(
@@ -323,7 +322,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                           children: [
                             Expanded(
                               child: _buildInfoCard(
-                                iconPath: 'assets/icons/location_duotone.svg',
+                                icon: Iconsax.location,
                                 title: 'Masofa',
                                 value:
                                     '${widget.order.distance.toStringAsFixed(1)} km',
@@ -333,7 +332,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                             SizedBox(width: 12.w),
                             Expanded(
                               child: _buildInfoCard(
-                                iconPath: 'assets/icons/wallet_duotone.svg',
+                                icon: Iconsax.wallet,
                                 title: 'Narx',
                                 value: NumberFormatter.formatPriceWithCurrency(
                                   widget.order.price,
@@ -502,7 +501,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
   }
 
   Widget _buildInfoCard({
-    required String iconPath,
+    required IconData icon,
     required String title,
     required String value,
     required Color color,
@@ -546,14 +545,10 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
               ],
             ),
             child: Center(
-              child: SvgPicture.asset(
-                iconPath,
-                width: 28.w,
-                height: 28.h,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
+              child: Icon(
+                icon,
+                size: 28.w,
+                color: Colors.white,
               ),
             ),
           ),

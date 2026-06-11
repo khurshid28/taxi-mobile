@@ -193,7 +193,7 @@ class _SettingsPageState extends State<SettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
       ),
     );
   }
@@ -293,7 +293,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       Navigator.pop(context);
                     },
                   );
-                }).toList(),
+                }),
                 SizedBox(height: 16.h),
               ],
             ),

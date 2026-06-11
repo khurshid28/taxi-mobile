@@ -3,7 +3,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
@@ -329,14 +328,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   SizedBox(height: 24.h),
                   // Menu Items
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/user_duotone.svg',
+                    icon: Iconsax.user,
                     title: 'Profil tahrirlash',
                     onTap: () {
                       // Navigate to edit profile
                     },
                   ),
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/history_duotone.svg',
+                    icon: Iconsax.activity,
                     title: 'Aktivligim',
                     onTap: () {
                       Navigator.push(
@@ -348,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                   ),
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/settings_duotone.svg',
+                    icon: Iconsax.setting_2,
                     title: 'Sozlamalar',
                     onTap: () {
                       Navigator.push(
@@ -360,7 +359,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                   ),
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/info_duotone.svg',
+                    icon: Iconsax.info_circle,
                     title: 'Ma\'lumotlar',
                     onTap: () {
                       Navigator.push(
@@ -372,7 +371,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                   ),
                   _buildMenuItem(
-                    svgIcon: 'assets/icons/phone_duotone.svg',
+                    icon: Iconsax.call,
                     title: 'Yordam',
                     onTap: () async {
                       final Uri phoneUri = Uri(
@@ -449,11 +448,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildMenuItem({
-    IconData? icon,
+    required IconData icon,
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
-    String? svgIcon,
   }) {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
@@ -514,17 +512,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                   child: Center(
-                    child: svgIcon != null
-                        ? SvgPicture.asset(
-                            svgIcon,
-                            width: 24.w,
-                            height: 24.h,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
-                          )
-                        : Icon(icon, color: Colors.white, size: 24.w),
+                    child: Icon(icon, color: Colors.white, size: 24.w),
                   ),
                 ),
                 SizedBox(width: 16.w),

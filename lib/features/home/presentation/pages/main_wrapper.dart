@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/pages/home_page.dart';
@@ -46,86 +46,54 @@ class _MainWrapperState extends State<MainWrapper> {
         unselectedLabelStyle: TextStyle(fontSize: 12.sp),
         items: [
           BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/icons/home_duotone.svg',
-              width: 26.w,
-              height: 26.h,
-              colorFilter: ColorFilter.mode(
-                AppColors.textSecondary,
-                BlendMode.srcIn,
-              ),
+            icon: Icon(
+              Iconsax.home_2,
+              size: 26.w,
+              color: AppColors.textSecondary,
             ),
-            activeIcon: SvgPicture.asset(
-              'assets/icons/home_duotone.svg',
-              width: 28.w,
-              height: 28.h,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
-                BlendMode.srcIn,
-              ),
+            activeIcon: Icon(
+              Iconsax.home_2,
+              size: 28.w,
+              color: AppColors.primary,
             ),
             label: 'Asosiy',
           ),
           BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/icons/orders_duotone.svg',
-              width: 26.w,
-              height: 26.h,
-              colorFilter: ColorFilter.mode(
-                AppColors.textSecondary,
-                BlendMode.srcIn,
-              ),
+            icon: Icon(
+              Iconsax.box,
+              size: 26.w,
+              color: AppColors.textSecondary,
             ),
-            activeIcon: SvgPicture.asset(
-              'assets/icons/orders_duotone.svg',
-              width: 28.w,
-              height: 28.h,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
-                BlendMode.srcIn,
-              ),
+            activeIcon: Icon(
+              Iconsax.box,
+              size: 28.w,
+              color: AppColors.primary,
             ),
             label: 'Buyurtmalarim',
           ),
           BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/icons/payment_duotone.svg',
-              width: 26.w,
-              height: 26.h,
-              colorFilter: ColorFilter.mode(
-                AppColors.textSecondary,
-                BlendMode.srcIn,
-              ),
+            icon: Icon(
+              Iconsax.wallet,
+              size: 26.w,
+              color: AppColors.textSecondary,
             ),
-            activeIcon: SvgPicture.asset(
-              'assets/icons/payment_duotone.svg',
-              width: 28.w,
-              height: 28.h,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
-                BlendMode.srcIn,
-              ),
+            activeIcon: Icon(
+              Iconsax.wallet,
+              size: 28.w,
+              color: AppColors.primary,
             ),
             label: 'To\'lovlarim',
           ),
           BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/icons/profile_duotone.svg',
-              width: 26.w,
-              height: 26.h,
-              colorFilter: ColorFilter.mode(
-                AppColors.textSecondary,
-                BlendMode.srcIn,
-              ),
+            icon: Icon(
+              Iconsax.profile_circle,
+              size: 26.w,
+              color: AppColors.textSecondary,
             ),
-            activeIcon: SvgPicture.asset(
-              'assets/icons/profile_duotone.svg',
-              width: 28.w,
-              height: 28.h,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
-                BlendMode.srcIn,
-              ),
+            activeIcon: Icon(
+              Iconsax.profile_circle,
+              size: 28.w,
+              color: AppColors.primary,
             ),
             label: 'Profil',
           ),

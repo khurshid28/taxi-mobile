@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -366,14 +365,10 @@ class _OrdersPageState extends State<OrdersPage>
                     ],
                   ),
                   child: Center(
-                    child: SvgPicture.asset(
-                      'assets/icons/user_duotone.svg',
-                      width: 28.w,
-                      height: 28.h,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
+                    child: Icon(
+                      Iconsax.user,
+                      size: 28.w,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -394,14 +389,10 @@ class _OrdersPageState extends State<OrdersPage>
                       SizedBox(height: 6.h),
                       Row(
                         children: [
-                          SvgPicture.asset(
-                            'assets/icons/phone_duotone.svg',
-                            width: 14.w,
-                            height: 14.h,
-                            colorFilter: ColorFilter.mode(
-                              Colors.grey[500]!,
-                              BlendMode.srcIn,
-                            ),
+                          Icon(
+                            Iconsax.call,
+                            size: 14.w,
+                            color: Colors.grey[500],
                           ),
                           SizedBox(width: 6.w),
                           Text(
@@ -528,13 +519,13 @@ class _OrdersPageState extends State<OrdersPage>
             Row(
               children: [
                 _buildActiveMetric(
-                  icon: 'assets/icons/route_duotone.svg',
+                  icon: Iconsax.routing,
                   value: '${state.traveledDistance.toStringAsFixed(1)} km',
                 ),
                 if (timeValue != null) ...[
                   SizedBox(width: 10.w),
                   _buildActiveMetric(
-                    icon: 'assets/icons/clock_duotone.svg',
+                    icon: Iconsax.clock,
                     value: '$timeLabel $timeValue',
                   ),
                 ],
@@ -575,7 +566,7 @@ class _OrdersPageState extends State<OrdersPage>
     );
   }
 
-  Widget _buildActiveMetric({required String icon, required String value}) {
+  Widget _buildActiveMetric({required IconData icon, required String value}) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
@@ -585,14 +576,10 @@ class _OrdersPageState extends State<OrdersPage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(
+          Icon(
             icon,
-            width: 14.w,
-            height: 14.h,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textSecondary,
-              BlendMode.srcIn,
-            ),
+            size: 14.w,
+            color: AppColors.textSecondary,
           ),
           SizedBox(width: 6.w),
           Text(
@@ -857,14 +844,10 @@ class _OrdersPageState extends State<OrdersPage>
                         ],
                       ),
                       child: Center(
-                        child: SvgPicture.asset(
-                          'assets/icons/user_duotone.svg',
-                          width: 28.w,
-                          height: 28.h,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
-                          ),
+                        child: Icon(
+                          Iconsax.user,
+                          size: 28.w,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -885,14 +868,10 @@ class _OrdersPageState extends State<OrdersPage>
                           SizedBox(height: 6.h),
                           Row(
                             children: [
-                              SvgPicture.asset(
-                                'assets/icons/phone_duotone.svg',
-                                width: 14.w,
-                                height: 14.h,
-                                colorFilter: ColorFilter.mode(
-                                  Colors.grey[500]!,
-                                  BlendMode.srcIn,
-                                ),
+                              Icon(
+                                Iconsax.call,
+                                size: 14.w,
+                                color: Colors.grey[500],
                               ),
                               SizedBox(width: 6.w),
                               Text(
@@ -1016,14 +995,10 @@ class _OrdersPageState extends State<OrdersPage>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SvgPicture.asset(
-                            'assets/icons/route_duotone.svg',
-                            width: 14.w,
-                            height: 14.h,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.textSecondary,
-                              BlendMode.srcIn,
-                            ),
+                          Icon(
+                            Iconsax.routing,
+                            size: 14.w,
+                            color: AppColors.textSecondary,
                           ),
                           SizedBox(width: 6.w),
                           Text(
@@ -1050,14 +1025,10 @@ class _OrdersPageState extends State<OrdersPage>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SvgPicture.asset(
-                            'assets/icons/clock_duotone.svg',
-                            width: 14.w,
-                            height: 14.h,
-                            colorFilter: ColorFilter.mode(
-                              Colors.grey[600]!,
-                              BlendMode.srcIn,
-                            ),
+                          Icon(
+                            Iconsax.clock,
+                            size: 14.w,
+                            color: Colors.grey[600],
                           ),
                           SizedBox(width: 6.w),
                           Text(
@@ -1184,14 +1155,10 @@ class _OrdersPageState extends State<OrdersPage>
                             ],
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/user_duotone.svg',
-                              width: 40.w,
-                              height: 40.h,
-                              colorFilter: const ColorFilter.mode(
-                                Colors.white,
-                                BlendMode.srcIn,
-                              ),
+                            child: Icon(
+                              Iconsax.user,
+                              size: 40.w,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -1212,14 +1179,10 @@ class _OrdersPageState extends State<OrdersPage>
                               SizedBox(height: 6.h),
                               Row(
                                 children: [
-                                  SvgPicture.asset(
-                                    'assets/icons/phone_duotone.svg',
-                                    width: 16.w,
-                                    height: 16.h,
-                                    colorFilter: ColorFilter.mode(
-                                      Colors.grey[600]!,
-                                      BlendMode.srcIn,
-                                    ),
+                                  Icon(
+                                    Iconsax.call,
+                                    size: 16.w,
+                                    color: Colors.grey[600],
                                   ),
                                   SizedBox(width: 6.w),
                                   Text(
@@ -1307,14 +1270,10 @@ class _OrdersPageState extends State<OrdersPage>
                             ),
                             child: Column(
                               children: [
-                                SvgPicture.asset(
-                                  'assets/icons/route_duotone.svg',
-                                  width: 32.w,
-                                  height: 32.h,
-                                  colorFilter: const ColorFilter.mode(
-                                    Color(0xFF2196F3),
-                                    BlendMode.srcIn,
-                                  ),
+                                Icon(
+                                  Iconsax.routing,
+                                  size: 32.w,
+                                  color: const Color(0xFF2196F3),
                                 ),
                                 SizedBox(height: 10.h),
                                 Text(
@@ -1354,14 +1313,10 @@ class _OrdersPageState extends State<OrdersPage>
                             ),
                             child: Column(
                               children: [
-                                SvgPicture.asset(
-                                  'assets/icons/wallet_duotone.svg',
-                                  width: 32.w,
-                                  height: 32.h,
-                                  colorFilter: const ColorFilter.mode(
-                                    Color(0xFF4CAF50),
-                                    BlendMode.srcIn,
-                                  ),
+                                Icon(
+                                  Iconsax.wallet,
+                                  size: 32.w,
+                                  color: const Color(0xFF4CAF50),
                                 ),
                                 SizedBox(height: 10.h),
                                 Text(
@@ -1540,14 +1495,10 @@ class _OrdersPageState extends State<OrdersPage>
                       ),
                       child: Row(
                         children: [
-                          SvgPicture.asset(
-                            'assets/icons/clock_duotone.svg',
-                            width: 20.w,
-                            height: 20.h,
-                            colorFilter: ColorFilter.mode(
-                              Colors.grey[600]!,
-                              BlendMode.srcIn,
-                            ),
+                          Icon(
+                            Iconsax.clock,
+                            size: 20.w,
+                            color: Colors.grey[600],
                           ),
                           SizedBox(width: 12.w),
                           Text(

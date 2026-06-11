@@ -3,7 +3,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../injection_container.dart';
 import '../../../profile/data/driver_service.dart';
@@ -111,16 +110,16 @@ class _PaymentsPageState extends State<PaymentsPage>
     }
   }
 
-  String _getPaymentIconPath(PaymentType type) {
+  IconData _getPaymentIcon(PaymentType type) {
     switch (type) {
       case PaymentType.topUp:
-        return 'assets/icons/wallet_duotone.svg';
+        return Iconsax.wallet;
       case PaymentType.earning:
-        return 'assets/icons/payment_duotone.svg';
+        return Iconsax.money;
       case PaymentType.withdrawal:
-        return 'assets/icons/card_duotone.svg';
+        return Iconsax.card;
       case PaymentType.bonus:
-        return 'assets/icons/check_duotone.svg';
+        return Iconsax.tick_circle;
     }
   }
 
@@ -326,14 +325,10 @@ class _PaymentsPageState extends State<PaymentsPage>
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: SvgPicture.asset(
-                'assets/icons/payment_duotone.svg',
-                width: 52.w,
-                height: 52.w,
-                colorFilter: ColorFilter.mode(
-                  AppColors.primary,
-                  BlendMode.srcIn,
-                ),
+              child: Icon(
+                Iconsax.empty_wallet,
+                size: 52.w,
+                color: AppColors.primary,
               ),
             ),
           ),
@@ -404,14 +399,10 @@ class _PaymentsPageState extends State<PaymentsPage>
                     ],
                   ),
                   child: Center(
-                    child: SvgPicture.asset(
-                      _getPaymentIconPath(payment.type),
-                      width: 28.w,
-                      height: 28.h,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
+                    child: Icon(
+                      _getPaymentIcon(payment.type),
+                      size: 28.w,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -432,14 +423,10 @@ class _PaymentsPageState extends State<PaymentsPage>
                       SizedBox(height: 6.h),
                       Row(
                         children: [
-                          SvgPicture.asset(
-                            'assets/icons/clock_duotone.svg',
-                            width: 14.w,
-                            height: 14.h,
-                            colorFilter: ColorFilter.mode(
-                              Colors.grey[500]!,
-                              BlendMode.srcIn,
-                            ),
+                          Icon(
+                            Iconsax.clock,
+                            size: 14.w,
+                            color: Colors.grey[500],
                           ),
                           SizedBox(width: 6.w),
                           Text(
@@ -703,14 +690,10 @@ class _PaymentsPageState extends State<PaymentsPage>
                 ],
               ),
               child: Center(
-                child: SvgPicture.asset(
-                  _getPaymentIconPath(payment.type),
-                  width: 50.w,
-                  height: 50.h,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
+                child: Icon(
+                  _getPaymentIcon(payment.type),
+                  size: 50.w,
+                  color: Colors.white,
                 ),
               ),
             ),

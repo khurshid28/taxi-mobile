@@ -294,7 +294,7 @@ class _ActivityPageState extends State<ActivityPage>
                     child: _buildModernSummaryCard(
                       icon: Iconsax.wallet,
                       title: 'Daromad',
-                      value: '${(totalEarnings / 1000000).toStringAsFixed(1)}',
+                      value: (totalEarnings / 1000000).toStringAsFixed(1),
                       subtitle: 'mln',
                       color: const Color(0xFF4CAF50),
                       bgColor: const Color(0xFFE8F5E9),
@@ -489,7 +489,7 @@ class _ActivityPageState extends State<ActivityPage>
                     child: _buildModernSummaryCard(
                       icon: Iconsax.wallet,
                       title: 'Daromad',
-                      value: '${(totalEarnings / 1000000).toStringAsFixed(1)}',
+                      value: (totalEarnings / 1000000).toStringAsFixed(1),
                       subtitle: 'mln',
                       color: const Color(0xFF4CAF50),
                       bgColor: const Color(0xFFE8F5E9),

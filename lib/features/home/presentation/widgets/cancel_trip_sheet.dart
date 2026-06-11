@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -88,10 +88,10 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                 ],
               ),
               child: Center(
-                child: SvgPicture.asset(
-                  'assets/icons/close_duotone.svg',
-                  width: 40.w,
-                  height: 40.h,
+                child: Icon(
+                  Iconsax.close_circle,
+                  size: 40.w,
+                  color: Colors.red,
                 ),
               ),
             ),
