@@ -1,4 +1,5 @@
 import 'package:yandex_mapkit/yandex_mapkit.dart';
+import 'order_type_model.dart';
 
 class OrderModel {
   final String id;
@@ -13,6 +14,8 @@ class OrderModel {
   final DateTime createdAt;
   final OrderStatusType status;
   final String? tariff;
+  final int? orderTypeId;
+  final OrderTypeModel? orderType;
 
   OrderModel({
     required this.id,
@@ -27,6 +30,8 @@ class OrderModel {
     required this.createdAt,
     required this.status,
     this.tariff,
+    this.orderTypeId,
+    this.orderType,
   });
 
   /// Mercure / REST javoblari uchun parser. Backend bir nechta
@@ -104,10 +109,13 @@ class OrderModel {
             '')
         .toString();
 
-    // Tarif: `orderType.name` (nested) yoki yassi `tariff`/`tarif`
-    final orderType = asMap(json['orderType']);
+    // Tarif: `orderType` (nested obyekt) yoki yassi `tariff`/`tarif`.
+    // Embed bo'lsa narx maydonlari ham bo'lishi mumkin (minPrice/kmPrice/...).
+    final orderTypeMap = asMap(json['orderType']);
+    final orderType =
+        orderTypeMap != null ? OrderTypeModel.fromJson(orderTypeMap) : null;
     final tariff =
-        (orderType?['name'] ?? json['tariff'] ?? json['tarif'])?.toString();
+        (orderTypeMap?['name'] ?? json['tariff'] ?? json['tarif'])?.toString();
 
     DateTime created;
     final c = json['createdAt'] ?? json['created_at'];
@@ -132,6 +140,8 @@ class OrderModel {
         (json['status'] ?? json['orderStatus'] ?? json['state'])?.toString(),
       ),
       tariff: tariff,
+      orderTypeId: orderType?.id,
+      orderType: orderType,
     );
   }
 

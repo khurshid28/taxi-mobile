@@ -9,6 +9,7 @@ import 'package:yandex_mapkit/yandex_mapkit.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_events.dart';
 import '../../../../core/models/order_model.dart';
+import '../../../../core/models/order_type_model.dart';
 import '../../../../core/network/mapbox_route_service.dart';
 import '../../../../core/network/mercure_service.dart';
 import '../../../../core/network/yandex_route_drawer.dart';
@@ -42,6 +43,11 @@ class HomeCubit extends Cubit<HomeState> {
   List<String> _tariffs = const ['Start'];
   String? _accessToken;
 
+  // Tarif narxlari (OrderTypes). Bir marta yuklab, cache qilinadi.
+  List<OrderTypeModel> _orderTypes = const [];
+  // Aktiv buyurtma uchun aniqlangan tarif (narx hisobida ishlatiladi).
+  OrderTypeModel? _activeTariff;
+
   // ============== Init ==============
 
   Future<void> initialize() async {
@@ -70,6 +76,7 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
 
+      _loadOrderTypes();
       _startLocationTracking();
     } catch (e) {
       emit(state.copyWith(error: e.toString(), isLoading: false));
@@ -92,6 +99,36 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  /// Tarif ro'yxatini (narx parametrlari bilan) backenddan yuklab cache qiladi.
+  Future<void> _loadOrderTypes() async {
+    try {
+      final types = await sl<OrderService>().fetchOrderTypes();
+      if (types.isNotEmpty) _orderTypes = types;
+    } catch (e) {
+      // ignore: avoid_print
+      print('\u26a0\ufe0f order_types: $e');
+    }
+  }
+
+  /// Buyurtma uchun mos tarifni aniqlaydi: avval embed narx, keyin id/nom.
+  OrderTypeModel? _resolveTariff(OrderModel order) {
+    if (order.orderType != null && order.orderType!.hasPricing) {
+      return order.orderType;
+    }
+    if (order.orderTypeId != null) {
+      for (final t in _orderTypes) {
+        if (t.id == order.orderTypeId) return t;
+      }
+    }
+    final name = (order.tariff ?? '').toLowerCase();
+    if (name.isNotEmpty) {
+      for (final t in _orderTypes) {
+        if (t.name.toLowerCase() == name) return t;
+      }
+    }
+    return null;
+  }
+
   // ============== Online toggle ==============
 
   Future<void> toggleOnline() async {
@@ -100,6 +137,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     if (newOnline) {
       await _loadDriverSession();
+      _loadOrderTypes();
       _connectMercure();
       _startLocationPush();
     } else {
@@ -107,6 +145,7 @@ class HomeCubit extends Cubit<HomeState> {
       _stopLocationPush();
       _waitingTimer?.cancel();
       _tripTimer?.cancel();
+      _activeTariff = null;
       emit(state.copyWith(
         status: OrderStatus.initial,
         currentOrder: null,
@@ -196,6 +235,8 @@ class HomeCubit extends Cubit<HomeState> {
     if (_driverId == null || _companyId == null) return;
     final loc = state.currentLocation;
     if (loc == null) return;
+    // Safar davomida (mijoz mashinada) km + narx ham yuboriladi.
+    final onTrip = state.status == OrderStatus.inProgress;
     try {
       await sl<DriverService>().updateLocation(
         driverId: _driverId!,
@@ -203,6 +244,10 @@ class HomeCubit extends Cubit<HomeState> {
         tariff: _tariffs,
         lat: loc.latitude,
         lng: loc.longitude,
+        orderId: onTrip ? state.currentOrder?.id : null,
+        distance: onTrip ? state.traveledDistance : null,
+        price: onTrip ? state.currentPrice.toDouble() : null,
+        status: onTrip ? 'on_the_way' : null,
       );
     } catch (e) {
       // ignore: avoid_print
@@ -285,16 +330,7 @@ class HomeCubit extends Cubit<HomeState> {
           body: 'Siz mijoz oldiga yetib keldingiz. Kutish boshlandi.',
           playSound: true,
         );
-        // Backend: on_the_way
-        if (state.currentOrder != null) {
-          sl<OrderService>()
-              .onTheWay(state.currentOrder!.id)
-              .catchError((e) {
-            // ignore: avoid_print
-            print('⚠️ on_the_way: $e');
-            return <String, dynamic>{};
-          });
-        }
+
         _startWaitingTimer();
         return;
       }
@@ -359,9 +395,13 @@ class HomeCubit extends Cubit<HomeState> {
     final r = await StorageHelper.getInt('driver_rating') ?? 0;
     await StorageHelper.setInt('driver_rating', (r + 2).clamp(-5, 50));
 
+    // Mos tarifni aniqlaymiz (narx hisobi shu asosda). Kerak bo'lsa yuklaymiz.
+    if (_orderTypes.isEmpty) await _loadOrderTypes();
+    _activeTariff = _resolveTariff(state.currentOrder!);
+
     emit(state.copyWith(
       status: OrderStatus.orderAccepted,
-      currentPrice: AppConstants.basePrice,
+      currentPrice: 0,
       traveledDistance: 0,
       waitingSeconds: 0,
       isWaitingTimerActive: false,
@@ -398,6 +438,15 @@ class HomeCubit extends Cubit<HomeState> {
     // Mijoz olindi: kutish vaqtini muzlatamiz (u allaqachon narxga kirgan),
     // safar vaqti (tripSeconds) shu ondan yangidan boshlanadi.
     _stopWaitingTimer();
+
+    // Backend: on_the_way — mijoz mashinaga chiqdi, safar boshlandi.
+    if (state.currentOrder != null) {
+      sl<OrderService>().onTheWay(state.currentOrder!.id).catchError((e) {
+        // ignore: avoid_print
+        print('\u26a0\ufe0f on_the_way: $e');
+        return <String, dynamic>{};
+      });
+    }
 
     NotificationService().showNotification(
       title: '🚗 Safar boshlandi!',
@@ -489,6 +538,7 @@ class HomeCubit extends Cubit<HomeState> {
       routeDurationMinutes: null,
       routeDistanceKm: null,
     ));
+    _activeTariff = null;
   }
 
   /// 401 + refresh fail: hamma narsani to'xtatib, online'dan chiqib, state'ni reset qilamiz.
@@ -580,9 +630,15 @@ class HomeCubit extends Cubit<HomeState> {
       }
 
       final next = state.waitingSeconds + 1;
-      // Narx kutish haqi bilan yangilanadi (timeout yoqilgan bo'lsa _computePrice ichida)
-      final price = _computePrice(state.traveledDistance, next);
-      emit(state.copyWith(waitingSeconds: next, currentPrice: price));
+      // Mijozni kutish bosqichida narx ko'rsatilmaydi (0 turadi) — narx hisobi
+      // on_the_way (mijoz mashinaga chiqqach) boshlanadi. Kutilgan vaqt esa
+      // saqlanadi va keyin narxga (kutish haqi sifatida) qo'shiladi.
+      if (state.status == OrderStatus.waitingForClient) {
+        emit(state.copyWith(waitingSeconds: next));
+      } else {
+        final price = _computePrice(state.traveledDistance, next);
+        emit(state.copyWith(waitingSeconds: next, currentPrice: price));
+      }
     });
   }
 
@@ -624,17 +680,25 @@ class HomeCubit extends Cubit<HomeState> {
 
   // ============== Helpers ==============
 
-  /// Narx hisobi: base + km*tarif + (kutish>120s va timeout yoqilgan ? extra : 0)
+  /// Narx hisobi tarif (OrderTypes) asosida:
+  ///   narx = minPrice + km*kmPrice + kutish haqi
+  ///   kutish haqi = max(0, kutishDaqiqa - waitTime) * waitPrice (timeout yoqilgan bo'lsa)
+  /// Tarif topilmasa AppConstants qiymatlari zaxira sifatida ishlatiladi.
   int _computePrice(double distanceKm, int waitingSeconds) {
-    final road = (distanceKm * AppConstants.pricePerKm).round();
-    int waitCharge = 0;
-    if (state.isTimeoutEnabled &&
-        waitingSeconds > AppConstants.freeWaitSeconds) {
-      final overMin =
-          (waitingSeconds - AppConstants.freeWaitSeconds) / 60.0;
-      waitCharge = (overMin * AppConstants.pricePerWaitingMinute).round();
+    final t = _activeTariff;
+    final base = t?.minPrice ?? AppConstants.basePrice.toDouble();
+    final perKm = t?.kmPrice ?? AppConstants.pricePerKm.toDouble();
+    final freeWaitMin = t?.waitTime ?? (AppConstants.freeWaitSeconds ~/ 60);
+    final perWaitMin =
+        t?.waitPrice ?? AppConstants.pricePerWaitingMinute.toDouble();
+
+    final road = distanceKm * perKm;
+    double waitCharge = 0;
+    if (state.isTimeoutEnabled) {
+      final overMin = (waitingSeconds / 60.0) - freeWaitMin;
+      if (overMin > 0) waitCharge = overMin * perWaitMin;
     }
-    final total = AppConstants.basePrice + road + waitCharge;
+    final total = base + road + waitCharge;
     return ((total / 500).round() * 500).toInt();
   }
 

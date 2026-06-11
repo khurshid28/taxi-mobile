@@ -1,9 +1,27 @@
+import '../../../../core/models/order_type_model.dart';
 import '../../../../core/network/dio_client.dart';
 
 class OrderService {
   OrderService(this._client);
 
   final DioClient _client;
+
+  /// `GET /api/order_types` — tarif ro'yxati (narx parametrlari bilan).
+  /// Hydra collection: javob `member` (yoki `hydra:member`) ichida keladi.
+  Future<List<OrderTypeModel>> fetchOrderTypes() async {
+    final res = await _client.get('order_types');
+    final data = res.data;
+    final members = data is Map
+        ? (data['member'] ?? data['hydra:member'])
+        : (data is List ? data : null);
+    if (members is List) {
+      return members
+          .whereType<Map>()
+          .map((e) => OrderTypeModel.fromJson(e.cast<String, dynamic>()))
+          .toList();
+    }
+    return const [];
+  }
 
   /// `POST /api/orders/{id}/{driverId}/accept`
   Future<Map<String, dynamic>> accept({

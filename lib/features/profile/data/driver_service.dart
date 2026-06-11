@@ -45,22 +45,31 @@ class DriverService {
   }
 
   /// `POST /api/drivers/location` - haydovchi joylashuvi va tariflar.
+  ///
+  /// Safar davomida (on_the_way) qo'shimcha `orderId`, `distance` (km),
+  /// `price` va `status` ham yuboriladi — backend real vaqt narxini ko'radi.
   Future<void> updateLocation({
     required int driverId,
     required int companyId,
     required List<String> tariff,
     required double lat,
     required double lng,
+    String? orderId,
+    double? distance,
+    double? price,
+    String? status,
   }) async {
-    await _client.post(
-      'drivers/location',
-      data: {
-        'driverId': driverId,
-        'companyId': companyId,
-        'tariff': tariff,
-        'lat': lat,
-        'lng': lng,
-      },
-    );
+    final body = <String, dynamic>{
+      'driverId': driverId,
+      'companyId': companyId,
+      'tariff': tariff,
+      'lat': lat,
+      'lng': lng,
+    };
+    if (orderId != null) body['orderId'] = orderId;
+    if (distance != null) body['distance'] = distance;
+    if (price != null) body['price'] = price;
+    if (status != null) body['status'] = status;
+    await _client.post('drivers/location', data: body);
   }
 }
