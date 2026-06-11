@@ -385,6 +385,8 @@ class _OrdersPageState extends State<OrdersPage>
                           color: AppColors.textPrimary,
                           letterSpacing: -0.3,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 6.h),
                       Row(
@@ -864,6 +866,8 @@ class _OrdersPageState extends State<OrdersPage>
                               color: AppColors.textPrimary,
                               letterSpacing: -0.3,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           SizedBox(height: 6.h),
                           Row(
@@ -1175,6 +1179,8 @@ class _OrdersPageState extends State<OrdersPage>
                                   color: AppColors.textPrimary,
                                   letterSpacing: -0.5,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               SizedBox(height: 6.h),
                               Row(

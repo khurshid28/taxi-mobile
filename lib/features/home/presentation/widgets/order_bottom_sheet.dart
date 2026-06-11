@@ -252,6 +252,8 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                                       color: AppColors.textPrimary,
                                       letterSpacing: -0.5,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   SizedBox(height: 6.h),
                                   Row(
