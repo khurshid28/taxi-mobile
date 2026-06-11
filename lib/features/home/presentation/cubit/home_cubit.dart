@@ -48,6 +48,10 @@ class HomeCubit extends Cubit<HomeState> {
   // Aktiv buyurtma uchun aniqlangan tarif (narx hisobida ishlatiladi).
   OrderTypeModel? _activeTariff;
 
+  // Aktiv safar holatini saqlash kaliti — app yopilib qayta ochilsa
+  // (time, km, narx) yo'qolmasligi uchun.
+  static const String _activeTripKey = 'active_trip_state';
+
   // ============== Init ==============
 
   Future<void> initialize() async {
@@ -77,6 +81,7 @@ class HomeCubit extends Cubit<HomeState> {
       );
 
       _loadOrderTypes();
+      await _restoreActiveTrip();
       _startLocationTracking();
     } catch (e) {
       emit(state.copyWith(error: e.toString(), isLoading: false));
@@ -160,6 +165,7 @@ class HomeCubit extends Cubit<HomeState> {
         tripSeconds: 0,
         isWaitingTimerActive: false,
       ));
+      StorageHelper.remove(_activeTripKey);
     }
   }
 
@@ -222,7 +228,10 @@ class HomeCubit extends Cubit<HomeState> {
     _locationPushTimer?.cancel();
     _locationPushTimer = Timer.periodic(
       const Duration(seconds: AppConstants.locationPushIntervalSec),
-      (_) => _pushLocation(),
+      (_) {
+        _pushLocation();
+        _persistActiveTrip();
+      },
     );
     _pushLocation();
   }
@@ -333,6 +342,7 @@ class HomeCubit extends Cubit<HomeState> {
         );
 
         _startWaitingTimer();
+        _persistActiveTrip();
         return;
       }
     } else if (state.status == OrderStatus.inProgress &&
@@ -413,6 +423,7 @@ class HomeCubit extends Cubit<HomeState> {
     await _requestRouteToClient();
 
     emit(state.copyWith(status: OrderStatus.goingToClient));
+    _persistActiveTrip();
   }
 
   Future<void> rejectOrder() async {
@@ -469,6 +480,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     _startTripTimer();
     _requestRouteToDestination();
+    _persistActiveTrip();
   }
 
   Future<void> completeOrder() async {
@@ -549,6 +561,7 @@ class HomeCubit extends Cubit<HomeState> {
       routeDistanceKm: null,
     ));
     _activeTariff = null;
+    StorageHelper.remove(_activeTripKey);
   }
 
   /// 401 + refresh fail: hamma narsani to'xtatib, online'dan chiqib, state'ni reset qilamiz.
@@ -741,6 +754,182 @@ class HomeCubit extends Cubit<HomeState> {
       if (list.length > 50) list.removeRange(50, list.length);
       await StorageHelper.saveString('completed_orders', jsonEncode(list));
     } catch (_) {}
+  }
+
+  // ============== Aktiv safarni saqlash / tiklash ==============
+
+  /// Aktiv safar holatini diskka saqlaydi (app o'lib qayta ochilsa,
+  /// time/km/narx yo'qolmasligi uchun). Aktiv safar bo'lmasa kalitni o'chiradi.
+  Future<void> _persistActiveTrip() async {
+    final order = state.currentOrder;
+    final isActive = order != null &&
+        (state.status == OrderStatus.orderAccepted ||
+            state.status == OrderStatus.goingToClient ||
+            state.status == OrderStatus.waitingForClient ||
+            state.status == OrderStatus.inProgress);
+    if (!isActive) {
+      await StorageHelper.remove(_activeTripKey);
+      return;
+    }
+
+    final dest = state.destinationLocation;
+    final t = _activeTariff;
+    final snapshot = <String, dynamic>{
+      'status': state.status.name,
+      'order': order.toJson(),
+      'traveledDistance': state.traveledDistance,
+      'waitingSeconds': state.waitingSeconds,
+      'currentPrice': state.currentPrice,
+      'clientPickedUp': state.clientPickedUp,
+      'isWaitingTimerActive': state.isWaitingTimerActive,
+      'isTimeoutEnabled': state.isTimeoutEnabled,
+      'tripStartTime': state.tripStartTime?.toIso8601String(),
+      'destLat': dest?.latitude,
+      'destLng': dest?.longitude,
+      'tariff': t == null
+          ? null
+          : {
+              'id': t.id,
+              'name': t.name,
+              'minPrice': t.minPrice,
+              'kmPrice': t.kmPrice,
+              'waitTime': t.waitTime,
+              'waitPrice': t.waitPrice,
+              'status': t.status,
+            },
+      'savedAt': DateTime.now().toIso8601String(),
+    };
+    try {
+      await StorageHelper.saveString(_activeTripKey, jsonEncode(snapshot));
+    } catch (_) {}
+  }
+
+  /// Saqlangan aktiv safarni tiklaydi. Vaqt (kutish/safar) timestamp'lardan
+  /// qayta hisoblanadi — app yopiq turgan vaqt ham hisobga olinadi.
+  Future<void> _restoreActiveTrip() async {
+    String? raw;
+    try {
+      raw = await StorageHelper.getString(_activeTripKey);
+    } catch (_) {
+      return;
+    }
+    if (raw == null || raw.isEmpty) return;
+
+    Map<String, dynamic> snap;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      snap = decoded.cast<String, dynamic>();
+    } catch (_) {
+      await StorageHelper.remove(_activeTripKey);
+      return;
+    }
+
+    // Juda eski (tashlab ketilgan) safarni tiklamaymiz.
+    final savedAt = DateTime.tryParse((snap['savedAt'] ?? '').toString());
+    if (savedAt == null ||
+        DateTime.now().difference(savedAt) > const Duration(hours: 6)) {
+      await StorageHelper.remove(_activeTripKey);
+      return;
+    }
+
+    final status = OrderStatus.values.firstWhere(
+      (s) => s.name == (snap['status'] ?? '').toString(),
+      orElse: () => OrderStatus.initial,
+    );
+    if (status == OrderStatus.initial) {
+      await StorageHelper.remove(_activeTripKey);
+      return;
+    }
+
+    OrderModel? order;
+    try {
+      final om = snap['order'];
+      if (om is Map) order = OrderModel.fromJson(om.cast<String, dynamic>());
+    } catch (_) {}
+    if (order == null) {
+      await StorageHelper.remove(_activeTripKey);
+      return;
+    }
+
+    // Tarif: avval snapshotdan, bo'lmasa ro'yxatdan qayta aniqlanadi.
+    final tm = snap['tariff'];
+    if (tm is Map) {
+      try {
+        _activeTariff = OrderTypeModel.fromJson(tm.cast<String, dynamic>());
+      } catch (_) {}
+    }
+    if (_activeTariff == null) {
+      if (_orderTypes.isEmpty) await _loadOrderTypes();
+      _activeTariff = _resolveTariff(order);
+    }
+
+    // Time / km — null bo'lmasligi kafolatlanadi.
+    final traveled = (snap['traveledDistance'] as num?)?.toDouble() ?? 0;
+    int waitingSeconds = (snap['waitingSeconds'] as num?)?.toInt() ?? 0;
+    int currentPrice = (snap['currentPrice'] as num?)?.toInt() ?? 0;
+    final clientPickedUp = snap['clientPickedUp'] == true;
+    final isWaitingActive = snap['isWaitingTimerActive'] == true;
+    final isTimeoutEnabled = snap['isTimeoutEnabled'] != false;
+    final tripStartTime =
+        DateTime.tryParse((snap['tripStartTime'] ?? '').toString());
+
+    // Kutish hisoblagichi yoqilgan bo'lsa, app yopiq turgan vaqt ham
+    // kutishga qo'shiladi (wall-clock).
+    if (isWaitingActive) {
+      final gap = DateTime.now().difference(savedAt).inSeconds;
+      if (gap > 0) waitingSeconds += gap;
+    }
+
+    // Safar vaqti har doim tripStartTime'dan hisoblanadi.
+    int tripSeconds = state.tripSeconds;
+    if (tripStartTime != null) {
+      final secs = DateTime.now().difference(tripStartTime).inSeconds;
+      tripSeconds = secs < 0 ? 0 : secs;
+    }
+
+    final destLat = (snap['destLat'] as num?)?.toDouble();
+    final destLng = (snap['destLng'] as num?)?.toDouble();
+    final destination = (destLat != null && destLng != null)
+        ? Point(latitude: destLat, longitude: destLng)
+        : order.destinationLocation;
+
+    // Narxni qayta hisoblaymiz (faqat safar bosqichida ko'rsatiladi).
+    if (status == OrderStatus.inProgress) {
+      currentPrice = _computePrice(traveled, waitingSeconds);
+    }
+
+    emit(state.copyWith(
+      status: status,
+      currentOrder: order,
+      destinationLocation: destination,
+      traveledDistance: traveled,
+      waitingSeconds: waitingSeconds,
+      currentPrice: currentPrice,
+      clientPickedUp: clientPickedUp,
+      isWaitingTimerActive: isWaitingActive,
+      isTimeoutEnabled: isTimeoutEnabled,
+      tripStartTime: tripStartTime,
+      tripSeconds: tripSeconds,
+      isOnline: true,
+    ));
+
+    // Online rejimni tiklaymiz (Mercure + 10s location push).
+    _connectMercure();
+    _startLocationPush();
+
+    // Tegishli taymerlar va yo'lni tiklaymiz.
+    if (status == OrderStatus.inProgress) {
+      _startTripTimer();
+      if (isWaitingActive) _startWaitingTimer();
+      _requestRouteToDestination();
+    } else if (status == OrderStatus.waitingForClient) {
+      _startWaitingTimer();
+      _requestRouteToClient();
+    } else {
+      // orderAccepted / goingToClient
+      _requestRouteToClient();
+    }
   }
 
   // UI map'da bosilgan nuqta - mavjud chaqiruv saqlanishi uchun no-op
