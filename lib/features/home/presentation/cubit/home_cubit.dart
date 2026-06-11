@@ -34,6 +34,7 @@ class HomeCubit extends Cubit<HomeState> {
   StreamSubscription<void>? _sessionExpiringSub;
   Timer? _waitingTimer;
   Timer? _locationPushTimer;
+  Timer? _tripTimer;
 
   // Backend session
   int? _driverId;
@@ -105,6 +106,7 @@ class HomeCubit extends Cubit<HomeState> {
       _disconnectMercure();
       _stopLocationPush();
       _waitingTimer?.cancel();
+      _tripTimer?.cancel();
       emit(state.copyWith(
         status: OrderStatus.initial,
         currentOrder: null,
@@ -116,6 +118,7 @@ class HomeCubit extends Cubit<HomeState> {
         waitingSeconds: 0,
         currentPrice: 0,
         traveledDistance: 0,
+        tripSeconds: 0,
         isWaitingTimerActive: false,
       ));
     }
@@ -392,6 +395,10 @@ class HomeCubit extends Cubit<HomeState> {
   void markClientPickedUp() {
     if (state.currentOrder == null) return;
 
+    // Mijoz olindi: kutish vaqtini muzlatamiz (u allaqachon narxga kirgan),
+    // safar vaqti (tripSeconds) shu ondan yangidan boshlanadi.
+    _stopWaitingTimer();
+
     NotificationService().showNotification(
       title: '🚗 Safar boshlandi!',
       body: 'Mijoz olindi. Manzilga yo\'l oldik.',
@@ -402,15 +409,30 @@ class HomeCubit extends Cubit<HomeState> {
       clientPickedUp: true,
       status: OrderStatus.inProgress,
       destinationLocation: state.currentOrder!.destinationLocation,
-      currentPrice: AppConstants.basePrice,
+      // Bazaviy narx + kutish haqi (agar bo'lsa) saqlanadi, masofa 0 dan boshlanadi
+      currentPrice: _computePrice(0, state.waitingSeconds),
       traveledDistance: 0,
+      tripStartTime: DateTime.now(),
+      tripSeconds: 0,
     ));
 
+    _startTripTimer();
     _requestRouteToDestination();
   }
 
   Future<void> completeOrder() async {
     _waitingTimer?.cancel();
+    _stopTripTimer();
+
+    // Haqiqiy safar davomiyligi (daqiqa) - tripStartTime asosida hisoblanadi
+    int tripMinutes;
+    if (state.tripStartTime != null) {
+      final secs = DateTime.now().difference(state.tripStartTime!).inSeconds;
+      tripMinutes = (secs / 60).round();
+    } else {
+      tripMinutes = (state.tripSeconds / 60).round();
+    }
+    if (tripMinutes < 1) tripMinutes = 1;
 
     final order = state.currentOrder;
     if (order != null) {
@@ -432,7 +454,7 @@ class HomeCubit extends Cubit<HomeState> {
         await sl<OrderService>().complete(
           orderId: completed.id,
           distance: completed.distance,
-          minut: (state.waitingSeconds / 60).round(),
+          minut: tripMinutes,
           price: completed.price,
           adress: completed.destinationAddress,
           startLat: completed.pickupLocation.latitude,
@@ -462,6 +484,7 @@ class HomeCubit extends Cubit<HomeState> {
       waitingSeconds: 0,
       currentPrice: 0,
       traveledDistance: 0,
+      tripSeconds: 0,
       isWaitingTimerActive: false,
       routeDurationMinutes: null,
       routeDistanceKm: null,
@@ -475,6 +498,8 @@ class HomeCubit extends Cubit<HomeState> {
     _stopLocationPush();
     _waitingTimer?.cancel();
     _waitingTimer = null;
+    _tripTimer?.cancel();
+    _tripTimer = null;
     _resetOrderState();
     emit(state.copyWith(isOnline: false));
   }
@@ -541,24 +566,22 @@ class HomeCubit extends Cubit<HomeState> {
 
   void _startWaitingTimer() {
     _waitingTimer?.cancel();
-    emit(state.copyWith(isWaitingTimerActive: true, waitingSeconds: 0));
+    emit(state.copyWith(isWaitingTimerActive: true));
 
     _waitingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.status != OrderStatus.waitingForClient &&
-          state.status != OrderStatus.inProgress) {
+      // Kutish hisoblagichi faqat mijozni kutish bosqichida yoki safar ichida
+      // qo'lda yoqilgan bo'lsa ishlaydi. Aks holda to'xtaydi.
+      final canRun = state.status == OrderStatus.waitingForClient ||
+          (state.status == OrderStatus.inProgress &&
+              state.isWaitingTimerActive);
+      if (!canRun) {
         timer.cancel();
         return;
       }
 
       final next = state.waitingSeconds + 1;
-
-      // Faqat kutish bosqichida narx kutishdan oshib boradi
-      int price = state.currentPrice;
-      if (state.status == OrderStatus.waitingForClient &&
-          next > AppConstants.freeWaitSeconds) {
-        price = _computePrice(state.traveledDistance, next);
-      }
-
+      // Narx kutish haqi bilan yangilanadi (timeout yoqilgan bo'lsa _computePrice ichida)
+      final price = _computePrice(state.traveledDistance, next);
       emit(state.copyWith(waitingSeconds: next, currentPrice: price));
     });
   }
@@ -577,17 +600,36 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  // ============== Trip timer (safar vaqti) ==============
+
+  void _startTripTimer() {
+    _tripTimer?.cancel();
+    _tripTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (state.status != OrderStatus.inProgress) {
+        timer.cancel();
+        return;
+      }
+      emit(state.copyWith(tripSeconds: state.tripSeconds + 1));
+    });
+  }
+
+  void _stopTripTimer() {
+    _tripTimer?.cancel();
+    _tripTimer = null;
+  }
+
   void toggleTimeout() {
     emit(state.copyWith(isTimeoutEnabled: !state.isTimeoutEnabled));
   }
 
   // ============== Helpers ==============
 
-  /// Narx hisobi: base + km*tarif + (kutish>120s ? extra : 0)
+  /// Narx hisobi: base + km*tarif + (kutish>120s va timeout yoqilgan ? extra : 0)
   int _computePrice(double distanceKm, int waitingSeconds) {
     final road = (distanceKm * AppConstants.pricePerKm).round();
     int waitCharge = 0;
-    if (waitingSeconds > AppConstants.freeWaitSeconds) {
+    if (state.isTimeoutEnabled &&
+        waitingSeconds > AppConstants.freeWaitSeconds) {
       final overMin =
           (waitingSeconds - AppConstants.freeWaitSeconds) / 60.0;
       waitCharge = (overMin * AppConstants.pricePerWaitingMinute).round();
@@ -639,6 +681,7 @@ class HomeCubit extends Cubit<HomeState> {
     _sessionSub?.cancel();
     _sessionExpiringSub?.cancel();
     _waitingTimer?.cancel();
+    _tripTimer?.cancel();
     _locationPushTimer?.cancel();
     _disconnectMercure();
     return super.close();

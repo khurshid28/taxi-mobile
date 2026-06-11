@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -6,10 +7,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:convert';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/data/mock_data.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/utils/storage_helper.dart';
+import '../../../home/presentation/cubit/home_cubit.dart';
+import '../../../home/presentation/cubit/home_state.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -25,6 +27,7 @@ class _OrdersPageState extends State<OrdersPage>
   OrderStatusType? _selectedFilter;
   late AnimationController _animationController;
   bool _isLoading = true;
+  int _selectedTab = 0; // 0 = Faol, 1 = Tugatilgan
 
   @override
   void initState() {
@@ -38,14 +41,13 @@ class _OrdersPageState extends State<OrdersPage>
 
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
 
-    // Load orders from both mock data and storage
-    final mockOrders = MockData.getOrders();
+    // Real completed trips saved locally on this device.
     final storedOrders = await _loadStoredOrders();
 
+    if (!mounted) return;
     setState(() {
-      _orders = [...storedOrders, ...mockOrders];
+      _orders = storedOrders;
       _filteredOrders = _orders;
       _isLoading = false;
     });
@@ -76,9 +78,7 @@ class _OrdersPageState extends State<OrdersPage>
           distance: (json['distance'] as num).toDouble(),
           price: (json['price'] as num).toDouble(),
           createdAt: DateTime.parse(json['createdAt']),
-          status: json['status'] == 'completed'
-              ? OrderStatusType.completed
-              : OrderStatusType.inProgress,
+          status: OrderStatusType.fromString(json['status']?.toString()),
         );
       }).toList();
     } catch (e) {
@@ -110,14 +110,12 @@ class _OrdersPageState extends State<OrdersPage>
 
   Future<void> _refreshOrders() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 700));
 
-    // Reload from both sources
-    final mockOrders = MockData.getOrders();
     final storedOrders = await _loadStoredOrders();
 
+    if (!mounted) return;
     setState(() {
-      _orders = [...storedOrders, ...mockOrders];
+      _orders = storedOrders;
       _filterOrders(_selectedFilter);
       _isLoading = false;
     });
@@ -127,13 +125,15 @@ class _OrdersPageState extends State<OrdersPage>
     switch (status) {
       case OrderStatusType.completed:
         return AppColors.success;
-      case OrderStatusType.cancelled:
+      case OrderStatusType.canceled:
         return AppColors.error;
-      case OrderStatusType.inProgress:
+      case OrderStatusType.onTheWay:
+      case OrderStatusType.arrive:
         return AppColors.warning;
       case OrderStatusType.accepted:
         return AppColors.info;
-      default:
+      case OrderStatusType.newOrder:
+      case OrderStatusType.pending:
         return AppColors.textHint;
     }
   }
@@ -142,13 +142,17 @@ class _OrdersPageState extends State<OrdersPage>
     switch (status) {
       case OrderStatusType.completed:
         return 'Tugatilgan';
-      case OrderStatusType.cancelled:
+      case OrderStatusType.canceled:
         return 'Bekor qilingan';
-      case OrderStatusType.inProgress:
-        return 'Jarayonda';
+      case OrderStatusType.onTheWay:
+        return 'Yo\'lda';
+      case OrderStatusType.arrive:
+        return 'Yetib keldi';
       case OrderStatusType.accepted:
         return 'Qabul qilingan';
-      default:
+      case OrderStatusType.newOrder:
+        return 'Yangi';
+      case OrderStatusType.pending:
         return 'Kutilmoqda';
     }
   }
@@ -163,70 +167,485 @@ class _OrdersPageState extends State<OrdersPage>
           'Buyurtmalar',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          PopupMenuButton<OrderStatusType?>(
-            icon: SvgPicture.asset(
-              'assets/icons/filter.svg',
-              width: 24.w,
-              height: 24.h,
-              colorFilter: ColorFilter.mode(
-                AppColors.textPrimary,
-                BlendMode.srcIn,
+      ),
+      body: Column(
+        children: [
+          _buildTabSelector(),
+          Expanded(
+            child: _selectedTab == 0
+                ? _buildActiveTab()
+                : _buildCompletedTab(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return Container(
+      margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: [
+          _buildTabButton(
+            label: 'Faol',
+            index: 0,
+            icon: Icons.local_taxi_rounded,
+          ),
+          _buildTabButton(
+            label: 'Tugatilgan',
+            index: 1,
+            icon: Icons.check_circle_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String label,
+    required int index,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedTab == index) return;
+          setState(() => _selectedTab = index);
+          _animationController
+            ..reset()
+            ..forward();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            boxShadow: isSelected ? AppColors.cardShadow : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18.w,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
               ),
-            ),
-            onSelected: _filterOrders,
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: null, child: Text('Hammasi')),
-              const PopupMenuItem(
-                value: OrderStatusType.completed,
-                child: Text('Tugatilgan'),
-              ),
-              const PopupMenuItem(
-                value: OrderStatusType.cancelled,
-                child: Text('Bekor qilingan'),
-              ),
-              const PopupMenuItem(
-                value: OrderStatusType.inProgress,
-                child: Text('Jarayonda'),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                ),
               ),
             ],
           ),
-          SizedBox(width: 8.w),
+        ),
+      ),
+    );
+  }
+
+  // ============== Faol (active) tab ==============
+
+  Widget _buildActiveTab() {
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, state) {
+        final order = state.currentOrder;
+        if (order == null || !_isActiveStatus(state.status)) {
+          return _buildEmptyState(
+            title: 'Faol buyurtma yo\'q',
+            subtitle: 'Yangi buyurtmalar asosiy oynada qabul qilinadi',
+            icon: Icons.local_taxi_rounded,
+          );
+        }
+        return ListView(
+          padding: EdgeInsets.all(16.w),
+          children: [_buildActiveOrderCard(state, order)],
+        );
+      },
+    );
+  }
+
+  bool _isActiveStatus(OrderStatus status) {
+    return status == OrderStatus.orderAccepted ||
+        status == OrderStatus.goingToClient ||
+        status == OrderStatus.waitingForClient ||
+        status == OrderStatus.inProgress;
+  }
+
+  String _activeStatusText(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.orderAccepted:
+        return 'Qabul qilingan';
+      case OrderStatus.goingToClient:
+        return 'Mijoz oldiga';
+      case OrderStatus.waitingForClient:
+        return 'Kutilmoqda';
+      case OrderStatus.inProgress:
+        return 'Jarayonda';
+      default:
+        return 'Faol';
+    }
+  }
+
+  Color _activeStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.orderAccepted:
+        return AppColors.info;
+      case OrderStatus.goingToClient:
+      case OrderStatus.waitingForClient:
+        return AppColors.warning;
+      case OrderStatus.inProgress:
+        return AppColors.primary;
+      default:
+        return AppColors.textHint;
+    }
+  }
+
+  String _formatDuration(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildActiveOrderCard(HomeState state, OrderModel order) {
+    final statusColor = _activeStatusColor(state.status);
+    final statusText = _activeStatusText(state.status);
+
+    String? timeLabel;
+    String? timeValue;
+    if (state.status == OrderStatus.waitingForClient &&
+        state.waitingSeconds > 0) {
+      timeLabel = 'Kutish';
+      timeValue = _formatDuration(state.waitingSeconds);
+    } else if (state.status == OrderStatus.inProgress) {
+      timeLabel = 'Safar';
+      timeValue = _formatDuration(state.tripSeconds);
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5.w),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 56.w,
+                  height: 56.h,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [statusColor, statusColor.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withOpacity(0.4),
+                        blurRadius: 12.r,
+                        offset: Offset(0, 4.h),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/icons/user_duotone.svg',
+                      width: 28.w,
+                      height: 28.h,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 14.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.clientName,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          SvgPicture.asset(
+                            'assets/icons/phone_duotone.svg',
+                            width: 14.w,
+                            height: 14.h,
+                            colorFilter: ColorFilter.mode(
+                              Colors.grey[500]!,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          Text(
+                            order.clientPhone,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 8.h,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        statusColor.withOpacity(0.15),
+                        statusColor.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: statusColor.withOpacity(0.3),
+                      width: 1.5.w,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8.w,
+                        height: 8.h,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: statusColor,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 6.w,
+                        height: 6.h,
+                        decoration: const BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          order.pickupAddress,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6.w,
+                        height: 6.h,
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          order.destinationAddress,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 14.h),
+            Row(
+              children: [
+                _buildActiveMetric(
+                  icon: 'assets/icons/route_duotone.svg',
+                  value: '${state.traveledDistance.toStringAsFixed(1)} km',
+                ),
+                if (timeValue != null) ...[
+                  SizedBox(width: 10.w),
+                  _buildActiveMetric(
+                    icon: 'assets/icons/clock_duotone.svg',
+                    value: '$timeLabel $timeValue',
+                  ),
+                ],
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 8.h,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
+                      width: 1.5.w,
+                    ),
+                  ),
+                  child: Text(
+                    NumberFormatter.formatPrice(state.currentPrice.toDouble()),
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveMetric({required String icon, required String value}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            icon,
+            width: 14.w,
+            height: 14.h,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textSecondary,
+              BlendMode.srcIn,
+            ),
+          ),
+          SizedBox(width: 6.w),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshOrders,
-        color: AppColors.primary,
-        child: _isLoading
-            ? _buildShimmerLoading()
-            : _filteredOrders.isEmpty
-            ? _buildEmptyState()
-            : AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _animationController,
-                    child: ListView.builder(
-                      padding: EdgeInsets.all(16.w),
-                      itemCount: _filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        return TweenAnimationBuilder(
-                          tween: Tween<double>(begin: 0, end: 1),
-                          duration: Duration(milliseconds: 300 + (index * 100)),
-                          builder: (context, double value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 50 * (1 - value)),
-                              child: Opacity(opacity: value, child: child),
-                            );
-                          },
-                          child: _buildOrderCard(_filteredOrders[index]),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-      ),
+    );
+  }
+
+  // ============== Tugatilgan (completed) tab ==============
+
+  Widget _buildCompletedTab() {
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      color: AppColors.primary,
+      child: _isLoading
+          ? _buildShimmerLoading()
+          : _filteredOrders.isEmpty
+          ? _buildEmptyState(
+              title: 'Tugatilgan buyurtmalar yo\'q',
+              subtitle: 'Yakunlangan safarlar shu yerda ko\'rinadi',
+              icon: Icons.history_rounded,
+            )
+          : AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return FadeTransition(
+                  opacity: _animationController,
+                  child: ListView.builder(
+                    padding: EdgeInsets.all(16.w),
+                    itemCount: _filteredOrders.length,
+                    itemBuilder: (context, index) {
+                      return TweenAnimationBuilder(
+                        tween: Tween<double>(begin: 0, end: 1),
+                        duration: Duration(milliseconds: 300 + (index * 100)),
+                        builder: (context, double value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 50 * (1 - value)),
+                            child: Opacity(opacity: value, child: child),
+                          );
+                        },
+                        child: _buildOrderCard(_filteredOrders[index]),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
     );
   }
 
@@ -356,7 +775,11 @@ class _OrdersPageState extends State<OrdersPage>
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({
+    String title = 'Buyurtmalar yo\'q',
+    String subtitle = 'Hozircha buyurtmalar mavjud emas',
+    IconData icon = Icons.inbox_outlined,
+  }) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -368,15 +791,11 @@ class _OrdersPageState extends State<OrdersPage>
               color: AppColors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.inbox_outlined,
-              size: 60.w,
-              color: AppColors.primary,
-            ),
+            child: Icon(icon, size: 60.w, color: AppColors.primary),
           ),
           SizedBox(height: 32.h),
           Text(
-            'Buyurtmalar yo\'q',
+            title,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.bold,
@@ -385,7 +804,8 @@ class _OrdersPageState extends State<OrdersPage>
           ),
           SizedBox(height: 12.h),
           Text(
-            'Hozircha buyurtmalar mavjud emas',
+            subtitle,
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
           ),
         ],

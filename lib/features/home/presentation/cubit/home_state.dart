@@ -35,6 +35,8 @@ class HomeState extends Equatable {
   final int currentRouteIndex; // Current position on route
   final int? routeDurationMinutes; // Estimated route duration in minutes
   final String? routeDistanceKm; // Route distance in km
+  final DateTime? tripStartTime; // When the trip (inProgress) actually started
+  final int tripSeconds; // Trip duration in seconds (pickup -> complete)
 
   const HomeState({
     this.status = OrderStatus.initial,
@@ -57,6 +59,8 @@ class HomeState extends Equatable {
     this.currentRouteIndex = 0,
     this.routeDurationMinutes,
     this.routeDistanceKm,
+    this.tripStartTime,
+    this.tripSeconds = 0,
   });
 
   HomeState copyWith({
@@ -80,6 +84,8 @@ class HomeState extends Equatable {
     bool? isTimeoutEnabled,
     List<Point>? routeGeometry,
     int? currentRouteIndex,
+    DateTime? tripStartTime,
+    int? tripSeconds,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -102,6 +108,8 @@ class HomeState extends Equatable {
       currentRouteIndex: currentRouteIndex ?? this.currentRouteIndex,
       routeDurationMinutes: routeDurationMinutes ?? this.routeDurationMinutes,
       routeDistanceKm: routeDistanceKm ?? this.routeDistanceKm,
+      tripStartTime: tripStartTime ?? this.tripStartTime,
+      tripSeconds: tripSeconds ?? this.tripSeconds,
     );
   }
 
@@ -127,8 +135,7 @@ class HomeState extends Equatable {
     currentRouteIndex,
     routeDurationMinutes,
     routeDistanceKm,
-    isOnline,
-    routeGeometry,
-    currentRouteIndex,
+    tripStartTime,
+    tripSeconds,
   ];
 }

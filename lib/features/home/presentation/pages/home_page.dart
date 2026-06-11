@@ -10,7 +10,6 @@ import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_messenger.dart';
 import '../../../../core/utils/number_formatter.dart';
-import '../../../../core/utils/yandex_arrow_animator.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
@@ -32,10 +31,7 @@ class _HomePageState extends State<HomePage> {
   final List<MapObject> _mapObjects = [];
   Point? _lastCameraPosition;
   bool _hasMovedToInitialLocation = false;
-
-  // Yandex-style arrow animator
-  YandexLikeArrowAnimator? _arrowAnimator;
-  bool _isAnimationRunning = false; // Prevent duplicate animations
+  Point? _lastMarkerLocation; // Track last GPS marker position
 
   // Connectivity
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
@@ -98,15 +94,6 @@ class _HomePageState extends State<HomePage> {
 
           // Update map objects when state changes (no setState needed)
           _updateMapObjects(state);
-
-          // Animation is now manually controlled via toggle button
-          // Don't auto-start to give user control
-
-          // Stop animation when order is completed or cancelled
-          if (state.status == OrderStatus.completed ||
-              state.status == OrderStatus.initial) {
-            _stopYandexAnimation();
-          }
         },
         builder: (context, state) {
           return Stack(
@@ -116,25 +103,8 @@ class _HomePageState extends State<HomePage> {
                 onMapCreated: (controller) {
                   _mapController = controller;
 
-                  // Initialize Yandex-style arrow animator with callback
-                  _arrowAnimator = YandexLikeArrowAnimator(controller, (
-                    mapObject,
-                  ) {
-                    // Update map objects without setState to avoid infinite render loop
-                    // The map will update automatically through the controller
-                    _mapObjects.removeWhere(
-                      (obj) => obj.mapId == mapObject.mapId,
-                    );
-                    _mapObjects.add(mapObject);
-                  });
-
                   if (state.currentLocation != null) {
                     _moveToLocation(state.currentLocation!);
-                  }
-
-                  // Start animation if route points already exist
-                  if (state.routePoints.isNotEmpty) {
-                    _startYandexAnimation(state.routePoints);
                   }
                 },
                 mapObjects: _mapObjects,
@@ -323,6 +293,8 @@ class _HomePageState extends State<HomePage> {
                     currentPrice: state.currentPrice,
                     traveledDistance: state.traveledDistance,
                     waitingSeconds: state.waitingSeconds,
+                    tripSeconds: state.tripSeconds,
+                    isWaitingTimerActive: state.isWaitingTimerActive,
                     distanceToClient: state.distanceToClient,
                     isWaitingForClient:
                         state.status == OrderStatus.waitingForClient,
@@ -340,7 +312,7 @@ class _HomePageState extends State<HomePage> {
                     },
                     onToggleWaitingTimer: () {
                       final cubit = context.read<HomeCubit>();
-                      final isStarting = cubit.state.waitingSeconds == 0;
+                      final isStarting = !cubit.state.isWaitingTimerActive;
 
                       cubit.toggleWaitingTimer();
 
@@ -377,43 +349,6 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Animation toggle button (only show when order exists and route available)
-                      if (state.currentOrder != null &&
-                          (state.status == OrderStatus.goingToClient ||
-                              state.status == OrderStatus.inProgress))
-                        SizedBox(
-                          width: 56.w,
-                          height: 56.w,
-                          child: Material(
-                            elevation: 8,
-                            borderRadius: BorderRadius.circular(16.r),
-                            child: FloatingActionButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (_isAnimationRunning) {
-                                    _stopYandexAnimation();
-                                  } else if (state.routeGeometry != null &&
-                                      state.routeGeometry!.isNotEmpty) {
-                                    _startYandexAnimation(state.routeGeometry!);
-                                  }
-                                });
-                              },
-                              backgroundColor: _isAnimationRunning
-                                  ? Colors.red
-                                  : AppColors.primary,
-                              elevation: 0,
-                              child: Icon(
-                                _isAnimationRunning ? Icons.close : Icons.route,
-                                color: Colors.white,
-                                size: 24.w,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (state.currentOrder != null &&
-                          (state.status == OrderStatus.goingToClient ||
-                              state.status == OrderStatus.inProgress))
-                        SizedBox(height: 12.h),
                       // My location button
                       SizedBox(
                         width: 56.w,
@@ -584,23 +519,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _updateMapObjects(HomeState state) async {
-    // Handle current location marker based on animation state
-    final hasCurrentLocationMarker = _mapObjects.any(
-      (obj) => obj.mapId.value == 'current_location',
-    );
-
-    if (_isAnimationRunning && hasCurrentLocationMarker) {
-      // Remove current location when animation starts
+    // Always show the real GPS location marker and update it when the
+    // driver actually moves (no simulation / no camera auto-follow).
+    final loc = state.currentLocation;
+    if (loc != null &&
+        (_lastMarkerLocation == null ||
+            _lastMarkerLocation!.latitude != loc.latitude ||
+            _lastMarkerLocation!.longitude != loc.longitude)) {
       _mapObjects.removeWhere(
         (obj) =>
             obj.mapId.value == 'current_location' ||
             obj.mapId.value.toString().startsWith('current_location_'),
       );
-    } else if (!_isAnimationRunning &&
-        !hasCurrentLocationMarker &&
-        state.currentLocation != null) {
-      // Add current location when animation is not running
-      await _addUserLocationMarker(state.currentLocation!, state.heading);
+      await _addUserLocationMarker(loc, state.heading);
+      _lastMarkerLocation = loc;
     }
 
     // Remove old route polyline
@@ -968,8 +900,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCompleteDialog(HomeState state) {
-    // Calculate trip duration (mock - in real app this would be tracked)
-    final duration = (state.traveledDistance * 3).round(); // ~3 minutes per km
+    // Haqiqiy safar davomiyligi (daqiqa) - tripSeconds asosida
+    int duration = (state.tripSeconds / 60).round();
+    if (duration < 1) duration = 1;
 
     showDialog(
       context: context,
@@ -988,61 +921,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
-    _arrowAnimator?.dispose();
     super.dispose();
-  }
-
-  /// Start Yandex-style arrow animation
-  Future<void> _startYandexAnimation(List<Point> routePoints) async {
-    if (_arrowAnimator == null || routePoints.isEmpty || _isAnimationRunning) {
-      return;
-    }
-
-    _isAnimationRunning = true;
-
-    // Remove current_location marker before starting animation
-    setState(() {
-      _mapObjects.removeWhere(
-        (obj) =>
-            obj.mapId.value == 'current_location' ||
-            obj.mapId.value.toString().startsWith('current_location_'),
-      );
-    });
-
-    print(
-      '🚀 Starting Yandex-style navigation with ${routePoints.length} points',
-    );
-
-    try {
-      await _arrowAnimator!.startYandexStyleNavigation(
-        routePoints: routePoints,
-        speedKmH: 40.0, // Realistic speed
-        followCamera: true, // Camera follows arrow during animation
-        showRouteLine: false, // Don't show animator line, use route_polyline
-      );
-    } catch (e) {
-      print('❌ Error starting Yandex animation: $e');
-      _isAnimationRunning = false;
-    }
-  }
-
-  /// Stop Yandex-style arrow animation
-  void _stopYandexAnimation() {
-    if (_arrowAnimator != null && _isAnimationRunning) {
-      print('⏹️ Stopping Yandex animation');
-      _arrowAnimator!.stop();
-      _isAnimationRunning = false;
-
-      // Remove only arrow marker and restore current_location
-      setState(() {
-        _mapObjects.removeWhere((obj) => obj.mapId.value == 'yandex_arrow');
-      });
-
-      // Trigger update to restore current_location marker
-      final cubit = context.read<HomeCubit>();
-      if (cubit.state.currentLocation != null) {
-        _updateMapObjects(cubit.state);
-      }
-    }
   }
 }

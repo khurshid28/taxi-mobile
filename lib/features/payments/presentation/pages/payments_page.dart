@@ -4,9 +4,9 @@ import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/data/mock_data.dart';
+import '../../../../injection_container.dart';
+import '../../../profile/data/driver_service.dart';
 import '../../../../core/models/payment_model.dart';
-import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/utils/number_formatter.dart';
 
 class PaymentsPage extends StatefulWidget {
@@ -20,7 +20,7 @@ class _PaymentsPageState extends State<PaymentsPage>
     with SingleTickerProviderStateMixin {
   List<PaymentModel> _payments = [];
   List<PaymentModel> _filteredPayments = [];
-  double _balance = 295000;
+  double _balance = 0;
   late AnimationController _animationController;
   bool _isLoading = true;
 
@@ -41,11 +41,10 @@ class _PaymentsPageState extends State<PaymentsPage>
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    _payments = MockData.getPayments();
+    _payments = [];
     _filterPayments();
     await _loadBalance();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
     _animationController.forward();
   }
 
@@ -56,17 +55,20 @@ class _PaymentsPageState extends State<PaymentsPage>
   }
 
   Future<void> _loadBalance() async {
-    final balance = await StorageHelper.getDouble('driver_balance') ?? 295000;
-    setState(() {
-      _balance = balance;
-    });
+    try {
+      final data = await sl<DriverService>().aboutMyData();
+      if (mounted) setState(() => _balance = data.balance ?? 0);
+    } catch (_) {
+      // Balansni olishda xatolik bo'lsa, 0 ko'rsatiladi.
+    }
   }
 
   Future<void> _refreshPayments() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _loadBalance();
+    if (!mounted) return;
     setState(() {
-      _payments = MockData.getPayments();
+      _payments = [];
       _filterPayments();
       _isLoading = false;
       _animationController.reset();
@@ -93,336 +95,6 @@ class _PaymentsPageState extends State<PaymentsPage>
 
       return true;
     }).toList();
-  }
-
-  void _showTopUpDialog() {
-    final amountController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1F000000),
-                  blurRadius: 32,
-                  offset: Offset(0, -8),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(24.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                Center(
-                  child: Container(
-                    width: 50.w,
-                    height: 5.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(10.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8.r,
-                          offset: Offset(0, 2.h),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 28.h),
-                Container(
-                  width: 80.w,
-                  height: 80.h,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.25),
-                        blurRadius: 20.r,
-                        offset: Offset(0, 8.h),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/icons/wallet_duotone.svg',
-                      width: 44.w,
-                      height: 44.h,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  'Balansni to\'ldirish',
-                  style: TextStyle(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -1.2,
-                    height: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  'Quyidagi miqdorlardan birini tanlang yoki\no\'zingizni kiriting',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 28.h),
-                Wrap(
-                  spacing: 12.w,
-                  runSpacing: 12.h,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildAmountChip('50,000', amountController),
-                    _buildAmountChip('100,000', amountController),
-                    _buildAmountChip('200,000', amountController),
-                    _buildAmountChip('500,000', amountController),
-                  ],
-                ),
-                SizedBox(height: 24.h),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(color: AppColors.divider, width: 1.5.w),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 15.r,
-                        offset: Offset(0, 4.h),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Miqdor (so\'m)',
-                      hintText: 'Miqdorni kiriting',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      labelStyle: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      prefixIcon: Container(
-                        width: 40.w,
-                        height: 40.h,
-                        margin: EdgeInsets.only(left: 8.w, right: 8.w),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withOpacity(0.2),
-                              AppColors.primary.withOpacity(0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Center(
-                          child: SvgPicture.asset(
-                            'assets/icons/payment_duotone.svg',
-                            width: 20.w,
-                            height: 20.h,
-                          ),
-                        ),
-                      ),
-                      prefixIconConstraints: BoxConstraints(
-                        minWidth: 56.w,
-                        minHeight: 40.h,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20.r),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2.w,
-                        ),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 28.h),
-                Container(
-                  height: 60.h,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
-                    ),
-                    borderRadius: BorderRadius.circular(20.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.4),
-                        blurRadius: 20.r,
-                        offset: Offset(0, 8.h),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () async {
-                        final amount = double.tryParse(
-                          amountController.text.replaceAll(',', ''),
-                        );
-                        if (amount != null && amount > 0) {
-                          final newBalance = _balance + amount;
-                          await StorageHelper.setDouble(
-                            'driver_balance',
-                            newBalance,
-                          );
-                          setState(() {
-                            _balance = newBalance;
-                            _payments.insert(
-                              0,
-                              PaymentModel(
-                                id: 'PAY${DateTime.now().millisecondsSinceEpoch}',
-                                title: 'Balans to\'ldirish',
-                                amount: amount,
-                                type: PaymentType.topUp,
-                                createdAt: DateTime.now(),
-                              ),
-                            );
-                          });
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 12.w),
-                                  const Text(
-                                    'Balans muvaffaqiyatli to\'ldirildi!',
-                                  ),
-                                ],
-                              ),
-                              backgroundColor: Colors.green,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                              ),
-                              margin: EdgeInsets.all(16.w),
-                            ),
-                          );
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(20.r),
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Colors.white,
-                              size: 24.w,
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              'To\'ldirish',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-              ],
-            ),
-          ),
-        ),
-      ),)
-    );
-  }
-
-  Widget _buildAmountChip(String amount, TextEditingController controller) {
-    return InkWell(
-      onTap: () {
-        controller.text = amount.replaceAll(',', '');
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.primary.withOpacity(0.15),
-              AppColors.primary.withOpacity(0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
-            width: 2.w,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.1),
-              blurRadius: 8.r,
-              offset: Offset(0, 3.h),
-            ),
-          ],
-        ),
-        child: Text(
-          amount,
-          style: TextStyle(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-            letterSpacing: 0.3,
-          ),
-        ),
-      ),
-    );
   }
 
   Color _getPaymentColor(PaymentType type) {
@@ -523,64 +195,6 @@ class _PaymentsPageState extends State<PaymentsPage>
                       ),
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.w),
-                      child: Container(
-                        height: 60.h,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF90EE90), Color(0xFF7FD97F)],
-                          ),
-                          borderRadius: BorderRadius.circular(20.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.4),
-                              blurRadius: 20.r,
-                              offset: Offset(0, 8.h),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _showTopUpDialog,
-                            borderRadius: BorderRadius.circular(20.r),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 28.w,
-                                    height: 28.h,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.add_rounded,
-                                      color: Colors.white,
-                                      size: 20.w,
-                                    ),
-                                  ),
-                                  SizedBox(width: 10.w),
-                                  Text(
-                                    'Balansni to\'ldirish',
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   SliverPadding(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     sliver: SliverToBoxAdapter(
@@ -666,26 +280,78 @@ class _PaymentsPageState extends State<PaymentsPage>
                       ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: EdgeInsets.all(16.w),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        return TweenAnimationBuilder(
-                          tween: Tween<double>(begin: 0, end: 1),
-                          duration: Duration(milliseconds: 300 + (index * 100)),
-                          builder: (context, double value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 30 * (1 - value)),
-                              child: Opacity(opacity: value, child: child),
-                            );
-                          },
-                          child: _buildPaymentCard(_filteredPayments[index]),
-                        );
-                      }, childCount: _filteredPayments.length),
+                  if (_filteredPayments.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildEmptyState(),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.all(16.w),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return TweenAnimationBuilder(
+                            tween: Tween<double>(begin: 0, end: 1),
+                            duration: Duration(
+                              milliseconds: 300 + (index * 100),
+                            ),
+                            builder: (context, double value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 30 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                            child: _buildPaymentCard(_filteredPayments[index]),
+                          );
+                        }, childCount: _filteredPayments.length),
+                      ),
                     ),
-                  ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 110.w,
+            height: 110.w,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/icons/payment_duotone.svg',
+                width: 52.w,
+                height: 52.w,
+                colorFilter: ColorFilter.mode(
+                  AppColors.primary,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            'Hozircha tranzaksiyalar yo\'q',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'To\'lovlar tarixi shu yerda ko\'rinadi',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

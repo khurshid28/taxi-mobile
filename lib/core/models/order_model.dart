@@ -85,7 +85,9 @@ class OrderModel {
       distance: toDouble(json['distance']),
       price: toDouble(json['price'] ?? json['cost'] ?? json['amount']),
       createdAt: created,
-      status: OrderStatusType.pending,
+      status: OrderStatusType.fromString(
+        (json['status'] ?? json['orderStatus'] ?? json['state'])?.toString(),
+      ),
       tariff: (json['tariff'] ?? json['tarif'])?.toString(),
     );
   }
@@ -103,14 +105,46 @@ class OrderModel {
         'distance': distance,
         'price': price,
         'createdAt': createdAt.toIso8601String(),
+        'status': status.value,
         'tariff': tariff,
       };
 }
 
+/// App\Enum\OrderStatus (backend) bilan bir xil statuslar.
 enum OrderStatusType {
-  pending,
-  accepted,
-  inProgress,
-  completed,
-  cancelled,
+  newOrder('new'),
+  pending('pending'),
+  accepted('accepted'),
+  onTheWay('on_the_way'),
+  arrive('arrive'),
+  completed('completed'),
+  canceled('canceled');
+
+  const OrderStatusType(this.value);
+
+  /// Backenddagi string qiymati.
+  final String value;
+
+  /// Backend string -> enum. Noma'lum bo'lsa pending.
+  static OrderStatusType fromString(String? raw) {
+    switch (raw) {
+      case 'new':
+        return OrderStatusType.newOrder;
+      case 'pending':
+        return OrderStatusType.pending;
+      case 'accepted':
+        return OrderStatusType.accepted;
+      case 'on_the_way':
+        return OrderStatusType.onTheWay;
+      case 'arrive':
+        return OrderStatusType.arrive;
+      case 'completed':
+        return OrderStatusType.completed;
+      case 'canceled':
+      case 'cancelled':
+        return OrderStatusType.canceled;
+      default:
+        return OrderStatusType.pending;
+    }
+  }
 }

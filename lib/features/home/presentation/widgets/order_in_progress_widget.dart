@@ -20,8 +20,10 @@ class OrderInProgressWidget extends StatelessWidget {
   final int currentPrice;
   final double traveledDistance;
   final int waitingSeconds;
+  final int tripSeconds;
   final bool isWaitingForClient;
   final bool isGoingToClient;
+  final bool isWaitingTimerActive;
   final bool isTimeoutEnabled;
   final int? routeDurationMinutes;
   final String? routeDistanceKm;
@@ -42,8 +44,10 @@ class OrderInProgressWidget extends StatelessWidget {
     this.currentPrice = 0,
     this.traveledDistance = 0,
     this.waitingSeconds = 0,
+    this.tripSeconds = 0,
     this.isWaitingForClient = false,
     this.isGoingToClient = false,
+    this.isWaitingTimerActive = false,
     this.isTimeoutEnabled = true,
     this.routeDurationMinutes,
     this.routeDistanceKm,
@@ -296,10 +300,46 @@ class OrderInProgressWidget extends StatelessWidget {
                       ),
                     ),
 
-                    // Waiting time (show when waiting for client OR during trip with active timer)
+                    // Safar vaqti (trip time) - faqat safar davomida ko'rsatiladi
+                    if (!isWaitingForClient && !isGoingToClient) ...[
+                      SizedBox(height: 12.h),
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.4),
+                            width: 1.w,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.timelapse,
+                              color: AppColors.primary,
+                              size: 24.sp,
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                'Safar vaqti: ${_formatWaitingTime(tripSeconds)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15.sp,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Kutish vaqti - faqat mijozni kutganda yoki safar ichida
+                    // kutish hisoblagichi qo'lda yoqilgan bo'lsa ko'rsatiladi
                     if (waitingSeconds > 0 &&
-                        (isWaitingForClient ||
-                            (!isWaitingForClient && !isGoingToClient))) ...[
+                        (isWaitingForClient || isWaitingTimerActive)) ...[
                       SizedBox(height: 12.h),
                       Container(
                         padding: EdgeInsets.all(12.w),
@@ -379,7 +419,7 @@ class OrderInProgressWidget extends StatelessWidget {
                           height: 60.h,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: waitingSeconds > 0
+                              colors: isWaitingTimerActive
                                   ? [
                                       const Color(0xFFE53935),
                                       const Color(0xFFC62828),
@@ -393,7 +433,7 @@ class OrderInProgressWidget extends StatelessWidget {
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    (waitingSeconds > 0
+                                    (isWaitingTimerActive
                                             ? Colors.red
                                             : Colors.orange)
                                         .withOpacity(0.3),
@@ -409,7 +449,7 @@ class OrderInProgressWidget extends StatelessWidget {
                               borderRadius: BorderRadius.circular(30.r),
                               child: Center(
                                 child: Text(
-                                  waitingSeconds > 0
+                                  isWaitingTimerActive
                                       ? 'Kutishni tugatish ⏹️'
                                       : 'Kutishni boshlash ⏱️',
                                   style: TextStyle(

@@ -8,6 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../injection_container.dart';
+import '../../data/driver_service.dart';
 import 'activity_page.dart';
 import 'settings_page.dart';
 import 'info_page.dart';
@@ -35,171 +37,34 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
 
-    final name = await StorageHelper.getString('user_name') ?? 'Haydovchi';
-    final phone =
+    // Keshlangan ma'lumotlar (server javobigacha ko'rsatiladi)
+    var name = await StorageHelper.getString('user_name') ?? 'Haydovchi';
+    var phone =
         await StorageHelper.getString(AppConstants.keyUserPhone) ?? '';
-    final rating = await StorageHelper.getInt('driver_rating') ?? 50;
-    final balance = await StorageHelper.getDouble('driver_balance') ?? 295000;
-    final trips = await StorageHelper.getInt('total_trips') ?? 6;
 
-    setState(() {
-      _name = name;
-      _phone = phone;
-      _rating = rating;
-      _balance = balance;
-      _totalTrips = trips;
-      _isLoading = false;
-    });
-  }
-
-  void _showTopUpDialog() {
-    final amountController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2.r),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24.h),
-              Text(
-                'Balansni to\'ldirish',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 24.h),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _buildAmountChip('50,000', amountController),
-                  _buildAmountChip('100,000', amountController),
-                  _buildAmountChip('200,000', amountController),
-                  _buildAmountChip('500,000', amountController),
-                ],
-              ),
-              SizedBox(height: 24.h),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Miqdor (so\'m)',
-                  hintText: 'Miqdorni kiriting',
-                  prefixIcon: Icon(
-                    Icons.attach_money,
-                    color: AppColors.primary,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(
-                      color: AppColors.primary,
-                      width: 2.w,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24.h),
-              ElevatedButton(
-                onPressed: () async {
-                  final amount = double.tryParse(
-                    amountController.text.replaceAll(',', ''),
-                  );
-                  if (amount != null && amount > 0) {
-                    final newBalance = _balance + amount;
-                    await StorageHelper.setDouble('driver_balance', newBalance);
-                    setState(() {
-                      _balance = newBalance;
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Balans muvaffaqiyatli to\'ldirildi!'),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  'To\'ldirish',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              SizedBox(height: 12.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmountChip(String amount, TextEditingController controller) {
-    return InkWell(
-      onTap: () {
-        controller.text = amount.replaceAll(',', '');
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-        ),
-        child: Text(
-          amount,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primary,
-          ),
-        ),
-      ),
-    );
+    try {
+      // Serverdan real profil ma'lumotlari
+      final profile = await sl<DriverService>().aboutMe();
+      if (profile.name.isNotEmpty) name = profile.name;
+      if (profile.phone.isNotEmpty) phone = profile.phone;
+      if (!mounted) return;
+      setState(() {
+        _name = name;
+        _phone = phone;
+        _rating = profile.rating;
+        _balance = profile.balance;
+        _totalTrips = profile.totalTrips;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _name = name;
+        _phone = phone;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -421,16 +286,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ],
                               ),
                               Container(
+                                padding: EdgeInsets.all(12.w),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
                                   shape: BoxShape.circle,
                                 ),
-                                child: IconButton(
-                                  onPressed: _showTopUpDialog,
-                                  icon: const Icon(
-                                    Icons.add,
-                                    color: Colors.white,
-                                  ),
+                                child: const Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
