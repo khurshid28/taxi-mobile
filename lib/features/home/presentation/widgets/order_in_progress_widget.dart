@@ -95,132 +95,252 @@ class OrderInProgressWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color accent =
-        isWaitingForClient ? AppColors.warning : AppColors.primary;
+    final Color accent = isWaitingForClient
+        ? AppColors.warning
+        : (isGoingToClient ? AppColors.info : AppColors.primary);
 
+    // Bosqichlar orasida silliq o'tish: balandlik BIR MARTALIK (one-shot)
+    // animatsiya bilan o'zgaradi — uzluksiz 60fps emas, shuning uchun native
+    // xarita qotmaydi, ammo o'tish silliq ko'rinadi.
     return RepaintBoundary(
-      child: Container(
-        constraints: BoxConstraints(maxHeight: 0.74.sh),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
-          boxShadow: AppColors.floatingShadow,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag handle (faqat bezak — varaq sudralmaydi)
-              Container(
-                margin: EdgeInsets.only(top: 10.h, bottom: 4.h),
-                width: 44.w,
-                height: 5.h,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(99.r),
-                ),
-              ),
-
-              // Skroll qilinadigan ma'lumot qismi
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _statusPill(accent),
-                      SizedBox(height: 14.h),
-                      if (_hasClient) ...[
-                        _clientCard(),
-                        SizedBox(height: 10.h),
-                      ],
-                      if (_hasPickup || _hasDestination) ...[
-                        _addressCard(),
-                        SizedBox(height: 10.h),
-                      ],
-                      _metricsCard(),
-                      if (_isInProgress) ...[
-                        SizedBox(height: 10.h),
-                        _tripTimeRow(),
-                      ],
-                      if (waitingSeconds > 0 &&
-                          (isWaitingForClient || isWaitingTimerActive)) ...[
-                        SizedBox(height: 10.h),
-                        _waitingRow(),
-                      ],
-                      if (isGoingToClient &&
-                          routeDurationMinutes != null &&
-                          routeDistanceKm != null) ...[
-                        SizedBox(height: 10.h),
-                        _etaRow(),
-                      ],
-                      SizedBox(height: 12.h),
-                      _callMapsRow(),
-                      if (_isInProgress && onToggleWaitingTimer != null) ...[
-                        SizedBox(height: 10.h),
-                        _waitingToggleButton(),
-                      ],
-                      SizedBox(height: 6.h),
-                    ],
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          constraints: BoxConstraints(maxHeight: 0.76.sh),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
+            boxShadow: AppColors.floatingShadow,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle (faqat bezak — varaq sudralmaydi)
+                Container(
+                  margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
+                  width: 40.w,
+                  height: 5.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(99.r),
                   ),
                 ),
-              ),
 
-              // Pastga mahkamlangan asosiy amal + bekor qilish
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 8.h),
-                child: _bottomActions(),
-              ),
-            ],
+                // Sarlavha: bosqich ikonkasi + nomi + izoh
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: _header(accent),
+                ),
+                SizedBox(height: 16.h),
+
+                // Bosqich indikatori (Yo'lda → Kutish → Safar)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: _progressStepper(accent),
+                ),
+                SizedBox(height: 14.h),
+
+                // Skroll qilinadigan ma'lumot qismi
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_hasClient) ...[
+                          _clientCard(),
+                          SizedBox(height: 10.h),
+                        ],
+                        if (_hasPickup || _hasDestination) ...[
+                          _addressCard(),
+                          SizedBox(height: 10.h),
+                        ],
+                        _metricsCard(),
+                        if (_isInProgress) ...[
+                          SizedBox(height: 10.h),
+                          _tripTimeRow(),
+                        ],
+                        if (waitingSeconds > 0 &&
+                            (isWaitingForClient || isWaitingTimerActive)) ...[
+                          SizedBox(height: 10.h),
+                          _waitingRow(),
+                        ],
+                        if (isGoingToClient &&
+                            routeDurationMinutes != null &&
+                            routeDistanceKm != null) ...[
+                          SizedBox(height: 10.h),
+                          _etaRow(),
+                        ],
+                        SizedBox(height: 12.h),
+                        _callMapsRow(),
+                        if (_isInProgress && onToggleWaitingTimer != null) ...[
+                          SizedBox(height: 10.h),
+                          _waitingToggleButton(),
+                        ],
+                        SizedBox(height: 6.h),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Pastga mahkamlangan asosiy amal + bekor qilish
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
+                  child: _bottomActions(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ===================== Bo'limlar =====================
+  // ===================== Sarlavha + bosqich indikatori =====================
 
-  Widget _statusPill(Color accent) {
-    return Center(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 9.h),
-        decoration: BoxDecoration(
-          color: accent,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withOpacity(0.25),
-              blurRadius: 12.r,
-              offset: Offset(0, 4.h),
-            ),
-          ],
+  String get _stageTitle => isWaitingForClient
+      ? 'Mijozni kutmoqdamiz'
+      : (isGoingToClient ? 'Mijoz oldiga' : 'Safar davom etmoqda');
+
+  String get _stageSubtitle => isWaitingForClient
+      ? 'Mijoz chiqishini kuting'
+      : (isGoingToClient
+          ? 'Mijozni olib ketishga yo\'l oling'
+          : 'Manzilga yetganda yakunlang');
+
+  IconData get _stageIcon => isWaitingForClient
+      ? Iconsax.timer_1
+      : (isGoingToClient ? Iconsax.routing : Iconsax.car);
+
+  Widget _header(Color accent) {
+    return Row(
+      children: [
+        Container(
+          width: 46.w,
+          height: 46.w,
+          decoration: BoxDecoration(
+            color: accent.withOpacity(0.14),
+            borderRadius: BorderRadius.circular(14.r),
+          ),
+          child: Icon(_stageIcon, color: accent, size: 24.w),
         ),
-        child: Row(
+        SizedBox(width: 14.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _stageTitle,
+                style: TextStyle(
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                _stageSubtitle,
+                style: TextStyle(
+                  fontSize: 12.5.sp,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 3 bosqichli indikator: Yo'lda → Kutish → Safar. Joriy bosqich yoritiladi,
+  /// o'tilgan bosqichlar belgilanadi. O'tish bir martalik animatsiya bilan.
+  Widget _progressStepper(Color accent) {
+    final int current = isGoingToClient ? 0 : (isWaitingForClient ? 1 : 2);
+    const titles = ['Yo\'lda', 'Kutish', 'Safar'];
+    const icons = [Iconsax.routing, Iconsax.timer_1, Iconsax.flag];
+
+    final List<Widget> row = [];
+    for (int i = 0; i < 3; i++) {
+      final bool done = i < current;
+      final bool active = i == current;
+      row.add(
+        Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isWaitingForClient ? Iconsax.timer_1 : Iconsax.truck,
-              color: Colors.white,
-              size: 20.w,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOut,
+              width: 34.w,
+              height: 34.w,
+              decoration: BoxDecoration(
+                color: active
+                    ? accent
+                    : (done
+                        ? accent.withOpacity(0.15)
+                        : AppColors.surfaceVariant),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: (done || active) ? accent : AppColors.divider,
+                  width: 2.w,
+                ),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: accent.withOpacity(0.3),
+                          blurRadius: 10.r,
+                          offset: Offset(0, 3.h),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                done ? Iconsax.tick_circle : icons[i],
+                size: 17.w,
+                color: active
+                    ? Colors.white
+                    : (done ? accent : AppColors.textHint),
+              ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(height: 5.h),
             Text(
-              isWaitingForClient
-                  ? 'Mijozni kutmoqdamiz'
-                  : (isGoingToClient ? 'Mijoz oldiga' : 'Yo\'lda'),
+              titles[i],
               style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.3,
+                fontSize: 11.sp,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? accent : AppColors.textSecondary,
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+      if (i < 2) {
+        row.add(
+          Expanded(
+            child: Container(
+              height: 3.h,
+              margin: EdgeInsets.only(top: 16.h, left: 3.w, right: 3.w),
+              decoration: BoxDecoration(
+                color: i < current ? accent : AppColors.divider,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: row);
   }
 
   Widget _clientCard() {
