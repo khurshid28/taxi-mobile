@@ -414,34 +414,6 @@ class HomeCubit extends Cubit<HomeState> {
         _persistActiveTrip();
         return;
       }
-    } else if (state.status == OrderStatus.inProgress &&
-        state.destinationLocation != null) {
-      final dMeters = Geolocator.distanceBetween(
-        newLocation.latitude,
-        newLocation.longitude,
-        state.destinationLocation!.latitude,
-        state.destinationLocation!.longitude,
-      );
-      if (dMeters <= 50) {
-        _lastMapEmit = DateTime.now();
-        emit(state.copyWith(
-          currentLocation: newLocation,
-          heading: heading,
-          traveledDistance: _tripDistanceKm,
-          currentPrice: _computePrice(_tripDistanceKm, state.waitingSeconds),
-          status: OrderStatus.completed,
-        ));
-        NotificationService().showNotification(
-          title: '🎉 Safar tugadi',
-          body: 'Manzilga yetib keldingiz.',
-          playSound: true,
-        );
-        // Auto-complete
-        Future.delayed(const Duration(seconds: 1), () {
-          if (state.status == OrderStatus.completed) completeOrder();
-        });
-        return;
-      }
     }
 
     // ===== Oddiy yangilanish: FAQAT har 10 soniyada (qotmaslik uchun) =====
@@ -646,7 +618,10 @@ class HomeCubit extends Cubit<HomeState> {
     emit(state.copyWith(
       clientPickedUp: true,
       status: OrderStatus.inProgress,
-      destinationLocation: state.currentOrder!.destinationLocation,
+      // Boradigan manzil ANIQ EMAS — safar davomida xaritaga yo'l chizig'i
+      // chizilmaydi. Haydovchi borib yetgach "Tugatish" tugmasi bilan o'zi
+      // yakunlaydi. Shu sabab mijozga chizilgan eski chiziqni ham o'chiramiz.
+      routeGeometry: const [],
       // Bazaviy narx + kutish haqi (agar bo'lsa) saqlanadi, masofa 0 dan boshlanadi
       currentPrice: _computePrice(0, state.waitingSeconds),
       traveledDistance: 0,
@@ -655,7 +630,6 @@ class HomeCubit extends Cubit<HomeState> {
     ));
 
     _startTripTimer();
-    _requestRouteToDestination();
     _persistActiveTrip();
   }
 
@@ -781,13 +755,6 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _requestRouteToClient() async {
     final from = state.currentLocation;
     final to = state.currentOrder?.pickupLocation;
-    if (from == null || to == null) return;
-    await _loadRoute(from, to);
-  }
-
-  Future<void> _requestRouteToDestination() async {
-    final from = state.currentLocation;
-    final to = state.destinationLocation;
     if (from == null || to == null) return;
     await _loadRoute(from, to);
   }
@@ -1148,7 +1115,7 @@ class HomeCubit extends Cubit<HomeState> {
       _tripDistanceKm = traveled;
       _startTripTimer();
       if (isWaitingActive) _startWaitingTimer();
-      _requestRouteToDestination();
+      // Manzil aniq emas — safar davomida yo'l chizig'i tiklanmaydi.
     } else if (status == OrderStatus.waitingForClient) {
       _startWaitingTimer();
       _requestRouteToClient();

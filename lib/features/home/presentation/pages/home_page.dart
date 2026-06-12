@@ -47,7 +47,6 @@ class _HomePageState extends State<HomePage> {
   // har yangilanishda qayta chizilsa xarita qotadi. Faqat point o'zgaradi.
   Uint8List? _userMarkerBitmap;
   Uint8List? _clientMarkerBitmap;
-  Uint8List? _destinationMarkerBitmap;
 
   // Connectivity
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
@@ -787,14 +786,10 @@ class _HomePageState extends State<HomePage> {
       await _addClientLocationMarker(state.currentOrder!.pickupLocation);
     }
 
-    // Remove old destination marker
+    // Manzil markeri (finish flag) endi chizilmaydi — boradigan manzil aniq
+    // emas. Haydovchi borib yetgach "Tugatish" tugmasi bilan yakunlaydi.
+    // (Eski marker qolib ketgan bo'lsa, tozalab qo'yamiz.)
     _mapObjects.removeWhere((obj) => obj.mapId.value == 'destination');
-
-    // Add destination marker (finish flag) when in progress
-    if (state.destinationLocation != null &&
-        state.status == OrderStatus.inProgress) {
-      await _addDestinationMarker(state.destinationLocation!);
-    }
 
     // Yangilangan obyektlarni xaritaga e'lon qilamiz — faqat YandexMap
     // o'ralgan ValueListenableBuilder qayta quriladi, butun sahifa emas.
@@ -805,118 +800,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> _prewarmMarkers() async {
     await _userMarkerBytes();
     await _clientMarkerBytes();
-    await _destinationMarkerBytes();
-  }
-
-  Future<void> _addDestinationMarker(Point location) async {
-    final buffer = await _destinationMarkerBytes();
-    _mapObjects.add(
-      PlacemarkMapObject(
-        mapId: const MapObjectId('destination'),
-        point: location,
-        icon: PlacemarkIcon.single(
-          PlacemarkIconStyle(
-            image: BitmapDescriptor.fromBytes(buffer),
-            scale: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Manzil (finish flag) markeri rasmi — bir marta chizilib keshlanadi.
-  Future<Uint8List> _destinationMarkerBytes() async {
-    if (_destinationMarkerBitmap != null) return _destinationMarkerBitmap!;
-    // Create custom finish flag marker with checkered pattern
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    final size = 140.0;
-
-    // Draw shadow
-    final shadowPaint = Paint()
-      ..color = Colors.black26
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-    canvas.drawCircle(
-      Offset(size * 0.5, size * 0.92),
-      size * 0.18,
-      shadowPaint,
-    );
-
-    // Draw flag pole (dark gray)
-    final polePaint = Paint()
-      ..color = Colors.grey[800]!
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size * 0.46, size * 0.15, size * 0.08, size * 0.75),
-        const Radius.circular(4),
-      ),
-      polePaint,
-    );
-
-    // Draw checkered flag (3x4 pattern - black and white)
-    final blackPaint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.fill;
-    final whitePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final flagWidth = size * 0.35;
-    final flagHeight = size * 0.28;
-    final squareW = flagWidth / 4;
-    final squareH = flagHeight / 3;
-
-    // Draw white background first
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size * 0.12, size * 0.15, flagWidth, flagHeight),
-        const Radius.circular(2),
-      ),
-      whitePaint,
-    );
-
-    // Draw checkered pattern
-    for (int row = 0; row < 3; row++) {
-      for (int col = 0; col < 4; col++) {
-        if ((row + col) % 2 == 0) {
-          canvas.drawRect(
-            Rect.fromLTWH(
-              size * 0.12 + col * squareW,
-              size * 0.15 + row * squareH,
-              squareW,
-              squareH,
-            ),
-            blackPaint,
-          );
-        }
-      }
-    }
-
-    // Draw flag border
-    final borderPaint = Paint()
-      ..color = Colors.black87
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size * 0.12, size * 0.15, flagWidth, flagHeight),
-        const Radius.circular(2),
-      ),
-      borderPaint,
-    );
-
-    // Draw pole cap (circle on top)
-    final capPaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size * 0.5, size * 0.12), size * 0.05, capPaint);
-
-    final picture = recorder.endRecording();
-    final img = await picture.toImage(size.toInt(), size.toInt());
-    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    _destinationMarkerBitmap = byteData!.buffer.asUint8List();
-    return _destinationMarkerBitmap!;
   }
 
   Future<void> _addUserLocationMarker(Point location, double heading) async {
