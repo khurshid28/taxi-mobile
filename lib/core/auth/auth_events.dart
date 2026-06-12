@@ -52,9 +52,7 @@ class AuthEvents {
     await StorageHelper.remove('user_fullname');
     await StorageHelper.remove('user_email');
 
-    // Drayver lokal ma'lumotlari (reyting, balans, tarix)
-    await StorageHelper.remove('driver_rating');
-    await StorageHelper.remove('driver_balance');
+    // Drayver lokal ma'lumotlari (safarlar tarixi)
     await StorageHelper.remove('completed_orders');
 
     await StorageHelper.saveBool(AppConstants.keyIsLoggedIn, false);

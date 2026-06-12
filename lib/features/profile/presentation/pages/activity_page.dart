@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/utils/storage_helper.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -17,103 +20,81 @@ class _ActivityPageState extends State<ActivityPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Sample data for last 12 months with proper dates
-  final List<MonthlyActivity> _monthlyData = [
-    MonthlyActivity(
-      month: 'Yanvar, 2025',
-      earnings: 5250000,
-      distance: 645,
-      clients: 158,
-    ),
-    MonthlyActivity(
-      month: 'Fevral, 2025',
-      earnings: 4980000,
-      distance: 578,
-      clients: 145,
-    ),
-    MonthlyActivity(
-      month: 'Mart, 2025',
-      earnings: 6420000,
-      distance: 762,
-      clients: 191,
-    ),
-    MonthlyActivity(
-      month: 'Aprel, 2025',
-      earnings: 5680000,
-      distance: 695,
-      clients: 168,
-    ),
-    MonthlyActivity(
-      month: 'May, 2025',
-      earnings: 7120000,
-      distance: 845,
-      clients: 212,
-    ),
-    MonthlyActivity(
-      month: 'Iyun, 2025',
-      earnings: 6750000,
-      distance: 801,
-      clients: 198,
-    ),
-    MonthlyActivity(
-      month: 'Iyul, 2025',
-      earnings: 7890000,
-      distance: 918,
-      clients: 236,
-    ),
-    MonthlyActivity(
-      month: 'Avgust, 2025',
-      earnings: 7420000,
-      distance: 878,
-      clients: 221,
-    ),
-    MonthlyActivity(
-      month: 'Sentabr, 2025',
-      earnings: 6890000,
-      distance: 812,
-      clients: 205,
-    ),
-    MonthlyActivity(
-      month: 'Oktabr, 2025',
-      earnings: 7250000,
-      distance: 856,
-      clients: 218,
-    ),
-    MonthlyActivity(
-      month: 'Noyabr, 2025',
-      earnings: 6950000,
-      distance: 823,
-      clients: 209,
-    ),
-    MonthlyActivity(
-      month: 'Dekabr, 2025',
-      earnings: 7680000,
-      distance: 892,
-      clients: 228,
-    ),
-  ];
-
-  // Last 7 days data
-  late List<DailyActivity> _dailyData;
+  // Real ma'lumot: qurilmada saqlangan tugatilgan safarlardan
+  // (completed_orders) hisoblanadi. Hech qanday namuna/sun'iy data yo'q.
+  List<MonthlyActivity> _monthlyData = [];
+  List<DailyActivity> _dailyData = [];
+  bool _loading = true;
+  bool _hasTrips = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _generateLast7Days();
+    _loadActivity();
   }
 
-  void _generateLast7Days() {
+  /// Tugatilgan safarlarni (completed_orders) o'qib, kunlik (oxirgi 7 kun)
+  /// va oylik (joriy yil) statistikani hisoblaydi.
+  Future<void> _loadActivity() async {
+    final raw = await StorageHelper.getString('completed_orders') ?? '[]';
+    final trips = <_Trip>[];
+    try {
+      final List<dynamic> list = jsonDecode(raw);
+      for (final e in list) {
+        final date = DateTime.tryParse(e['createdAt']?.toString() ?? '');
+        if (date == null) continue;
+        trips.add(_Trip(
+          date: date,
+          earnings: (e['price'] as num?)?.toDouble() ?? 0,
+          distance: (e['distance'] as num?)?.toDouble() ?? 0,
+        ));
+      }
+    } catch (_) {}
+
+    // Oxirgi 7 kun (safar bo'lmagan kun 0 bilan ko'rinadi).
     final now = DateTime.now();
-    _dailyData = List.generate(7, (index) {
-      final day = now.subtract(Duration(days: 6 - index));
+    final today = DateTime(now.year, now.month, now.day);
+    final daily = List.generate(7, (i) {
+      final day = today.subtract(Duration(days: 6 - i));
+      final dayTrips = trips.where((t) =>
+          t.date.year == day.year &&
+          t.date.month == day.month &&
+          t.date.day == day.day);
       return DailyActivity(
-        day: index == 6 ? 'Bugun' : '${day.day}',
+        day: i == 6 ? 'Bugun' : '${day.day}',
         date: DateFormat('dd MMM').format(day),
-        earnings: (800000 + index * 150000 + (index % 2) * 200000).toDouble(),
-        distance: 85 + index * 12 + (index % 3) * 8,
-        clients: 18 + index * 3 + (index % 2) * 2,
+        earnings: dayTrips.fold<double>(0, (s, t) => s + t.earnings),
+        distance: dayTrips.fold<double>(0, (s, t) => s + t.distance).round(),
+        clients: dayTrips.length,
       );
+    });
+
+    // Joriy yilda safar bo'lgan oylar.
+    const monthNames = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
+    ];
+    final monthly = <MonthlyActivity>[];
+    for (int m = 1; m <= 12; m++) {
+      final monthTrips =
+          trips.where((t) => t.date.year == now.year && t.date.month == m);
+      if (monthTrips.isEmpty) continue;
+      monthly.add(MonthlyActivity(
+        month: '${monthNames[m - 1]}, ${now.year}',
+        earnings: monthTrips.fold<double>(0, (s, t) => s + t.earnings).round(),
+        distance: monthTrips.fold<double>(0, (s, t) => s + t.distance).round(),
+        clients: monthTrips.length,
+      ));
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _dailyData = daily;
+      _monthlyData = monthly;
+      _selectedIndex = monthly.isEmpty ? 0 : monthly.length - 1;
+      _hasTrips = trips.isNotEmpty;
+      _loading = false;
     });
   }
 
@@ -123,11 +104,8 @@ class _ActivityPageState extends State<ActivityPage>
     super.dispose();
   }
 
-  int _selectedIndex = 11; // Current month selected by default
+  int _selectedIndex = 0;
   String? _expandedMonthId;
-  int _selectedYear = 2025;
-
-  final List<int> _availableYears = [2023, 2024, 2025, 2026];
 
   @override
   Widget build(BuildContext context) {
@@ -189,6 +167,13 @@ class _ActivityPageState extends State<ActivityPage>
   }
 
   Widget _buildWeeklyView() {
+    if (_loading) return _buildLoading();
+    if (!_hasTrips) {
+      return _buildEmpty(
+        'Haftalik ma\'lumot yo\'q',
+        'Safar yakunlaganingizda kunlik statistikangiz shu yerda ko\'rinadi',
+      );
+    }
     final totalEarnings = _dailyData.fold<double>(
       0,
       (sum, day) => sum + day.earnings,
@@ -278,6 +263,13 @@ class _ActivityPageState extends State<ActivityPage>
   }
 
   Widget _buildMonthlyView() {
+    if (_loading) return _buildLoading();
+    if (_monthlyData.isEmpty) {
+      return _buildEmpty(
+        'Oylik ma\'lumot yo\'q',
+        'Safar yakunlaganingizda oylik statistikangiz shu yerda ko\'rinadi',
+      );
+    }
     final totalEarnings = _monthlyData.fold<int>(
       0,
       (sum, month) => sum + month.earnings,
@@ -290,7 +282,8 @@ class _ActivityPageState extends State<ActivityPage>
       0,
       (sum, month) => sum + month.clients,
     );
-    final selectedMonth = _monthlyData[_selectedIndex];
+    final selectedMonth =
+        _monthlyData[_selectedIndex.clamp(0, _monthlyData.length - 1)];
 
     return SingleChildScrollView(
       child: Column(
@@ -301,7 +294,6 @@ class _ActivityPageState extends State<ActivityPage>
             title: 'Yillik statistika',
             subtitle:
                 '${(totalEarnings / 1000000).toStringAsFixed(1)} mln so\'m • $totalDistance km • $totalClients safar',
-            trailing: _buildYearDropdown(),
           ),
 
           // Total Summary Cards
@@ -616,56 +608,49 @@ class _ActivityPageState extends State<ActivityPage>
     );
   }
 
-  Widget _buildYearDropdown() {
-    return PopupMenuButton<int>(
-      initialValue: _selectedYear,
-      onSelected: (v) => setState(() => _selectedYear = v),
-      color: AppColors.surface,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14.r),
-      ),
-      itemBuilder: (context) => _availableYears.map((y) {
-        final selected = y == _selectedYear;
-        return PopupMenuItem<int>(
-          value: y,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$y',
-                style: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.textPrimary,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  fontSize: 14.sp,
+  Widget _buildLoading() {
+    return Center(
+      child: CircularProgressIndicator(color: AppColors.primary),
+    );
+  }
+
+  Widget _buildEmpty(String title, String subtitle) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 110.w,
+              height: 110.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Iconsax.chart_21,
+                  size: 52.w,
+                  color: AppColors.primary,
                 ),
               ),
-              if (selected)
-                Icon(Iconsax.tick_circle, color: AppColors.primary, size: 18.sp),
-            ],
-          ),
-        );
-      }).toList(),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.18),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.w),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+            ),
+            SizedBox(height: 20.h),
             Text(
-              '$_selectedYear',
+              title,
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 14.sp,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
-            SizedBox(width: 6.w),
-            Icon(Iconsax.arrow_down_1, color: Colors.white, size: 16.sp),
+            SizedBox(height: 8.h),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -710,30 +695,18 @@ class _ActivityPageState extends State<ActivityPage>
   }
 
   String _shortMonth(int index) {
-    const names = [
-      'Yan',
-      'Fev',
-      'Mar',
-      'Apr',
-      'May',
-      'Iyn',
-      'Iyl',
-      'Avg',
-      'Sen',
-      'Okt',
-      'Noy',
-      'Dek',
-    ];
-    if (index >= 0 && index < names.length) return names[index];
-    return '';
+    if (index < 0 || index >= _monthlyData.length) return '';
+    final full = _monthlyData[index].month.split(',').first.trim();
+    return full.length >= 3 ? full.substring(0, 3) : full;
   }
 
   /// Eng yuqori oylik daromaddan kelib chiqib grafik shkalasini hisoblaydi
   /// (2 mln'gacha yaxlitlab, ustunlar to'g'ri ko'rinishi uchun).
   double get _monthlyMaxY {
+    if (_monthlyData.isEmpty) return 2000000;
     final maxE = _monthlyData
         .map((m) => m.earnings)
-        .reduce((a, b) => a > b ? a : b)
+        .fold<int>(0, (a, b) => a > b ? a : b)
         .toDouble();
     final rounded = ((maxE / 2000000).ceil() * 2000000).toDouble();
     return rounded <= 0 ? 2000000 : rounded;
@@ -742,7 +715,7 @@ class _ActivityPageState extends State<ActivityPage>
   Widget _buildWeeklyChart() {
     final maxEarning = _dailyData
         .map((d) => d.earnings)
-        .reduce((a, b) => a > b ? a : b);
+        .fold<double>(0, (a, b) => a > b ? a : b);
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       padding: EdgeInsets.fromLTRB(12.w, 18.h, 12.w, 14.h),
@@ -909,7 +882,6 @@ class _ActivityPageState extends State<ActivityPage>
 
   Widget _buildModernMonthCard(MonthlyActivity month) {
     final isExpanded = _expandedMonthId == month.month;
-    final completionRate = ((month.clients / 150) * 100).clamp(0, 100).toInt();
 
     return GestureDetector(
       onTap: () {
@@ -1054,54 +1026,6 @@ class _ActivityPageState extends State<ActivityPage>
                       '${month.clients} ta',
                       Iconsax.people,
                       const Color(0xFFFF9800),
-                    ),
-                    SizedBox(height: 12.h),
-                    // Completion Rate
-                    _buildExpandedStat(
-                      'Bajarish foizi',
-                      '$completionRate%',
-                      Iconsax.tick_circle,
-                      const Color(0xFF9C27B0),
-                    ),
-                    SizedBox(height: 12.h),
-                    // Progress bar
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Maqsad: 150 safar',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              '${month.clients}/150',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10.r),
-                          child: LinearProgressIndicator(
-                            value: month.clients / 150,
-                            minHeight: 8.h,
-                            backgroundColor: AppColors.divider,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -1297,4 +1221,13 @@ class DailyActivity {
     required this.distance,
     required this.clients,
   });
+}
+
+/// Tugatilgan safar (completed_orders) yozuvining soddalashtirilgan ko'rinishi.
+class _Trip {
+  final DateTime date;
+  final double earnings;
+  final double distance;
+
+  _Trip({required this.date, required this.earnings, required this.distance});
 }

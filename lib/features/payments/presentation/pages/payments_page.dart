@@ -155,16 +155,7 @@ class _PaymentsPageState extends State<PaymentsPage>
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       background: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primary.withOpacity(0.8),
-                            ],
-                          ),
-                        ),
+                        color: AppColors.primary,
                         child: SafeArea(
                           child: Padding(
                             padding: EdgeInsets.all(24.w),
@@ -394,25 +385,14 @@ class _PaymentsPageState extends State<PaymentsPage>
                   width: 56.w,
                   height: 56.h,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: color.withOpacity(AppColors.isDark ? 0.18 : 0.12),
                     borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.4),
-                        blurRadius: 12.r,
-                        offset: Offset(0, 4.h),
-                      ),
-                    ],
                   ),
                   child: Center(
                     child: Icon(
                       _getPaymentIcon(payment.type),
                       size: 28.w,
-                      color: Colors.white,
+                      color: color,
                     ),
                   ),
                 ),
@@ -458,31 +438,16 @@ class _PaymentsPageState extends State<PaymentsPage>
                     vertical: 8.h,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isNegative
-                          ? [
-                              Colors.red.withOpacity(0.15),
-                              Colors.red.withOpacity(0.05),
-                            ]
-                          : [
-                              Colors.green.withOpacity(0.15),
-                              Colors.green.withOpacity(0.05),
-                            ],
-                    ),
+                    color: (isNegative ? AppColors.error : AppColors.success)
+                        .withOpacity(AppColors.isDark ? 0.16 : 0.10),
                     borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: isNegative
-                          ? Colors.red.withOpacity(0.3)
-                          : Colors.green.withOpacity(0.3),
-                      width: 1.5.w,
-                    ),
                   ),
                   child: Text(
                     '${isNegative ? '' : '+'}${NumberFormatter.formatPrice(payment.amount)}',
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w900,
-                      color: isNegative ? Colors.red[700] : Colors.green[700],
+                      color: isNegative ? AppColors.error : AppColors.success,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -509,16 +474,7 @@ class _PaymentsPageState extends State<PaymentsPage>
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
-                  ],
-                ),
-              ),
+              color: AppColors.primary,
               child: SafeArea(
                 child: Padding(
                   padding: EdgeInsets.all(24.w),
@@ -685,25 +641,14 @@ class _PaymentsPageState extends State<PaymentsPage>
               width: 90.w,
               height: 90.h,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color, color.withOpacity(0.8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: color.withOpacity(AppColors.isDark ? 0.18 : 0.12),
                 borderRadius: BorderRadius.circular(28.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.4),
-                    blurRadius: 25.r,
-                    offset: Offset(0, 10.h),
-                  ),
-                ],
               ),
               child: Center(
                 child: Icon(
                   _getPaymentIcon(payment.type),
                   size: 50.w,
-                  color: Colors.white,
+                  color: color,
                 ),
               ),
             ),
@@ -722,31 +667,16 @@ class _PaymentsPageState extends State<PaymentsPage>
             Container(
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isNegative
-                      ? [
-                          Colors.red.withOpacity(0.15),
-                          Colors.red.withOpacity(0.05),
-                        ]
-                      : [
-                          Colors.green.withOpacity(0.15),
-                          Colors.green.withOpacity(0.05),
-                        ],
-                ),
+                color: (isNegative ? AppColors.error : AppColors.success)
+                    .withOpacity(AppColors.isDark ? 0.16 : 0.10),
                 borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: isNegative
-                      ? Colors.red.withOpacity(0.3)
-                      : Colors.green.withOpacity(0.3),
-                  width: 2.w,
-                ),
               ),
               child: Text(
                 '${isNegative ? '' : '+'}${NumberFormatter.formatPriceWithCurrency(payment.amount)}',
                 style: TextStyle(
                   fontSize: 32.sp,
                   fontWeight: FontWeight.w900,
-                  color: isNegative ? Colors.red[700] : Colors.green[700],
+                  color: isNegative ? AppColors.error : AppColors.success,
                   letterSpacing: -1,
                 ),
               ),
@@ -1113,14 +1043,7 @@ class _PaymentsPageState extends State<PaymentsPage>
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [color, color.withOpacity(0.8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isSelected ? null : AppColors.surface,
+          color: isSelected ? color : AppColors.surface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isSelected ? color : color.withOpacity(0.3),

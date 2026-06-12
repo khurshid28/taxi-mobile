@@ -77,14 +77,14 @@ class _OrdersPageState extends State<OrdersPage>
           id: json['id'],
           clientName: json['clientName'],
           clientPhone: json['clientPhone'],
-          pickupLocation: const Point(
-            latitude: 41.2995,
-            longitude: 69.2401,
-          ), // Default location
-          destinationLocation: const Point(
-            latitude: 41.3111,
-            longitude: 69.2797,
-          ), // Default location
+          pickupLocation: Point(
+            latitude: (json['pickupLat'] as num?)?.toDouble() ?? 0,
+            longitude: (json['pickupLng'] as num?)?.toDouble() ?? 0,
+          ),
+          destinationLocation: Point(
+            latitude: (json['destLat'] as num?)?.toDouble() ?? 0,
+            longitude: (json['destLng'] as num?)?.toDouble() ?? 0,
+          ),
           pickupAddress: json['pickupAddress'],
           destinationAddress: json['destinationAddress'],
           distance: (json['distance'] as num).toDouble(),

@@ -447,10 +447,6 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
 
-    // Reyting
-    final r = await StorageHelper.getInt('driver_rating') ?? 0;
-    await StorageHelper.setInt('driver_rating', (r + 2).clamp(-5, 50));
-
     // Mos tarifni aniqlaymiz (narx hisobi shu asosda). Kerak bo'lsa yuklaymiz.
     if (_orderTypes.isEmpty) await _loadOrderTypes();
     _activeTariff = _resolveTariff(state.currentOrder!);
@@ -482,9 +478,6 @@ class HomeCubit extends Cubit<HomeState> {
         print('⚠️ cancel: $e');
       }
     }
-
-    final r = await StorageHelper.getInt('driver_rating') ?? 0;
-    await StorageHelper.setInt('driver_rating', (r - 5).clamp(-5, 50));
 
     _resetOrderState();
   }
@@ -790,6 +783,10 @@ class HomeCubit extends Cubit<HomeState> {
         'clientPhone': order.clientPhone,
         'pickupAddress': order.pickupAddress,
         'destinationAddress': order.destinationAddress,
+        'pickupLat': order.pickupLocation.latitude,
+        'pickupLng': order.pickupLocation.longitude,
+        'destLat': order.destinationLocation.latitude,
+        'destLng': order.destinationLocation.longitude,
         'distance': order.distance,
         'price': order.price,
         'createdAt': order.createdAt.toIso8601String(),
