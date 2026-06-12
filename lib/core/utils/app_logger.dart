@@ -25,8 +25,11 @@ class AppLogger {
 
   static void _out(String msg) {
     if (!kDebugMode) return;
+    // Har bir qatorni `_reset` bilan boshlaymiz: agar oldingi (uzun, bo'lingan)
+    // log o'z rangini tiklamagan bo'lsa, bu yerda terminal toza holatga qaytadi
+    // va rang keyingi loglarga "yuqmaydi".
     // ignore: avoid_print
-    print(msg);
+    print('$_reset$msg$_reset');
   }
 
   /// Yangi buyurtma — eng ko'zga tashlanadigan (yashil fon + qora matn).

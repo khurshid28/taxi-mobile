@@ -473,11 +473,17 @@ class HomeCubit extends Cubit<HomeState> {
           'driverId=$_driverId)');
     } catch (e) {
       // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
+      // DIQQAT: backend 404 javobida ulkan stack-trace yuboradi. Uni to'liq
+      // bossak, uzun satr logcat'da bo'linib rang keyingi loglarga yuqadi.
+      // Shuning uchun faqat foydali maydonlarni (status + detail) chiqaramiz.
       if (e is DioException) {
-        AppLogger.error('ACCEPT XATO');
-        AppLogger.error('   URL    : ${e.requestOptions.uri}');
-        AppLogger.error('   status : ${e.response?.statusCode}');
-        AppLogger.error('   javob  : ${e.response?.data}');
+        final data = e.response?.data;
+        final detail = data is Map
+            ? (data['detail'] ?? data['title'] ?? data['message'] ?? data)
+            : data;
+        AppLogger.error('ACCEPT XATO — status ${e.response?.statusCode}');
+        AppLogger.error('URL: ${e.requestOptions.uri}');
+        AppLogger.error('Sabab: $detail');
       } else {
         AppLogger.error('ACCEPT XATO: $e');
       }
