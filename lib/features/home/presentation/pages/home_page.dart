@@ -268,7 +268,9 @@ class _HomePageState extends State<HomePage> {
                   state.status == OrderStatus.waitingForClient ||
                   state.status == OrderStatus.goingToClient)
                 Positioned(
-                  top: 0,
+                  // Faqat pastga mahkamlanadi (top YO'Q) — aks holda top:0+bottom:0
+                  // qattiq to'liq balandlik berib, varaqning maxHeight:0.74.sh
+                  // cheklovini bekor qilardi va u butun ekranni qoplab qotardi.
                   bottom: 0,
                   left: 0,
                   right: 0,
