@@ -9,6 +9,12 @@ class AppConstants {
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
 
+  // Mercure obuna tokeni (vaqtincha static — barcha topiclarga subscribe).
+  // Backend ishlaydigan dinamik token qaytara boshlaganda buni olib tashlash
+  // (yoki bo'sh qoldirish) mumkin.
+  static const String mercureStaticToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjdXJlIjp7InN1YnNjcmliZSI6WyIqIl19fQ.nT0drDpZf7pcGi98ESxdU8HDv-ZIDnH7VcBCBGZoKfY';
+
   // Test credentials (UI hozircha telefon+OTP kabi ko'rinadi —
   // backend esa carNumber+password talab qiladi). UI o'zgarmaguncha
   // shu test akkaunti bilan ulanamiz.

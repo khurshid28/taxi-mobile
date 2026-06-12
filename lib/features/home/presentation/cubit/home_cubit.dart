@@ -41,7 +41,6 @@ class HomeCubit extends Cubit<HomeState> {
   int? _driverId;
   int? _companyId;
   List<String> _tariffs = const ['Start'];
-  String? _accessToken;
   String? _mercureToken;
 
   // Tarif narxlari (OrderTypes). Bir marta yuklab, cache qilinadi.
@@ -92,8 +91,6 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _loadDriverSession() async {
     _driverId = await StorageHelper.getInt(AppConstants.keyDriverId);
     _companyId = await StorageHelper.getInt(AppConstants.keyCompanyId);
-    _accessToken =
-        await StorageHelper.getString(AppConstants.keyAccessToken);
     _mercureToken =
         await StorageHelper.getString(AppConstants.keyMercureToken);
 
@@ -201,15 +198,16 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
     final svc = sl<MercureService>();
-    // Mercure uchun maxsus token bo'lsa - shuni, bo'lmasa access token.
-    final mercureJwt =
-        (_mercureToken != null && _mercureToken!.isNotEmpty)
-            ? _mercureToken
-            : _accessToken;
+    // Vaqtincha: barcha topiclarga obuna bo'luvchi static token ishlatamiz
+    // (backend hali ishlaydigan dinamik mercure token bermayapti). Server
+    // token bersa — o'shani, bo'lmasa static tokenni yuboramiz.
+    final mercureJwt = (_mercureToken != null && _mercureToken!.isNotEmpty)
+        ? _mercureToken
+        : AppConstants.mercureStaticToken;
     // ignore: avoid_print
-    print('\ud83d\udce1 Mercure connect \u2192 driverId=$_driverId, '
+    print('\ud83d\udce1 Mercure connect → driverId=$_driverId, '
         'companyId=$_companyId, tariffs=$_tariffs, '
-        'token=${mercureJwt != null ? "bor (${_mercureToken != null ? "mercure" : "access"})" : "yoq"}');
+        'token=${_mercureToken != null && _mercureToken!.isNotEmpty ? "server" : "static"}');
     svc.connect(
       driverId: _driverId!,
       companyId: _companyId!,
