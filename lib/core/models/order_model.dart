@@ -61,7 +61,16 @@ class OrderModel {
     Map<String, dynamic>? asMap(dynamic v) =>
         v is Map<String, dynamic> ? v : null;
 
-    final id = (json['id'] ?? json['orderId'] ?? json['@id'] ?? '').toString();
+    // ID. JSON-LD `@id` to'liq IRI bo'lishi mumkin (`/api/orders/5`) - bunday
+    // holatda oxirgi segment (raqamli id) olinadi. Aks holda accept URL
+    // `orders//api/orders/5/.../accept` ko'rinishida buzilib 404 beradi.
+    String parseId(dynamic raw) {
+      final s = (raw ?? '').toString().trim();
+      if (s.contains('/')) return s.split('/').last;
+      return s;
+    }
+
+    final id = parseId(json['id'] ?? json['orderId'] ?? json['@id']);
 
     // Mijoz (nested `client` obyekti yoki yassi maydonlar)
     final client = asMap(json['client']);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
@@ -445,12 +446,24 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> acceptOrder() async {
     if (state.currentOrder == null || _driverId == null) return;
 
+    // ignore: avoid_print
+    print('🚕 ACCEPT so\'rovi → orders/${state.currentOrder!.id}/'
+        '$_driverId/accept');
     try {
       await sl<OrderService>()
           .accept(orderId: state.currentOrder!.id, driverId: _driverId!);
     } catch (e) {
-      // ignore: avoid_print
-      print('⚠️ accept: $e');
+      // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
+      if (e is DioException) {
+        // ignore: avoid_print
+        print('⚠️ accept XATO\n'
+            '   → URL: ${e.requestOptions.uri}\n'
+            '   → status: ${e.response?.statusCode}\n'
+            '   → javob: ${e.response?.data}');
+      } else {
+        // ignore: avoid_print
+        print('⚠️ accept: $e');
+      }
       // Qabul qilib bo'lmadi (mas. 404 — buyurtma allaqachon olingan yoki
       // mavjud emas). Ekran qotib qolmasligi uchun boshlang'ich holatga
       // qaytamiz va xabar ko'rsatamiz.
