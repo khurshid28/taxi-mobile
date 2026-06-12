@@ -575,6 +575,11 @@ class HomeCubit extends Cubit<HomeState> {
         isWaitingTimerActive: false,
       ));
 
+      // Snapshotni DARHOL saqlaymiz — marshrut yuklash (pastda) osilib qolsa
+      // yoki haydovchi appni shu zahoti yopsa ham buyurtma "Faol" bo'limida
+      // va qayta ochilganda tiklanadigan bo'lib qoladi.
+      _persistActiveTrip();
+
       // Yo'l olish (mijozgacha) — tugagach polyline xaritaga chiziladi.
       await _requestRouteToClient();
       _persistActiveTrip();
@@ -788,8 +793,9 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> _loadRoute(Point from, Point to) async {
     try {
-      final routeData =
-          await MapboxRouteService.getRoute(from, to, mode: 'driving');
+      final routeData = await MapboxRouteService.getRoute(from, to,
+              mode: 'driving')
+          .timeout(const Duration(seconds: 12));
       if (routeData['points'] != null &&
           (routeData['points'] as List).isNotEmpty) {
         emit(state.copyWith(
@@ -803,8 +809,8 @@ class HomeCubit extends Cubit<HomeState> {
     } catch (_) {}
 
     try {
-      final geom =
-          await YandexRouteDrawer.getRoute(from, to, mode: 'driving');
+      final geom = await YandexRouteDrawer.getRoute(from, to, mode: 'driving')
+          .timeout(const Duration(seconds: 12));
       if (geom.isNotEmpty) {
         emit(state.copyWith(routeGeometry: geom, currentRouteIndex: 0));
         return;

@@ -19,12 +19,23 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    ThemeRebuilder(builder: (_) => HomePage()),
-    ThemeRebuilder(builder: (_) => OrdersPage()),
-    ThemeRebuilder(builder: (_) => PaymentsPage()),
-    ThemeRebuilder(builder: (_) => ProfilePage()),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      ThemeRebuilder(builder: (_) => HomePage()),
+      ThemeRebuilder(builder: (_) => OrdersPage(onGoHome: () => _goToTab(0))),
+      ThemeRebuilder(builder: (_) => PaymentsPage()),
+      ThemeRebuilder(builder: (_) => ProfilePage()),
+    ];
+  }
+
+  void _goToTab(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {

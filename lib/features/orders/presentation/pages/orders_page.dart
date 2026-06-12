@@ -15,7 +15,9 @@ import '../../../home/presentation/cubit/home_state.dart';
 import '../../../../core/widgets/error_retry_view.dart';
 
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+  /// Faol buyurtma kartasi bosilganda asosiy (xarita) oynaga o'tish uchun.
+  final VoidCallback? onGoHome;
+  const OrdersPage({super.key, this.onGoHome});
 
   @override
   State<OrdersPage> createState() => _OrdersPageState();
@@ -354,15 +356,17 @@ class _OrdersPageState extends State<OrdersPage>
       timeValue = _formatDuration(state.tripSeconds);
     }
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 14.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5.w),
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Padding(
+    return GestureDetector(
+      onTap: () => widget.onGoHome?.call(),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5.w),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,7 +589,32 @@ class _OrdersPageState extends State<OrdersPage>
                 ),
               ],
             ),
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => widget.onGoHome?.call(),
+                icon: Icon(Iconsax.map_1, size: 18.w),
+                label: Text(
+                  'Xaritada davom etish',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: statusColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+              ),
+            ),
           ],
+        ),
         ),
       ),
     );
