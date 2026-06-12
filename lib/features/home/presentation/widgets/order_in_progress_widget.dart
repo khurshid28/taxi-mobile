@@ -6,13 +6,34 @@ import 'package:slide_to_act/slide_to_act.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
 
+/// Aktiv safar varag'i (Yo'lda / Kutilmoqda / Safar).
+///
+/// MUHIM: bu varaq native YandexMap (platform view) ustida chiziladi.
+/// Android hybrid composition'da xarita ustidagi har bir Flutter kadri qimmat,
+/// shuning uchun:
+///  * `DraggableScrollableSheet` ishlatilmaydi (u butun xaritani qoplaydigan,
+///    har drag'da qayta kompozitsiya qiladigan og'ir overlay edi — qotardi);
+///  * varaq pastga o'rnatilgan, balandligi cheklangan va `RepaintBoundary`
+///    ichida — uning qayta chizilishi xarita qatlamiga tegmaydi;
+///  * uzluksiz (60fps) animatsiya yo'q.
+///
+/// Har bosqichda haydovchiga aniq bitta asosiy amal + doim "Bekor qilish":
+///  * goingToClient    → "Yetib keldim" (GPS kutmasdan qo'lda o'tish)
+///  * waitingForClient → "Qani ketdik" (safarni boshlash)
+///  * inProgress       → "Tugatish" (safarni yakunlash)
 class OrderInProgressWidget extends StatelessWidget {
   final VoidCallback onComplete;
   final VoidCallback onOpenMaps;
   final VoidCallback onCancel;
+
+  /// goingToClient bosqichida "Yetib keldim" bosilganda.
+  final VoidCallback? onArrived;
+
+  /// waitingForClient bosqichida "Qani ketdik" surilganda.
   final VoidCallback? onPickupClient;
   final VoidCallback? onToggleTimeout;
   final VoidCallback? onToggleWaitingTimer;
+
   final double? distanceToClient;
   final String? clientPhone;
   final String? clientName;
@@ -34,6 +55,7 @@ class OrderInProgressWidget extends StatelessWidget {
     required this.onComplete,
     required this.onOpenMaps,
     required this.onCancel,
+    this.onArrived,
     this.onPickupClient,
     this.onToggleTimeout,
     this.onToggleWaitingTimer,
@@ -54,715 +76,564 @@ class OrderInProgressWidget extends StatelessWidget {
     this.routeDistanceKm,
   });
 
+  bool get _isInProgress => !isWaitingForClient && !isGoingToClient;
+
   @override
   Widget build(BuildContext context) {
-    // Debug: print received data
-    debugPrint(
-      'OrderInProgressWidget - clientName: $clientName, clientPhone: $clientPhone',
-    );
-    debugPrint(
-      'OrderInProgressWidget - pickup: $pickupAddress, destination: $destinationAddress',
-    );
+    final Color accent =
+        isWaitingForClient ? AppColors.warning : AppColors.primary;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.2,
-      minChildSize: 0.2,
-      maxChildSize: 0.9,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 20.r,
-                offset: Offset(0, -5.h),
-              ),
-            ],
-          ),
-          child: ListView(
-            controller: scrollController,
-            padding: EdgeInsets.zero,
+    return RepaintBoundary(
+      child: Container(
+        constraints: BoxConstraints(maxHeight: 0.74.sh),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
+          boxShadow: AppColors.floatingShadow,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  margin: EdgeInsets.symmetric(vertical: 10.h),
-                  width: 40.w,
-                  height: 5.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(3.r),
+              // Drag handle (faqat bezak — varaq sudralmaydi)
+              Container(
+                margin: EdgeInsets.only(top: 10.h, bottom: 4.h),
+                width: 44.w,
+                height: 5.h,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(99.r),
+                ),
+              ),
+
+              // Skroll qilinadigan ma'lumot qismi
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _statusPill(accent),
+                      SizedBox(height: 16.h),
+                      if (clientName != null || clientPhone != null) ...[
+                        _clientCard(),
+                        SizedBox(height: 12.h),
+                      ],
+                      if (pickupAddress != null ||
+                          destinationAddress != null) ...[
+                        _addressCard(),
+                        SizedBox(height: 12.h),
+                      ],
+                      _metricsCard(),
+                      if (_isInProgress) ...[
+                        SizedBox(height: 12.h),
+                        _tripTimeRow(),
+                      ],
+                      if (waitingSeconds > 0 &&
+                          (isWaitingForClient || isWaitingTimerActive)) ...[
+                        SizedBox(height: 12.h),
+                        _waitingRow(),
+                      ],
+                      if (routeDurationMinutes != null &&
+                          routeDistanceKm != null) ...[
+                        SizedBox(height: 12.h),
+                        _etaRow(),
+                      ],
+                      SizedBox(height: 14.h),
+                      _callMapsRow(),
+                      if (_isInProgress && onToggleWaitingTimer != null) ...[
+                        SizedBox(height: 10.h),
+                        _waitingToggleButton(),
+                      ],
+                      SizedBox(height: 6.h),
+                    ],
                   ),
                 ),
               ),
 
+              // Pastga mahkamlangan asosiy amal + bekor qilish
               Padding(
-                padding: EdgeInsets.only(
-                  left: 20.w,
-                  right: 20.w,
-                  bottom: 150
-                      .h, // FAB uchun padding - increased to prevent overflow
+                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 8.h),
+                child: _bottomActions(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===================== Bo'limlar =====================
+
+  Widget _statusPill(Color accent) {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 9.h),
+        decoration: BoxDecoration(
+          color: accent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withOpacity(0.25),
+              blurRadius: 12.r,
+              offset: Offset(0, 4.h),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isWaitingForClient ? Iconsax.timer_1 : Iconsax.truck,
+              color: Colors.white,
+              size: 20.w,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              isWaitingForClient
+                  ? 'Mijozni kutmoqdamiz'
+                  : (isGoingToClient ? 'Mijoz oldiga' : 'Yo\'lda'),
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _clientCard() {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.info.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(Iconsax.user, 'Mijoz ma\'lumoti', AppColors.info),
+          SizedBox(height: 10.h),
+          if (clientName != null)
+            _buildInfoRow(
+              icon: Iconsax.user,
+              label: 'Ism',
+              value: clientName!,
+              color: AppColors.info,
+            ),
+          if (clientName != null && clientPhone != null) SizedBox(height: 8.h),
+          if (clientPhone != null)
+            _buildInfoRow(
+              icon: Iconsax.call,
+              label: 'Telefon',
+              value: clientPhone!,
+              color: AppColors.info,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addressCard() {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(Iconsax.location, 'Manzillar', AppColors.primary),
+          SizedBox(height: 10.h),
+          if (pickupAddress != null)
+            _buildInfoRow(
+              icon: Iconsax.gps,
+              label: 'Qayerdan',
+              value: pickupAddress!,
+              color: AppColors.primary,
+            ),
+          if (pickupAddress != null && destinationAddress != null)
+            SizedBox(height: 8.h),
+          if (destinationAddress != null)
+            _buildInfoRow(
+              icon: Iconsax.location,
+              label: 'Qayerga',
+              value: destinationAddress!,
+              color: AppColors.primary,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricsCard() {
+    // Masofa: safar davomida — bosib o'tilgan km; aks holda — yo'l masofasi
+    // (rejalashtirilgan), agar mavjud bo'lsa.
+    final String distanceText = _isInProgress
+        ? '${traveledDistance.toStringAsFixed(1)} km'
+        : (routeDistanceKm != null
+            ? '$routeDistanceKm km'
+            : '${traveledDistance.toStringAsFixed(1)} km');
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildInfoItem(
+            icon: Iconsax.dollar_circle,
+            label: _isInProgress ? 'Narx' : 'Taxminiy narx',
+            value: NumberFormatter.formatPriceWithCurrency(currentPrice),
+            color: AppColors.orderActive,
+          ),
+          Container(width: 1.w, height: 40.h, color: AppColors.divider),
+          _buildInfoItem(
+            icon: Iconsax.routing,
+            label: _isInProgress ? 'Bosib o\'tildi' : 'Masofa',
+            value: distanceText,
+            color: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tripTimeRow() {
+    return _infoBanner(
+      icon: Iconsax.clock,
+      color: AppColors.primary,
+      child: Text(
+        'Safar vaqti: ${_formatTime(tripSeconds)}',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 15.sp,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _waitingRow() {
+    final bool over = waitingSeconds > 120;
+    final Color c = over ? AppColors.warning : AppColors.success;
+    return _infoBanner(
+      icon: Iconsax.timer_1,
+      color: c,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Kutish: ${_formatTime(waitingSeconds)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15.sp,
+              color: c,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            over
+                ? (isTimeoutEnabled
+                    ? 'Hisoblanyapti: 1000 so\'m/daqiqa'
+                    : 'Timeout o\'chirilgan')
+                : '2 daqiqa bepul',
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _etaRow() {
+    return _infoBanner(
+      icon: Iconsax.routing,
+      color: AppColors.info,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Taxminiy vaqt',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            '$routeDurationMinutes daqiqa • $routeDistanceKm km',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: AppColors.info,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _callMapsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _flatButton(
+            icon: Iconsax.call,
+            label: 'Qo\'ng\'iroq',
+            color: AppColors.success,
+            onTap:
+                clientPhone != null ? () => _makePhoneCall(clientPhone!) : null,
+          ),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: _flatButton(
+            icon: Iconsax.map,
+            label: 'Xarita',
+            color: AppColors.primary,
+            onTap: onOpenMaps,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _waitingToggleButton() {
+    final bool active = isWaitingTimerActive;
+    final Color c = active ? AppColors.error : AppColors.warning;
+    return SizedBox(
+      width: double.infinity,
+      height: 52.h,
+      child: Material(
+        color: c.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(14.r),
+        child: InkWell(
+          onTap: onToggleWaitingTimer,
+          borderRadius: BorderRadius.circular(14.r),
+          child: Center(
+            child: Text(
+              active ? 'Kutishni tugatish' : 'Kutishni boshlash',
+              style: TextStyle(
+                color: c,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===================== Pastki amallar =====================
+
+  Widget _bottomActions() {
+    // waitingForClient: "Qani ketdik" surilma + ostida bekor qilish.
+    if (isWaitingForClient && onPickupClient != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SlideAction(
+            height: 58.h,
+            sliderButtonIconSize: 22.r,
+            sliderButtonIconPadding: 14.r,
+            borderRadius: 16.r,
+            innerColor: Colors.white,
+            outerColor: AppColors.primary,
+            sliderRotate: false,
+            animationDuration: const Duration(milliseconds: 300),
+            text: 'Qani ketdik',
+            textStyle: TextStyle(
+              color: Colors.white,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w700,
+            ),
+            sliderButtonIcon: Icon(
+              Iconsax.arrow_right_3,
+              color: AppColors.primary,
+              size: 22.r,
+            ),
+            onSubmit: () {
+              onPickupClient!();
+              return null;
+            },
+          ),
+          SizedBox(height: 10.h),
+          _cancelButton(expanded: true),
+        ],
+      );
+    }
+
+    // goingToClient → "Yetib keldim", inProgress → "Tugatish".
+    final bool isArrive = isGoingToClient;
+    return Row(
+      children: [
+        _cancelButton(),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: _primaryButton(
+            icon: isArrive ? Iconsax.location_tick : Iconsax.flag,
+            label: isArrive ? 'Yetib keldim' : 'Tugatish',
+            onTap: isArrive ? (onArrived ?? () {}) : onComplete,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cancelButton({bool expanded = false}) {
+    final btn = SizedBox(
+      height: 56.h,
+      child: Material(
+        color: AppColors.error.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16.r),
+        child: InkWell(
+          onTap: onCancel,
+          borderRadius: BorderRadius.circular(16.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Iconsax.close_circle, color: AppColors.error, size: 20.w),
+                SizedBox(width: 8.w),
+                Text(
+                  'Bekor qilish',
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Status header
-                    Center(
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isWaitingForClient
-                              ? AppColors.warning
-                              : AppColors.primary,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isWaitingForClient
-                                      ? AppColors.warning
-                                      : AppColors.primary)
-                                  .withOpacity(0.25),
-                              blurRadius: 12.r,
-                              offset: Offset(0, 4.h),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isWaitingForClient
-                                  ? Iconsax.timer_1
-                                  : Iconsax.truck,
-                              color: Colors.white,
-                              size: 20.w,
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              isWaitingForClient ? 'Kutilmoqda' : 'Yo\'lda',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return expanded ? SizedBox(width: double.infinity, child: btn) : btn;
+  }
 
-                    // Client info section
-                    if (clientName != null || clientPhone != null)
-                      Container(
-                        padding: EdgeInsets.all(14.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.info.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Iconsax.user,
-                                  color: AppColors.info,
-                                  size: 20.w,
-                                ),
-                                SizedBox(width: 8.w),
-                                Text(
-                                  'Mijoz ma\'lumoti',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.info,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (clientName != null || clientPhone != null) ...[
-                              SizedBox(height: 10.h),
-                              if (clientName != null)
-                                _buildInfoRow(
-                                  icon: Iconsax.user,
-                                  label: 'Ism',
-                                  value: clientName!,
-                                  color: AppColors.info,
-                                ),
-                              if (clientName != null && clientPhone != null)
-                                SizedBox(height: 8.h),
-                              if (clientPhone != null)
-                                _buildInfoRow(
-                                  icon: Iconsax.call,
-                                  label: 'Telefon',
-                                  value: clientPhone!,
-                                  color: AppColors.info,
-                                ),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                    // Addresses section (purple container)
-                    if (pickupAddress != null ||
-                        destinationAddress != null) ...[
-                      SizedBox(height: 12.h),
-                      Container(
-                        padding: EdgeInsets.all(14.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Iconsax.location,
-                                  color: AppColors.primary,
-                                  size: 20.w,
-                                ),
-                                SizedBox(width: 8.w),
-                                Text(
-                                  'Manzillar',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (pickupAddress != null ||
-                                destinationAddress != null) ...[
-                              SizedBox(height: 10.h),
-                              if (pickupAddress != null)
-                                _buildInfoRow(
-                                  icon: Iconsax.gps,
-                                  label: 'Qayerdan',
-                                  value: pickupAddress!,
-                                  color: AppColors.primary,
-                                ),
-                              if (pickupAddress != null &&
-                                  destinationAddress != null)
-                                SizedBox(height: 8.h),
-                              if (destinationAddress != null)
-                                _buildInfoRow(
-                                  icon: Iconsax.location,
-                                  label: 'Qayerga',
-                                  value: destinationAddress!,
-                                  color: AppColors.primary,
-                                ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    SizedBox(height: 12.h),
-
-                    // Price and distance info
-                    Container(
-                      padding: EdgeInsets.all(16.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildInfoItem(
-                            icon: Iconsax.dollar_circle,
-                            label: 'Narx',
-                            value: NumberFormatter.formatPriceWithCurrency(
-                              currentPrice,
-                            ),
-                            color: AppColors.orderActive,
-                          ),
-                          Container(
-                            width: 1.w,
-                            height: 40.h,
-                            color: AppColors.divider,
-                          ),
-                          _buildInfoItem(
-                            icon: Iconsax.routing,
-                            label: 'Masofa',
-                            value: '${traveledDistance.toStringAsFixed(2)} km',
-                            color: AppColors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Safar vaqti (trip time) - faqat safar davomida ko'rsatiladi
-                    if (!isWaitingForClient && !isGoingToClient) ...[
-                      SizedBox(height: 12.h),
-                      Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.4),
-                            width: 1.w,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Iconsax.clock,
-                              color: AppColors.primary,
-                              size: 24.sp,
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Text(
-                                'Safar vaqti: ${_formatWaitingTime(tripSeconds)}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15.sp,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Kutish vaqti - faqat mijozni kutganda yoki safar ichida
-                    // kutish hisoblagichi qo'lda yoqilgan bo'lsa ko'rsatiladi
-                    if (waitingSeconds > 0 &&
-                        (isWaitingForClient || isWaitingTimerActive)) ...[
-                      SizedBox(height: 12.h),
-                      Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: waitingSeconds > 120
-                              ? Colors.orange.withOpacity(0.1)
-                              : Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: waitingSeconds > 120
-                                ? Colors.orange
-                                : Colors.green,
-                            width: 1.w,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Iconsax.timer_1,
-                              color: waitingSeconds > 120
-                                  ? Colors.orange
-                                  : Colors.green,
-                              size: 24.sp,
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Kutish: ${_formatWaitingTime(waitingSeconds)}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15.sp,
-                                      color: waitingSeconds > 120
-                                          ? Colors.orange[900]
-                                          : Colors.green[900],
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  if (waitingSeconds <= 120)
-                                    Text(
-                                      '2 daqiqa bepul',
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: Colors.green[700],
-                                      ),
-                                    )
-                                  else
-                                    Text(
-                                      isTimeoutEnabled
-                                          ? 'Hisoblanyapti: 1000 so\'m/daqiqa'
-                                          : 'Timeout o\'chirilgan',
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: isTimeoutEnabled
-                                            ? Colors.orange[700]
-                                            : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // "Kutishni boshlash/tugatish" toggle button - show only during inProgress (after "Qani ketdik")
-                    // Don't show during goingToClient or waitingForClient
-                    if (!isWaitingForClient &&
-                        !isGoingToClient &&
-                        onToggleWaitingTimer != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 12.h),
-                        child: Container(
-                          height: 60.h,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isWaitingTimerActive
-                                  ? [
-                                      const Color(0xFFE53935),
-                                      const Color(0xFFC62828),
-                                    ]
-                                  : [
-                                      AppColors.warning,
-                                      const Color(0xFFF57C00),
-                                    ],
-                            ),
-                            borderRadius: BorderRadius.circular(30.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (isWaitingTimerActive
-                                            ? Colors.red
-                                            : Colors.orange)
-                                        .withOpacity(0.3),
-                                blurRadius: 8.r,
-                                offset: Offset(0, 3.h),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: onToggleWaitingTimer,
-                              borderRadius: BorderRadius.circular(30.r),
-                              child: Center(
-                                child: Text(
-                                  isWaitingTimerActive
-                                      ? 'Kutishni tugatish ⏹️'
-                                      : 'Kutishni boshlash ⏱️',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    SizedBox(height: 16.h),
-
-                    // Action buttons - 2x2 Grid
-                    // Row 1: Call + Maps
-                    Row(
-                      children: [
-                        // Call button
-                        Expanded(
-                          child: Container(
-                            height: 52.h,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
-                              ),
-                              borderRadius: BorderRadius.circular(12.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.withOpacity(0.3),
-                                  blurRadius: 8.r,
-                                  offset: Offset(0, 3.h),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: clientPhone != null
-                                    ? () => _makePhoneCall(clientPhone!)
-                                    : null,
-                                borderRadius: BorderRadius.circular(12.r),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Iconsax.call,
-                                      color: Colors.white,
-                                      size: 22.w,
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    Text(
-                                      'Qo\'ng\'iroq',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-
-                        // Maps button
-                        Expanded(
-                          child: Container(
-                            height: 52.h,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.primary.withOpacity(0.8),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(12.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.3),
-                                  blurRadius: 8.r,
-                                  offset: Offset(0, 3.h),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: onOpenMaps,
-                                borderRadius: BorderRadius.circular(12.r),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Iconsax.map,
-                                      color: Colors.white,
-                                      size: 22.w,
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    Text(
-                                      'Xarita',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    // ETA va masofa (Mapbox dan)
-                    if (routeDurationMinutes != null && routeDistanceKm != null)
-                      Container(
-                        margin: EdgeInsets.only(bottom: 12.h),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 12.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Colors.blue.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Iconsax.routing,
-                              color: Colors.blue.shade700,
-                              size: 24.r,
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Taxminiy vaqt',
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    '$routeDurationMinutes daqiqa • $routeDistanceKm km',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      color: Colors.blue.shade900,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // "Qani ketdik" slider - show only when waiting for client
-                    if (isWaitingForClient && onPickupClient != null)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 10.h),
-                        child: SlideAction(
-                          height: 60.h,
-                          sliderButtonIconSize: 22.r,
-                          sliderButtonIconPadding: 14.r,
-                          borderRadius: 30.r,
-                          innerColor: Colors.white,
-                          outerColor: Colors.green,
-                          sliderRotate: false,
-                          animationDuration: const Duration(milliseconds: 300),
-                          text: 'Qani ketdik 🚀',
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
-                          sliderButtonIcon: Icon(
-                            Iconsax.arrow_right_3,
-                            color: Colors.green,
-                            size: 22.r,
-                          ),
-                          onSubmit: () {
-                            onPickupClient!();
-                            return null;
-                          },
-                        ),
-                      ),
-
-                    // Action buttons row
-                    Row(
-                      children: [
-                        // Cancel button - always visible
-                        Expanded(
-                          child: Container(
-                            height: 52.h,
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: Colors.red, width: 2.w),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: onCancel,
-                                borderRadius: BorderRadius.circular(12.r),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Iconsax.close_circle,
-                                      color: Colors.red,
-                                      size: 22.w,
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    Text(
-                                      'Bekor qilish',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Spacing between buttons if complete button exists
-                        if (!isGoingToClient && !isWaitingForClient)
-                          SizedBox(width: 10.w),
-
-                        // Complete button - show only during inProgress (after pickup, not waiting)
-                        if (!isGoingToClient && !isWaitingForClient)
-                          Expanded(
-                            child: Container(
-                              height: 52.h,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4CAF50),
-                                    Color(0xFF388E3C),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.green.withOpacity(0.3),
-                                    blurRadius: 8.r,
-                                    offset: Offset(0, 3.h),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: onComplete,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Iconsax.flag,
-                                        color: Colors.white,
-                                        size: 22.w,
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        'Tugatish',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12.sp,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    SizedBox(height: 16.h),
-                  ],
+  Widget _primaryButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      height: 56.h,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(16.r),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16.r),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 20.w),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  // ===================== Kichik yordamchilar =====================
+
+  Widget _sectionHeader(IconData icon, String title, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20.w),
+        SizedBox(width: 8.w),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoBanner({
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: color.withOpacity(0.4), width: 1.w),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22.w),
+          SizedBox(width: 12.w),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
+  Widget _flatButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback? onTap,
+  }) {
+    final bool enabled = onTap != null;
+    return SizedBox(
+      height: 52.h,
+      child: Material(
+        color: color.withOpacity(enabled ? 0.12 : 0.05),
+        borderRadius: BorderRadius.circular(14.r),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14.r),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  color: enabled ? color : AppColors.textSecondary,
+                  size: 20.w),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  color: enabled ? color : AppColors.textSecondary,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -833,10 +704,10 @@ class OrderInProgressWidget extends StatelessWidget {
     );
   }
 
-  String _formatWaitingTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
@@ -845,11 +716,9 @@ class OrderInProgressWidget extends StatelessWidget {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        // Try with platformDefault mode
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      // Last attempt with system default
       try {
         await launchUrl(uri);
       } catch (e2) {

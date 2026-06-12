@@ -244,6 +244,15 @@ class _HomePageState extends State<HomePage> {
                     routeDistanceKm: state.routeDistanceKm,
                     onComplete: () => _showCompleteDialog(state),
                     onCancel: () => _showCancelSheet(context),
+                    onArrived: () {
+                      context.read<HomeCubit>().arrivedAtClient();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Mijoz oldiga yetib keldingiz 📍'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                     onOpenMaps: () {
                       _openGoogleMaps(state);
                     },
@@ -1043,7 +1052,10 @@ class _HomePageState extends State<HomePage> {
       ),
       builder: (context) => CancelTripSheet(
         onCancel: () {
-          context.read<HomeCubit>().completeOrder();
+          // Bekor qilish = buyurtmani RAD etish (tugatish EMAS). Avval
+          // xatolik bor edi: completeOrder() chaqirilardi va safar yakunlangan
+          // deb hisoblanardi.
+          context.read<HomeCubit>().rejectOrder();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Safar bekor qilindi'),

@@ -528,7 +528,13 @@ class HomeCubit extends Cubit<HomeState> {
     // Yo'l olish
     await _requestRouteToClient();
 
-    emit(state.copyWith(status: OrderStatus.goingToClient));
+    // goingToClient: safar hali boshlanmagan, lekin "Narx" 0 ko'rinmasin —
+    // tarif asosidagi bazaviy (minimal) narxni ko'rsatamiz. Masofa esa
+    // mijozgacha bo'lgan yo'l masofasi (routeDistanceKm) orqali ko'rinadi.
+    emit(state.copyWith(
+      status: OrderStatus.goingToClient,
+      currentPrice: _computePrice(0, 0),
+    ));
     _persistActiveTrip();
   }
 
@@ -546,6 +552,25 @@ class HomeCubit extends Cubit<HomeState> {
     }
 
     _resetOrderState();
+  }
+
+  /// Qo'lda "Yetib keldim". GPS avto-o'tish (mijozdan 50 m) ishlamasa
+  /// (mas. sinovda yoki signal sust bo'lsa), haydovchi shu tugma orqali
+  /// `goingToClient` → `waitingForClient` bosqichiga o'tadi va kutish
+  /// hisoblagichi boshlanadi. Ekran shu tariqa "qotib" qolmaydi.
+  void arrivedAtClient() {
+    if (state.status != OrderStatus.goingToClient) return;
+    emit(state.copyWith(
+      status: OrderStatus.waitingForClient,
+      distanceToClient: 0,
+    ));
+    NotificationService().showNotification(
+      title: '📍 Mijoz oldida',
+      body: 'Mijoz oldiga yetib keldingiz. Kutish boshlandi.',
+      playSound: true,
+    );
+    _startWaitingTimer();
+    _persistActiveTrip();
   }
 
   void markClientPickedUp() {
