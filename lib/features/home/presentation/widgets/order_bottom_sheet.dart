@@ -147,39 +147,79 @@ class _OrderBottomSheetState extends State<OrderBottomSheet> {
           final remaining = value.clamp(0, _totalSeconds);
           final danger = remaining <= 3;
           final accent = danger ? AppColors.error : AppColors.primary;
-          return Column(
+          return Row(
             children: [
-              Row(
-                children: [
-                  Icon(Iconsax.clock, color: accent, size: 18.w),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Yangi buyurtma',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+              // Aylana hisoblagich — raqam markazda. Qiymat soniyada bir marta
+              // o'zgaradi (uzluksiz 60fps emas), shuning uchun native xarita
+              // ustida qotmaydi.
+              SizedBox(
+                width: 54.w,
+                height: 54.w,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 54.w,
+                      height: 54.w,
+                      child: CircularProgressIndicator(
+                        value: remaining / _totalSeconds,
+                        strokeWidth: 4.w,
+                        backgroundColor: AppColors.divider,
+                        valueColor: AlwaysStoppedAnimation<Color>(accent),
+                        strokeCap: StrokeCap.round,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '$remaining s',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w800,
-                      color: accent,
+                    Text(
+                      '$remaining',
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              SizedBox(height: 10.h),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99.r),
-                child: LinearProgressIndicator(
-                  value: remaining / _totalSeconds,
-                  minHeight: 6.h,
-                  backgroundColor: AppColors.divider,
-                  valueColor: AlwaysStoppedAnimation<Color>(accent),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 7.w),
+                        Text(
+                          'Yangi buyurtma',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      danger
+                          ? 'Tezroq qaror qiling!'
+                          : 'Javob berish uchun $remaining soniya',
+                      style: TextStyle(
+                        fontSize: 12.5.sp,
+                        color: danger ? AppColors.error : AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

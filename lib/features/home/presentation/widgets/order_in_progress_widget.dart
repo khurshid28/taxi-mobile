@@ -23,7 +23,6 @@ import '../../../../core/utils/number_formatter.dart';
 ///  * inProgress       → "Tugatish" (safarni yakunlash)
 class OrderInProgressWidget extends StatelessWidget {
   final VoidCallback onComplete;
-  final VoidCallback onOpenMaps;
   final VoidCallback onCancel;
 
   /// goingToClient bosqichida "Yetib keldim" bosilganda.
@@ -53,7 +52,6 @@ class OrderInProgressWidget extends StatelessWidget {
   const OrderInProgressWidget({
     super.key,
     required this.onComplete,
-    required this.onOpenMaps,
     required this.onCancel,
     this.onArrived,
     this.onPickupClient,
@@ -464,44 +462,152 @@ class OrderInProgressWidget extends StatelessWidget {
   }
 
   Widget _tripTimeRow() {
-    return _infoBanner(
-      icon: Iconsax.clock,
-      color: AppColors.primary,
-      child: Text(
-        'Safar vaqti: ${_formatMinutes(tripSeconds)}',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 15.sp,
-          color: AppColors.primary,
-        ),
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: AppColors.primary.withOpacity(0.35), width: 1.w),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(11.r),
+            ),
+            child: Icon(Iconsax.clock, color: AppColors.primary, size: 20.w),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Safar vaqti',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 1.h),
+                Text(
+                  _formatMinutes(tripSeconds),
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                    letterSpacing: -0.3,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _waitingRow() {
-    final bool over = waitingSeconds > 120;
+    const int freeSeconds = 120; // 2 daqiqa bepul
+    final bool over = waitingSeconds > freeSeconds;
     final Color c = over ? AppColors.warning : AppColors.success;
-    return _infoBanner(
-      icon: Iconsax.timer_1,
-      color: c,
+    // Bepul vaqt qancha sarflangani (0..1). over bo'lsa to'lgan ko'rsatkich.
+    final double freeProgress =
+        (waitingSeconds / freeSeconds).clamp(0.0, 1.0).toDouble();
+    final int freeLeft = (freeSeconds - waitingSeconds).clamp(0, freeSeconds);
+
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: c.withOpacity(0.35), width: 1.w),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Kutish: ${_formatTime(waitingSeconds)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15.sp,
-              color: c,
+          Row(
+            children: [
+              Container(
+                width: 38.w,
+                height: 38.w,
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(11.r),
+                ),
+                child: Icon(Iconsax.timer_1, color: c, size: 20.w),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kutish vaqti',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 1.h),
+                    Text(
+                      _formatTime(waitingSeconds),
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.w900,
+                        color: c,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Holat belgisi
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(9.r),
+                ),
+                child: Text(
+                  over
+                      ? (isTimeoutEnabled ? 'Pullik' : 'O\'chiq')
+                      : 'Bepul',
+                  style: TextStyle(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: c,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          // Bepul 2 daqiqa progress (qiymat soniyada bir marta o'zgaradi —
+          // uzluksiz animatsiya emas, native xarita uchun xavfsiz).
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99.r),
+            child: LinearProgressIndicator(
+              value: freeProgress,
+              minHeight: 5.h,
+              backgroundColor: c.withOpacity(0.15),
+              valueColor: AlwaysStoppedAnimation<Color>(c),
             ),
           ),
-          SizedBox(height: 2.h),
+          SizedBox(height: 6.h),
           Text(
             over
                 ? (isTimeoutEnabled
-                    ? 'Hisoblanyapti: 1000 so\'m/daqiqa'
-                    : 'Timeout o\'chirilgan')
-                : '2 daqiqa bepul',
+                    ? 'Bepul vaqt tugadi • 1000 so\'m/daqiqa'
+                    : 'Bepul vaqt tugadi • timeout o\'chirilgan')
+                : 'Bepul tugashiga ${_formatTime(freeLeft)}',
             style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
           ),
         ],
@@ -539,27 +645,14 @@ class OrderInProgressWidget extends StatelessWidget {
   }
 
   Widget _callMapsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _flatButton(
-            icon: Iconsax.call,
-            label: 'Qo\'ng\'iroq',
-            color: AppColors.success,
-            onTap:
-                clientPhone != null ? () => _makePhoneCall(clientPhone!) : null,
-          ),
-        ),
-        SizedBox(width: 10.w),
-        Expanded(
-          child: _flatButton(
-            icon: Iconsax.map,
-            label: 'Xarita',
-            color: AppColors.primary,
-            onTap: onOpenMaps,
-          ),
-        ),
-      ],
+    // Manzil aniq emas (admin/mijoz aniq nuqta bermaydi), shuning uchun
+    // tashqi xarita navigatsiyasi ("Xarita" tugmasi) olib tashlandi —
+    // faqat mijozga qo'ng'iroq qoldi (to'liq kenglikda).
+    return _flatButton(
+      icon: Iconsax.call,
+      label: 'Mijozga qo\'ng\'iroq',
+      color: AppColors.success,
+      onTap: clientPhone != null ? () => _makePhoneCall(clientPhone!) : null,
     );
   }
 

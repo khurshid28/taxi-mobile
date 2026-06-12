@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash launch background — Flutter splash (yashil gradient) bilan mos
+         bo'lishi uchun primary yashil. Oq flesh ko'rinmaydi. -->
+    <color name="splash_background">#4CAF50</color>
+</resources>

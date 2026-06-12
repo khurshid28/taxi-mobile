@@ -3,7 +3,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'dart:typed_data';
@@ -19,7 +18,6 @@ import '../widgets/order_bottom_sheet.dart';
 import '../widgets/order_in_progress_widget.dart';
 import '../widgets/cancel_trip_sheet.dart';
 import '../widgets/trip_complete_dialog.dart';
-import '../widgets/home_shimmer_loading.dart';
 import '../widgets/slide_to_online_button.dart';
 import 'no_internet_page.dart';
 
@@ -33,7 +31,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   YandexMapController? _mapController;
   final List<MapObject> _mapObjects = [];
-  Point? _lastCameraPosition;
   bool _hasMovedToInitialLocation = false;
   Point? _lastMarkerLocation; // Track last GPS marker position
 
@@ -308,9 +305,6 @@ class _HomePageState extends State<HomePage> {
                           duration: Duration(seconds: 2),
                         ),
                       );
-                    },
-                    onOpenMaps: () {
-                      _openGoogleMaps(state);
                     },
                     onToggleTimeout: () {
                       context.read<HomeCubit>().toggleTimeout();
@@ -952,63 +946,6 @@ class _HomePageState extends State<HomePage> {
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
     _clientMarkerBitmap = byteData!.buffer.asUint8List();
     return _clientMarkerBitmap!;
-  }
-
-  Future<void> _openGoogleMaps(HomeState state) async {
-    if (state.currentLocation == null) return;
-
-    String url;
-
-    // If going to client, show route to pickup location
-    if (state.status == OrderStatus.goingToClient &&
-        state.currentOrder?.pickupLocation != null) {
-      url =
-          'https://www.google.com/maps/dir/?api=1'
-          '&origin=${state.currentLocation!.latitude},${state.currentLocation!.longitude}'
-          '&destination=${state.currentOrder!.pickupLocation.latitude},${state.currentOrder!.pickupLocation.longitude}'
-          '&travelmode=driving';
-    }
-    // If in progress, show full route: current -> destination
-    else if (state.destinationLocation != null) {
-      // Build waypoints string for better route visualization
-      String waypoints = '';
-      if (state.currentOrder?.pickupLocation != null) {
-        waypoints =
-            '&waypoints=${state.currentOrder!.pickupLocation.latitude},${state.currentOrder!.pickupLocation.longitude}';
-      }
-
-      url =
-          'https://www.google.com/maps/dir/?api=1'
-          '&origin=${state.currentLocation!.latitude},${state.currentLocation!.longitude}'
-          '&destination=${state.destinationLocation!.latitude},${state.destinationLocation!.longitude}'
-          '$waypoints'
-          '&travelmode=driving';
-    } else {
-      return;
-    }
-
-    final uri = Uri.parse(url);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        // Try with platformDefault mode
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-      }
-    } catch (e) {
-      // Last attempt: try Android intent URL
-      try {
-        final intentUrl = url.replaceFirst('https://', 'geo:0,0?q=');
-        final intentUri = Uri.parse(intentUrl);
-        await launchUrl(intentUri);
-      } catch (e2) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Maps ni ochib bo\'lmadi')),
-          );
-        }
-      }
-    }
   }
 
   void _showCancelSheet(BuildContext context) {
