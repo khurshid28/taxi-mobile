@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -114,6 +115,7 @@ class _CarNumberPageState extends State<CarNumberPage> {
                   controller: _carNumberController,
                   keyboardType: TextInputType.text,
                   textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [UzPlateInputFormatter()],
                   scrollPadding: EdgeInsets.only(bottom: 200.h),
                   style: TextStyle(
                     fontSize: 18.sp,
@@ -123,6 +125,7 @@ class _CarNumberPageState extends State<CarNumberPage> {
                   ),
                   decoration: InputDecoration(
                     labelText: 'Mashina raqami',
+                    hintText: '01 A 777 AA',
                     prefixIcon: Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: 14.w,
@@ -140,11 +143,13 @@ class _CarNumberPageState extends State<CarNumberPage> {
                     ),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    final v = (value ?? '').trim();
+                    if (v.isEmpty) {
                       return 'Mashina raqamini kiriting';
                     }
-                    if (value.trim().length < 4) {
-                      return 'Raqam juda qisqa';
+                    if (!RegExp(r'^\d{2} [A-Z] \d{3} [A-Z]{2}$')
+                        .hasMatch(v)) {
+                      return 'Format: 01 A 777 AA';
                     }
                     return null;
                   },
@@ -182,6 +187,39 @@ class _CarNumberPageState extends State<CarNumberPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// O'zbekiston davlat raqami formatlovchisi: `01 A 777 AA`
+/// (2 raqam, 1 harf, 3 raqam, 2 harf). Yozilayotganda avtomatik
+/// bo'sh joy qo'yadi, harflarni katta qiladi va slot turini tekshiradi.
+class UzPlateInputFormatter extends TextInputFormatter {
+  static const int _maxChars = 8; // bo'shliqsiz belgilar soni
+
+  bool _wantDigit(int slot) => slot < 2 || (slot >= 3 && slot < 6);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final input =
+        newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    final out = StringBuffer();
+    var slot = 0;
+    for (var i = 0; i < input.length && slot < _maxChars; i++) {
+      final ch = input[i];
+      final isDigit = RegExp(r'[0-9]').hasMatch(ch);
+      if (_wantDigit(slot) != isDigit) continue; // noto'g'ri tur - tashlab ketamiz
+      if (slot == 2 || slot == 3 || slot == 6) out.write(' ');
+      out.write(ch);
+      slot++;
+    }
+    final formatted = out.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
