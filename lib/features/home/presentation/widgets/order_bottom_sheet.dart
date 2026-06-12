@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:slide_to_act/slide_to_act.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
 
+/// Yangi buyurtma kelganda chiqadigan pastki varaq.
+/// Toza, gradientsiz, silliq dizayn. Timer animatsiya orqali silliq sanaydi
+/// va vaqt tugasa avtomatik rad qiladi. Qabul qilish — oddiy bitta bosishli
+/// tugma (eski "surib qabul qilish" o'rniga).
 class OrderBottomSheet extends StatefulWidget {
   final OrderModel order;
   final VoidCallback onAccept;
@@ -25,82 +28,59 @@ class OrderBottomSheet extends StatefulWidget {
 
 class _OrderBottomSheetState extends State<OrderBottomSheet>
     with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late AnimationController _timerController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _slideAnimation;
-  late Animation<double> _timerAnimation;
-  int _remainingSeconds = 10;
-  bool _isAutoRejecting = false;
-  bool _isAccepted = false; // Flag to prevent auto-reject after accept
+  static const int _totalSeconds = 15;
+
+  late final AnimationController _entrance;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  late final AnimationController _timer;
+
+  bool _isAccepted = false;
+  bool _isClosing = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _entrance = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
+      duration: const Duration(milliseconds: 420),
+    )..forward();
+    _fade = CurvedAnimation(parent: _entrance, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.18),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic));
 
-    // Timer animation for smooth progress
-    _timerController = AnimationController(
+    // Silliq sanaydigan timer — alohida Timer.periodic kerak emas. UI uni
+    // AnimatedBuilder orqali kuzatadi, vaqt tugasa avtomatik rad qiladi.
+    _timer = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
-    );
-
-    _timerAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _timerController, curve: Curves.linear));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.98,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _slideAnimation = Tween<double>(
-      begin: 30.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _controller.forward();
-    _timerController.forward();
-    _startAutoRejectTimer();
-  }
-
-  void _startAutoRejectTimer() {
-    Future.doWhile(() async {
-      if (_remainingSeconds <= 0 || !mounted || _isAccepted) {
-        if (mounted && !_isAutoRejecting && !_isAccepted) {
-          _isAutoRejecting = true;
-          _autoReject();
-        }
-        return false;
-      }
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted && !_isAccepted) {
-        _remainingSeconds--;
-      }
-      return !_isAccepted;
-    });
+      duration: const Duration(seconds: _totalSeconds),
+    )
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _autoReject();
+      })
+      ..forward();
   }
 
   void _autoReject() {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Buyurtma avtomatik rad qilindi'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    if (!mounted || _isClosing || _isAccepted) return;
+    _isClosing = true;
     widget.onReject();
+  }
+
+  void _accept() {
+    if (_isAccepted) return;
+    setState(() => _isAccepted = true);
+    _timer.stop();
+    widget.onAccept();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    _timerController.dispose();
+    _entrance.dispose();
+    _timer.dispose();
     super.dispose();
   }
 
@@ -113,387 +93,228 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _slideAnimation.value),
-          child: Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1F000000),
-                    blurRadius: 32,
-                    offset: Offset(0, -8),
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
+            boxShadow: AppColors.floatingShadow,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 12.h),
+                // Drag handle
+                Container(
+                  width: 44.w,
+                  height: 5.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(99.r),
                   ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(height: 12.h),
-                  Container(
-                    width: 50.w,
-                    height: 5.h,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.5),
-                          AppColors.primary,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(10.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8.r,
-                          offset: Offset(0, 2.h),
-                        ),
+                ),
+                SizedBox(height: 16.h),
+                _buildTimerBar(),
+                SizedBox(height: 18.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Column(
+                    children: [
+                      _buildClientRow(),
+                      if (widget.order.tariff != null &&
+                          widget.order.tariff!.isNotEmpty) ...[
+                        SizedBox(height: 16.h),
+                        _buildTariffBadge(widget.order.tariff!),
                       ],
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  // Timer display at top
-                  Container(
-                    margin: EdgeInsets.symmetric(horizontal: 24.w),
-                    padding: EdgeInsets.symmetric(
-                      vertical: 12.h,
-                      horizontal: 16.w,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _remainingSeconds <= 3
-                          ? Colors.red.shade50
-                          : Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: _remainingSeconds <= 3
-                            ? Colors.red
-                            : Colors.blue,
-                        width: 2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.timer_1,
-                          color: _remainingSeconds <= 3
-                              ? Colors.red
-                              : Colors.blue,
-                          size: 24.sp,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '$_remainingSeconds soniya',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                            color: _remainingSeconds <= 3
-                                ? Colors.red
-                                : Colors.blue,
+                      SizedBox(height: 20.h),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoCard(
+                              icon: Iconsax.routing,
+                              title: 'Masofa',
+                              value:
+                                  '${widget.order.distance.toStringAsFixed(1)} km',
+                              color: AppColors.info,
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: _buildInfoCard(
+                              icon: Iconsax.wallet_3,
+                              title: 'Narx',
+                              value: NumberFormatter.formatPriceWithCurrency(
+                                widget.order.price,
+                              ),
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildAddressRow(
+                        isStart: true,
+                        label: 'Boshlanish',
+                        address: widget.order.pickupAddress,
+                      ),
+                      SizedBox(height: 10.h),
+                      _buildAddressRow(
+                        isStart: false,
+                        label: 'Tugatish',
+                        address: widget.order.destinationAddress,
+                      ),
+                      SizedBox(height: 22.h),
+                      _buildActions(),
+                      SizedBox(height: 8.h),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimerBar() {
+    return AnimatedBuilder(
+      animation: _timer,
+      builder: (context, _) {
+        final remaining =
+            (_totalSeconds * (1 - _timer.value)).ceil().clamp(0, _totalSeconds);
+        final danger = remaining <= 5;
+        final accent = danger ? AppColors.error : AppColors.primary;
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Iconsax.clock, color: accent, size: 18.w),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Yangi buyurtma',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 16.h),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 64.w,
-                              height: 64.h,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF9C27B0),
-                                    Color(0xFF7B1FA2),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(20.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF9C27B0,
-                                    ).withOpacity(0.4),
-                                    blurRadius: 12.r,
-                                    offset: Offset(0, 6.h),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Iconsax.user,
-                                  size: 36.w,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.order.clientName,
-                                    style: TextStyle(
-                                      fontSize: 22.sp,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: -0.5,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Iconsax.call,
-                                        size: 18.w,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        widget.order.clientPhone,
-                                        style: TextStyle(
-                                          fontSize: 15.sp,
-                                          color: AppColors.textSecondary,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              width: 52.w,
-                              height: 52.h,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4CAF50),
-                                    Color(0xFF388E3C),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF4CAF50,
-                                    ).withOpacity(0.4),
-                                    blurRadius: 12.r,
-                                    offset: Offset(0, 4.h),
-                                  ),
-                                ],
-                              ),
-                              child: IconButton(
-                                onPressed: _callClient,
-                                icon: Icon(
-                                  Iconsax.call,
-                                  color: Colors.white,
-                                  size: 24.w,
-                                ),
-                                padding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (widget.order.tariff != null &&
-                            widget.order.tariff!.isNotEmpty) ...[
-                          SizedBox(height: 16.h),
-                          _buildTariffBadge(widget.order.tariff!),
-                        ],
-                        SizedBox(height: 24.h),
-                        // Distance and Price
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildInfoCard(
-                                icon: Iconsax.location,
-                                title: 'Masofa',
-                                value:
-                                    '${widget.order.distance.toStringAsFixed(1)} km',
-                                color: const Color(0xFF2196F3),
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: _buildInfoCard(
-                                icon: Iconsax.wallet,
-                                title: 'Narx',
-                                value: NumberFormatter.formatPriceWithCurrency(
-                                  widget.order.price,
-                                ),
-                                color: const Color(0xFF4CAF50),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20.h),
-                        // Addresses
-                        _buildAddressRow(
-                          'Boshlanish',
-                          widget.order.pickupAddress,
-                          Colors.green,
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildAddressRow(
-                          'Tugatish',
-                          widget.order.destinationAddress,
-                          Colors.red,
-                        ),
-                        SizedBox(height: 24.h),
-                        // Action Buttons with Sliders
-                        Column(
-                          children: [
-                            // Accept Order Slider - simple and fast
-                            SlideAction(
-                              height: 60.h,
-                              sliderButtonIconSize: 22.r,
-                              sliderButtonIconPadding: 14.r,
-                              borderRadius: 30.r,
-                              innerColor: Colors.white,
-                              outerColor: AppColors.primary,
-                              sliderRotate: false,
-                              animationDuration: const Duration(
-                                milliseconds: 300,
-                              ),
-                              text: 'Qabul qilish',
-                              textStyle: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                              ),
-                              sliderButtonIcon: Icon(
-                                Iconsax.arrow_right_3,
-                                color: AppColors.primary,
-                                size: 22.r,
-                              ),
-                              onSubmit: () {
-                                setState(() {
-                                  _isAccepted = true;
-                                });
-                                _timerController.stop();
-                                widget.onAccept();
-                                return null;
-                              },
-                            ),
-                            SizedBox(height: 12.h),
-                            // Reject Button with Gradient
-                            Container(
-                              height: 60.h,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Colors.red[400]!, Colors.red[600]!],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(30.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.red.withOpacity(0.3),
-                                    blurRadius: 15.r,
-                                    offset: Offset(0, 4.h),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: widget.onReject,
-                                  borderRadius: BorderRadius.circular(30.r),
-                                  splashColor: Colors.white.withOpacity(0.3),
-                                  highlightColor: Colors.white.withOpacity(0.1),
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Iconsax.close_circle,
-                                          color: Colors.white,
-                                          size: 24.w,
-                                        ),
-                                        SizedBox(width: 8.w),
-                                        Text(
-                                          'Rad etish',
-                                          style: TextStyle(
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 24.h),
-                      ],
+                  const Spacer(),
+                  Text(
+                    '$remaining s',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
                     ),
                   ),
                 ],
               ),
-            ),
+              SizedBox(height: 10.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99.r),
+                child: LinearProgressIndicator(
+                  value: 1 - _timer.value,
+                  minHeight: 6.h,
+                  backgroundColor: AppColors.divider,
+                  valueColor: AlwaysStoppedAnimation<Color>(accent),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildTariffBadge(String tariff) {
-    return Center(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.primary,
-              AppColors.primary.withOpacity(0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildClientRow() {
+    return Row(
+      children: [
+        Container(
+          width: 56.w,
+          height: 56.w,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16.r),
           ),
-          borderRadius: BorderRadius.circular(30.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.35),
-              blurRadius: 12.r,
-              offset: Offset(0, 4.h),
+          child: Icon(Iconsax.user, size: 28.w, color: AppColors.primary),
+        ),
+        SizedBox(width: 14.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.order.clientName,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                widget.order.clientPhone.isEmpty
+                    ? 'Telefon raqami yo\'q'
+                    : widget.order.clientPhone,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (widget.order.clientPhone.isNotEmpty)
+          GestureDetector(
+            onTap: _callClient,
+            child: Container(
+              width: 48.w,
+              height: 48.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              child: Icon(Iconsax.call, color: Colors.white, size: 22.w),
             ),
-          ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTariffBadge(String tariff) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(10.r),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.car, color: Colors.white, size: 18.w),
-            SizedBox(width: 8.w),
+            Icon(Iconsax.car, color: AppColors.primary, size: 16.w),
+            SizedBox(width: 6.w),
             Text(
               tariff.toUpperCase(),
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.8,
+                color: AppColors.primary,
+                letterSpacing: 0.5,
               ),
             ),
           ],
@@ -509,67 +330,38 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     required Color color,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.12), color.withOpacity(0.04)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: color.withOpacity(0.25), width: 2.w),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 15.r,
-            offset: Offset(0, 6.h),
-          ),
-        ],
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppColors.divider),
       ),
       child: Column(
         children: [
           Container(
-            width: 50.w,
-            height: 50.h,
+            width: 42.w,
+            height: 42.w,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color, color.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.4),
-                  blurRadius: 12.r,
-                  offset: Offset(0, 4.h),
-                ),
-              ],
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Center(
-              child: Icon(
-                icon,
-                size: 28.w,
-                color: Colors.white,
-              ),
-            ),
+            child: Icon(icon, size: 22.w, color: color),
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 10.h),
           Text(
             title,
             style: TextStyle(
               fontSize: 12.sp,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
             ),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 4.h),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w900,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
               letterSpacing: -0.3,
             ),
@@ -582,50 +374,35 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     );
   }
 
-  Widget _buildAddressRow(String label, String address, Color color) {
+  Widget _buildAddressRow({
+    required bool isStart,
+    required String label,
+    required String address,
+  }) {
+    final color = isStart ? AppColors.success : AppColors.error;
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: color.withOpacity(0.2), width: 2.w),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 12.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: AppColors.divider),
       ),
       child: Row(
         children: [
           Container(
-            width: 40.w,
-            height: 40.h,
+            width: 38.w,
+            height: 38.w,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color, color.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 8.r,
-                  offset: Offset(0, 3.h),
-                ),
-              ],
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(11.r),
             ),
             child: Icon(
-              label == 'Boshlanish'
-                  ? Iconsax.location
-                  : Iconsax.flag,
-              color: Colors.white,
-              size: 20.w,
+              isStart ? Iconsax.location : Iconsax.flag,
+              color: color,
+              size: 19.w,
             ),
           ),
-          SizedBox(width: 14.w),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,18 +413,17 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                     fontSize: 11.sp,
                     color: color,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                    textBaseline: TextBaseline.alphabetic,
+                    letterSpacing: 0.3,
                   ),
                 ),
-                SizedBox(height: 5.h),
+                SizedBox(height: 3.h),
                 Text(
-                  address,
+                  address.isEmpty ? 'Manzil aniqlanmagan' : address,
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
-                    height: 1.3,
+                    height: 1.25,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -657,6 +433,86 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActions() {
+    return Row(
+      children: [
+        // Rad etish — ixcham, faqat ikonka
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: _isClosing ? null : widget.onReject,
+            child: Container(
+              height: 56.h,
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              child: Center(
+                child: Icon(
+                  Iconsax.close_circle,
+                  color: AppColors.error,
+                  size: 26.w,
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        // Qabul qilish — oddiy bitta bosishli katta tugma
+        Expanded(
+          flex: 5,
+          child: GestureDetector(
+            onTap: _isAccepted ? null : _accept,
+            child: Container(
+              height: 56.h,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 16.r,
+                    offset: Offset(0, 6.h),
+                    spreadRadius: -2.w,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: _isAccepted
+                    ? SizedBox(
+                        width: 22.w,
+                        height: 22.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Iconsax.tick_circle,
+                              color: Colors.white, size: 22.w),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Qabul qilish',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
