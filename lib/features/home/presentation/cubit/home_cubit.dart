@@ -919,6 +919,12 @@ class HomeCubit extends Cubit<HomeState> {
     emit(state.copyWith(isTimeoutEnabled: !state.isTimeoutEnabled));
   }
 
+  /// Xato xabarini tozalaydi (UI ko'rsatgandan keyin) — shunda u keyingi
+  /// state emit'larida (mas. har 10s lokatsiya yangilanishi) qayta chiqmaydi.
+  void clearError() {
+    if (state.error != null) emit(state.copyWith(clearError: true));
+  }
+
   // ============== Helpers ==============
 
   /// Narx hisobi tarif (OrderTypes) asosida:

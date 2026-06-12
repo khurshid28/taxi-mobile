@@ -142,6 +142,10 @@ class _HomePageState extends State<HomePage> {
         listener: (context, state) {
           if (state.error != null) {
             AppMessenger.error(context, state.error!);
+            // Xatoni DARHOL tozalaymiz — aks holda har lokatsiya yangilanishida
+            // (har ~10s) listener qayta ishlab, toast qayta-qayta chiqib
+            // (yo'qolmay) xarita ustida qotardi. Bir marta ko'rsatib, tozalaymiz.
+            context.read<HomeCubit>().clearError();
           }
 
           // Move to initial location automatically when first determined
