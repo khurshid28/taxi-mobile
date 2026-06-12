@@ -1,3 +1,4 @@
+import '../../../../core/models/order_model.dart';
 import '../../../../core/models/order_type_model.dart';
 import '../../../../core/network/dio_client.dart';
 
@@ -21,6 +22,16 @@ class OrderService {
           .toList();
     }
     return const [];
+  }
+
+  /// `GET /api/orders/{id}` — bitta buyurtmaning to'liq ma'lumoti.
+  ///
+  /// Mercure faqat "yangi buyurtma keldi" degan xabarni (orderId + tariff)
+  /// yetkazadi. Mijoz tel raqami, aniq manzillar va narx kabi to'liq ma'lumot
+  /// shu endpoint orqali alohida tortib olinadi.
+  Future<OrderModel> getOrder(String orderId) async {
+    final res = await _client.get('orders/$orderId');
+    return OrderModel.fromJson(_asMap(res.data));
   }
 
   /// `POST /api/orders/{id}/{driverId}/accept`

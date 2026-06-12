@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mercure_client/mercure_client.dart' as mc;
 
 import '../constants/app_constants.dart';
@@ -28,6 +29,9 @@ class MercureEvent {
 
 enum MercureEventType { newOrder, accepted, canceled, unknown }
 
+/// Real-time ulanish holati (UI banner uchun).
+enum MercureStatus { connecting, connected, disconnected }
+
 class MercureService {
   MercureService._internal();
   static final MercureService _instance = MercureService._internal();
@@ -42,6 +46,11 @@ class MercureService {
   Stream<MercureEvent> get events => _eventsCtrl.stream;
 
   bool isConnected = false;
+
+  /// UI shu holatni kuzatib, ulanish uzilsa banner ko'rsatadi.
+  final ValueNotifier<MercureStatus> status =
+      ValueNotifier<MercureStatus>(MercureStatus.disconnected);
+
   List<String> _activeTariffs = const [];
 
   // Qayta ulanish uchun saqlanadigan parametrlar.
@@ -50,6 +59,7 @@ class MercureService {
   String? _jwtToken;
   bool _shouldConnect = false;
   Timer? _reconnectTimer;
+  Timer? _connectedProbe;
   int _retryAttempt = 0;
 
   /// Hub'ga ulanish. Haydovchi online bo'lganda chaqiriladi. Shundan keyin
@@ -74,10 +84,13 @@ class MercureService {
   void _open() {
     _subscription?.cancel();
     _reconnectTimer?.cancel();
+    _connectedProbe?.cancel();
 
     final driverId = _driverId;
     final companyId = _companyId;
     if (driverId == null || companyId == null) return;
+
+    status.value = MercureStatus.connecting;
 
     final topics = <String>[
       'driver/$driverId/orders',
@@ -97,6 +110,8 @@ class MercureService {
         (event) {
           isConnected = true;
           _retryAttempt = 0; // muvaffaqiyatli ulandik — hisobni nolga
+          _connectedProbe?.cancel();
+          status.value = MercureStatus.connected;
           _processMessage(event.data, event.id);
         },
         onError: (error) {
@@ -110,6 +125,13 @@ class MercureService {
           _scheduleReconnect();
         },
       );
+      // Xato tez keladi; agar ~1.2s ichida xato bo'lmasa — ulandik deb hisoblaymiz
+      // (Mercure bo'sh paytda hech qanday event yubormasligi mumkin).
+      _connectedProbe = Timer(const Duration(milliseconds: 1200), () {
+        if (_shouldConnect && status.value == MercureStatus.connecting) {
+          status.value = MercureStatus.connected;
+        }
+      });
       // ignore: avoid_print
       print('🟢 Mercure subscribed: $topics');
     } catch (e) {
@@ -122,7 +144,9 @@ class MercureService {
   /// Ulanish uzilsa va biz hali online bo'lsak — qayta ulanamiz.
   /// Kechikish bosqichma-bosqich oshadi (3s, 6s, 9s ... maks 30s).
   void _scheduleReconnect() {
+    _connectedProbe?.cancel();
     if (!_shouldConnect) return; // ataylab offline bo'ldik — ulanmaymiz
+    status.value = MercureStatus.disconnected;
     _reconnectTimer?.cancel();
     _retryAttempt++;
     final delaySec = (3 * _retryAttempt).clamp(3, 30);
@@ -205,10 +229,13 @@ class MercureService {
     _shouldConnect = false;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+    _connectedProbe?.cancel();
+    _connectedProbe = null;
     _subscription?.cancel();
     _subscription = null;
     _mercure = null;
     isConnected = false;
+    status.value = MercureStatus.disconnected;
   }
 
   Future<void> dispose() async {

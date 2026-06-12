@@ -10,6 +10,8 @@ import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_messenger.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/network/mercure_service.dart';
+import '../../../../injection_container.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
@@ -38,6 +40,13 @@ class _HomePageState extends State<HomePage> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _hasInternet = true;
 
+  // Mercure real-time ulanish holati (banner uchun).
+  MercureStatus _mercureStatus = MercureStatus.disconnected;
+  VoidCallback? _mercureStatusListener;
+  bool _hadDisconnect = false; // online paytida aloqa uzilganmi
+  bool _showReconnected = false; // "Aloqa tiklandi" ni qisqa ko'rsatish
+  Timer? _reconnectedTimer;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +69,29 @@ class _HomePageState extends State<HomePage> {
             results.isNotEmpty && !results.contains(ConnectivityResult.none);
       });
     });
+
+    // Mercure ulanish holatini kuzatamiz: uzilsa banner, tiklansa qisqa tasdiq.
+    final svc = sl<MercureService>();
+    _mercureStatus = svc.status.value;
+    _mercureStatusListener = () {
+      if (!mounted) return;
+      final s = svc.status.value;
+      final online = context.read<HomeCubit>().state.isOnline;
+      if (!online) {
+        _hadDisconnect = false;
+      } else if (s == MercureStatus.disconnected) {
+        _hadDisconnect = true;
+      } else if (s == MercureStatus.connected && _hadDisconnect) {
+        _hadDisconnect = false;
+        _showReconnected = true;
+        _reconnectedTimer?.cancel();
+        _reconnectedTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted) setState(() => _showReconnected = false);
+        });
+      }
+      setState(() => _mercureStatus = s);
+    };
+    svc.status.addListener(_mercureStatusListener!);
   }
 
   @override
@@ -97,6 +129,16 @@ class _HomePageState extends State<HomePage> {
           _updateMapObjects(state);
         },
         builder: (context, state) {
+          // Mercure banner: online bo'lib, ulanish hali tiklanmagan bo'lsa
+          // (yoki endigina tiklangan bo'lsa) tepada ko'rsatamiz.
+          final showReconnecting =
+              state.isOnline && _mercureStatus != MercureStatus.connected;
+          final showReconnected = state.isOnline &&
+              _showReconnected &&
+              _mercureStatus == MercureStatus.connected;
+          final bannerVisible = showReconnecting || showReconnected;
+          final topInset = MediaQuery.of(context).padding.top + 10.h;
+
           return Stack(
             children: [
               // Yandex Map
@@ -135,8 +177,10 @@ class _HomePageState extends State<HomePage> {
 
               // Online (Liniya) status card — single clean header with Chiqish
               if (state.isOnline && state.status == OrderStatus.initial)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10.h,
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  top: topInset + (bannerVisible ? 56.h : 0),
                   left: 16.w,
                   right: 16.w,
                   child: _buildOnlineIdleCard(context),
@@ -291,9 +335,86 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+
+              // Mercure ulanish banneri (eng ustda chiziladi)
+              if (state.status == OrderStatus.initial ||
+                  state.status == OrderStatus.orderReceived)
+                Positioned(
+                  top: topInset,
+                  left: 16.w,
+                  right: 16.w,
+                  child: IgnorePointer(
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutCubic,
+                      offset: bannerVisible ? Offset.zero : Offset(0, -1.6),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 280),
+                        opacity: bannerVisible ? 1 : 0,
+                        child: _buildMercureBanner(reconnecting: showReconnecting),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Mercure real-time ulanish banneri. Aloqa uzilganda (yoki qayta ulanayotganda)
+  /// to'q sariq, endigina tiklanganda yashil ko'rinadi. Avtomatik qayta ulanish
+  /// MercureService ichida bo'ladi — bu faqat haydovchiga holatni bildiradi.
+  Widget _buildMercureBanner({required bool reconnecting}) {
+    final color = reconnecting ? AppColors.warning : AppColors.success;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.35),
+            blurRadius: 16.r,
+            offset: Offset(0, 6.h),
+            spreadRadius: -2.w,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: reconnecting
+                ? CircularProgressIndicator(
+                    strokeWidth: 2.4.w,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.white),
+                  )
+                : Icon(Iconsax.tick_circle, color: Colors.white, size: 20.w),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              reconnecting
+                  ? 'Aloqa uzildi — qayta ulanmoqda…'
+                  : 'Aloqa tiklandi',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+          Icon(
+            reconnecting ? Iconsax.wifi : Iconsax.wifi_square,
+            color: Colors.white.withOpacity(0.9),
+            size: 18.w,
+          ),
+        ],
       ),
     );
   }
@@ -953,6 +1074,10 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _reconnectedTimer?.cancel();
+    if (_mercureStatusListener != null) {
+      sl<MercureService>().status.removeListener(_mercureStatusListener!);
+    }
     super.dispose();
   }
 }

@@ -445,9 +445,20 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
 
+    // Buyurtma qabul qilindi — to'liq ma'lumotni (mijoz tel, aniq manzillar,
+    // narx) REST orqali alohida tortib olamiz. Mercure faqat xabar bergan edi.
+    var acceptedOrder = state.currentOrder!;
+    try {
+      acceptedOrder = await sl<OrderService>().getOrder(acceptedOrder.id);
+      emit(state.copyWith(currentOrder: acceptedOrder));
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ getOrder (accept keyin): $e');
+    }
+
     // Mos tarifni aniqlaymiz (narx hisobi shu asosda). Kerak bo'lsa yuklaymiz.
     if (_orderTypes.isEmpty) await _loadOrderTypes();
-    _activeTariff = _resolveTariff(state.currentOrder!);
+    _activeTariff = _resolveTariff(acceptedOrder);
 
     emit(state.copyWith(
       status: OrderStatus.orderAccepted,
