@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/storage_helper.dart';
@@ -49,6 +50,11 @@ class _SplashPageState extends State<SplashPage>
 
     if (!mounted) return;
 
+    // Splash ochilgandan keyin location ruxsatini so'rab olamiz.
+    await _requestLocationPermission();
+
+    if (!mounted) return;
+
     // Check if onboarding was shown
     final onboardingShown =
         await StorageHelper.getBool(AppConstants.keyOnboardingShown) ?? false;
@@ -68,6 +74,19 @@ class _SplashPageState extends State<SplashPage>
       context.go('/home');
     } else {
       context.go('/phone');
+    }
+  }
+
+  /// Splash'dan keyin location ruxsatini so'raydi. Rad etilsa ham
+  /// navigatsiyani to'xtatmaymiz — home keyinroq qayta tekshiradi.
+  Future<void> _requestLocationPermission() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+    } catch (_) {
+      // Ruxsat oqibatlari home_cubit ichida qayta boshqariladi.
     }
   }
 
