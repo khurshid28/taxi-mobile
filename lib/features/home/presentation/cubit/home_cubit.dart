@@ -279,10 +279,8 @@ class HomeCubit extends Cubit<HomeState> {
             state.status == OrderStatus.orderReceived) {
           AppLogger.info('Buyurtma #${event.orderId} bekor/qabul qilindi — '
               'ekran tozalandi');
-          emit(state.copyWith(
-            status: OrderStatus.initial,
-            currentOrder: null,
-          ));
+          // Toza reset (copyWith null bilan currentOrder tozalanmaydi).
+          _resetOrderState();
         }
         break;
       case MercureEventType.unknown:
@@ -695,22 +693,18 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void _resetOrderState() {
-    emit(state.copyWith(
+    // MUHIM: HomeState.copyWith `?? this` ishlatadi — null uzatish nullable
+    // maydonni TOZALAMAYDI (eski qiymat qoladi). Shu sabab avval buyurtma
+    // tugagach currentOrder / routeGeometry / destinationLocation / tripStartTime
+    // eskича qolib ketardi va xaritada eski marshrut chizig'i "qotib" turardi.
+    // Buni oldini olish uchun butunlay TOZA yangi HomeState quramiz — faqat
+    // joylashuv, yo'nalish, online holati va timeout sozlamasi saqlanadi.
+    emit(HomeState(
       status: OrderStatus.initial,
-      currentOrder: null,
-      destinationLocation: null,
-      routePoints: const [],
-      routeGeometry: null,
-      currentRouteIndex: 0,
-      distanceToClient: null,
-      clientPickedUp: false,
-      waitingSeconds: 0,
-      currentPrice: 0,
-      traveledDistance: 0,
-      tripSeconds: 0,
-      isWaitingTimerActive: false,
-      routeDurationMinutes: null,
-      routeDistanceKm: null,
+      currentLocation: state.currentLocation,
+      heading: state.heading,
+      isOnline: state.isOnline,
+      isTimeoutEnabled: state.isTimeoutEnabled,
     ));
     _activeTariff = null;
     _tripDistanceKm = 0;
