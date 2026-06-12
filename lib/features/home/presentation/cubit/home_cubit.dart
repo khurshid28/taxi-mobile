@@ -39,6 +39,16 @@ class HomeCubit extends Cubit<HomeState> {
   Timer? _locationPushTimer;
   Timer? _tripTimer;
 
+  // ===== Yangilanish tezligi (qotmaslik uchun) =====
+  // GPS signali har ~5 metrda keladi (yurganda sekundiga bir necha marta).
+  // Har signalda EKRANGA emit qilsak, native xarita ustida qayta chizilib
+  // app QOTADI. Shuning uchun masofani har signalda aniq yig'amiz, lekin
+  // xaritaga/narxga FAQAT har 10 soniyada bir marta uzatamiz.
+  static const int _updateIntervalSec = 10;
+  Point? _lastDistancePoint; // masofa segmentini hisoblash uchun oxirgi nuqta
+  double _tripDistanceKm = 0; // safar davomida yig'ilgan aniq masofa (km)
+  DateTime? _lastMapEmit; // oxirgi emit vaqti (10s throttle)
+
   // Backend session
   int? _driverId;
   int? _companyId;
@@ -353,26 +363,25 @@ class HomeCubit extends Cubit<HomeState> {
     final newLocation =
         Point(latitude: position.latitude, longitude: position.longitude);
 
-    final prev = state.currentLocation;
-    final heading = (prev != null)
-        ? _calculateHeading(prev, newLocation)
+    // Yo'nalish (marker burilishi) — oldingi GPS nuqtasidan.
+    final heading = (_lastDistancePoint != null)
+        ? _calculateHeading(_lastDistancePoint!, newLocation)
         : (position.heading.isFinite ? position.heading : state.heading);
 
-    // Real masofa qo'shilishi (faqat safar davomida)
-    double traveled = state.traveledDistance;
-    if (state.status == OrderStatus.inProgress && prev != null) {
+    // Masofani HAR signalda aniq yig'amiz (arzon hisob). Ekranga (emit) esa
+    // pastda — faqat har 10 soniyada bir marta uzatamiz.
+    if (state.status == OrderStatus.inProgress && _lastDistancePoint != null) {
       final segMeters = Geolocator.distanceBetween(
-        prev.latitude,
-        prev.longitude,
+        _lastDistancePoint!.latitude,
+        _lastDistancePoint!.longitude,
         newLocation.latitude,
         newLocation.longitude,
       );
-      traveled += segMeters / 1000.0;
+      _tripDistanceKm += segMeters / 1000.0;
     }
+    _lastDistancePoint = newLocation;
 
-    // Mijoz oldiga / manzilga avto-kelish (real GPS)
-    double? distanceToClient = state.distanceToClient;
-
+    // ===== Avto-o'tishlar: chegarani kesib o'tish (kam uchraydi -> darhol) =====
     if (state.status == OrderStatus.goingToClient &&
         state.currentOrder?.pickupLocation != null) {
       final dMeters = Geolocator.distanceBetween(
@@ -381,9 +390,8 @@ class HomeCubit extends Cubit<HomeState> {
         state.currentOrder!.pickupLocation.latitude,
         state.currentOrder!.pickupLocation.longitude,
       );
-      distanceToClient = dMeters;
-
       if (dMeters <= 50) {
+        _lastMapEmit = DateTime.now();
         emit(state.copyWith(
           currentLocation: newLocation,
           heading: heading,
@@ -395,7 +403,6 @@ class HomeCubit extends Cubit<HomeState> {
           body: 'Siz mijoz oldiga yetib keldingiz. Kutish boshlandi.',
           playSound: true,
         );
-
         _startWaitingTimer();
         _persistActiveTrip();
         return;
@@ -409,11 +416,12 @@ class HomeCubit extends Cubit<HomeState> {
         state.destinationLocation!.longitude,
       );
       if (dMeters <= 50) {
+        _lastMapEmit = DateTime.now();
         emit(state.copyWith(
           currentLocation: newLocation,
           heading: heading,
-          traveledDistance: traveled,
-          currentPrice: _computePrice(traveled, state.waitingSeconds),
+          traveledDistance: _tripDistanceKm,
+          currentPrice: _computePrice(_tripDistanceKm, state.waitingSeconds),
           status: OrderStatus.completed,
         ));
         NotificationService().showNotification(
@@ -429,12 +437,33 @@ class HomeCubit extends Cubit<HomeState> {
       }
     }
 
+    // ===== Oddiy yangilanish: FAQAT har 10 soniyada (qotmaslik uchun) =====
+    final now = DateTime.now();
+    if (_lastMapEmit != null &&
+        now.difference(_lastMapEmit!).inSeconds < _updateIntervalSec) {
+      return; // 10 soniya o'tmagan — hozircha emit yo'q
+    }
+    _lastMapEmit = now;
+
+    double? distanceToClient = state.distanceToClient;
+    if (state.status == OrderStatus.goingToClient &&
+        state.currentOrder?.pickupLocation != null) {
+      distanceToClient = Geolocator.distanceBetween(
+        newLocation.latitude,
+        newLocation.longitude,
+        state.currentOrder!.pickupLocation.latitude,
+        state.currentOrder!.pickupLocation.longitude,
+      );
+    }
+
     emit(state.copyWith(
       currentLocation: newLocation,
       heading: heading,
-      traveledDistance: traveled,
+      traveledDistance: state.status == OrderStatus.inProgress
+          ? _tripDistanceKm
+          : state.traveledDistance,
       currentPrice: state.status == OrderStatus.inProgress
-          ? _computePrice(traveled, state.waitingSeconds)
+          ? _computePrice(_tripDistanceKm, state.waitingSeconds)
           : state.currentPrice,
       distanceToClient: distanceToClient,
     ));
@@ -531,6 +560,8 @@ class HomeCubit extends Cubit<HomeState> {
     // goingToClient: safar hali boshlanmagan, lekin "Narx" 0 ko'rinmasin —
     // tarif asosidagi bazaviy (minimal) narxni ko'rsatamiz. Masofa esa
     // mijozgacha bo'lgan yo'l masofasi (routeDistanceKm) orqali ko'rinadi.
+    _lastMapEmit = null; // marker/masofa darhol yangilansin (10s kutmasin)
+    _lastDistancePoint = state.currentLocation;
     emit(state.copyWith(
       status: OrderStatus.goingToClient,
       currentPrice: _computePrice(0, 0),
@@ -560,6 +591,7 @@ class HomeCubit extends Cubit<HomeState> {
   /// hisoblagichi boshlanadi. Ekran shu tariqa "qotib" qolmaydi.
   void arrivedAtClient() {
     if (state.status != OrderStatus.goingToClient) return;
+    _lastMapEmit = null; // keyingi yangilanish darhol ko'rinsin
     emit(state.copyWith(
       status: OrderStatus.waitingForClient,
       distanceToClient: 0,
@@ -594,6 +626,11 @@ class HomeCubit extends Cubit<HomeState> {
       body: 'Mijoz olindi. Manzilga yo\'l oldik.',
       playSound: true,
     );
+
+    // Safar masofasini shu nuqtadan (mijoz olingan joydan) yangidan sanaymiz.
+    _tripDistanceKm = 0;
+    _lastDistancePoint = state.currentLocation;
+    _lastMapEmit = null; // birinchi yangilanish darhol ko'rinsin
 
     emit(state.copyWith(
       clientPickedUp: true,
@@ -638,7 +675,7 @@ class HomeCubit extends Cubit<HomeState> {
         destinationLocation: order.destinationLocation,
         pickupAddress: order.pickupAddress,
         destinationAddress: order.destinationAddress,
-        distance: state.traveledDistance,
+        distance: _tripDistanceKm > 0 ? _tripDistanceKm : state.traveledDistance,
         price: state.currentPrice.toDouble(),
         createdAt: order.createdAt,
         status: OrderStatusType.completed,
@@ -689,6 +726,9 @@ class HomeCubit extends Cubit<HomeState> {
       routeDistanceKm: null,
     ));
     _activeTariff = null;
+    _tripDistanceKm = 0;
+    _lastDistancePoint = null;
+    _lastMapEmit = null;
     StorageHelper.remove(_activeTripKey);
   }
 
@@ -769,7 +809,9 @@ class HomeCubit extends Cubit<HomeState> {
     _waitingTimer?.cancel();
     emit(state.copyWith(isWaitingTimerActive: true));
 
-    _waitingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Har 10 soniyada bir marta (qotmaslik uchun).
+    _waitingTimer =
+        Timer.periodic(const Duration(seconds: _updateIntervalSec), (timer) {
       // Kutish hisoblagichi faqat mijozni kutish bosqichida yoki safar ichida
       // qo'lda yoqilgan bo'lsa ishlaydi. Aks holda to'xtaydi.
       final canRun = state.status == OrderStatus.waitingForClient ||
@@ -780,14 +822,14 @@ class HomeCubit extends Cubit<HomeState> {
         return;
       }
 
-      final next = state.waitingSeconds + 1;
+      final next = state.waitingSeconds + _updateIntervalSec;
       // Mijozni kutish bosqichida narx ko'rsatilmaydi (0 turadi) — narx hisobi
       // on_the_way (mijoz mashinaga chiqqach) boshlanadi. Kutilgan vaqt esa
       // saqlanadi va keyin narxga (kutish haqi sifatida) qo'shiladi.
       if (state.status == OrderStatus.waitingForClient) {
         emit(state.copyWith(waitingSeconds: next));
       } else {
-        final price = _computePrice(state.traveledDistance, next);
+        final price = _computePrice(_tripDistanceKm, next);
         emit(state.copyWith(waitingSeconds: next, currentPrice: price));
       }
     });
@@ -811,12 +853,18 @@ class HomeCubit extends Cubit<HomeState> {
 
   void _startTripTimer() {
     _tripTimer?.cancel();
-    _tripTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Har 10 soniyada: safar vaqti + narx yangilanadi (svetoforda turganda
+    // ham). GPS yurmasa ham soat shu yerda yuradi — lekin har 10 soniyada.
+    _tripTimer =
+        Timer.periodic(const Duration(seconds: _updateIntervalSec), (timer) {
       if (state.status != OrderStatus.inProgress) {
         timer.cancel();
         return;
       }
-      emit(state.copyWith(tripSeconds: state.tripSeconds + 1));
+      emit(state.copyWith(
+        tripSeconds: state.tripSeconds + _updateIntervalSec,
+        currentPrice: _computePrice(_tripDistanceKm, state.waitingSeconds),
+      ));
     });
   }
 
@@ -1050,8 +1098,14 @@ class HomeCubit extends Cubit<HomeState> {
     _connectMercure();
     _startLocationPush();
 
+    // Masofa hisoblagichini tiklangan qiymatdan davom ettiramiz (aks holda
+    // birinchi GPS signali traveledDistance'ni 0 ga tushirib yuborardi).
+    _lastDistancePoint = state.currentLocation;
+    _lastMapEmit = null;
+
     // Tegishli taymerlar va yo'lni tiklaymiz.
     if (status == OrderStatus.inProgress) {
+      _tripDistanceKm = traveled;
       _startTripTimer();
       if (isWaitingActive) _startWaitingTimer();
       _requestRouteToDestination();
