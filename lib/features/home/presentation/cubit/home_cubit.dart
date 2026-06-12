@@ -95,18 +95,31 @@ class HomeCubit extends Cubit<HomeState> {
         _tryCancelActiveOrder();
       });
 
-      final position = await _getCurrentLocation();
-      emit(
-        state.copyWith(
-          currentLocation:
-              Point(latitude: position.latitude, longitude: position.longitude),
-          heading: position.heading,
-          status: OrderStatus.initial,
-          isLoading: false,
-        ),
-      );
+      // Joriy joylashuv. GPS o'chiq/sekin bo'lsa ham (xato yoki uzoq osilish)
+      // app ochilishi va AKTIV BUYURTMANI tiklash to'xtab qolmasligi kerak —
+      // shuning uchun alohida try ichida. Aks holda getCurrentPosition xatosi
+      // _restoreActiveTrip() gacha yetib bormay, qabul qilingan buyurtma
+      // "Faol" bo'limida ko'rinmay qolardi.
+      try {
+        final position = await _getCurrentLocation();
+        emit(
+          state.copyWith(
+            currentLocation: Point(
+                latitude: position.latitude, longitude: position.longitude),
+            heading: position.heading,
+            status: OrderStatus.initial,
+            isLoading: false,
+          ),
+        );
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ boshlang\'ich joylashuv olinmadi: $e');
+        emit(state.copyWith(status: OrderStatus.initial, isLoading: false));
+      }
 
       _loadOrderTypes();
+      // Aktiv (qabul qilingan) safarni tiklaymiz — app o'chib qayta ochilsa
+      // ham buyurtma "Faol" bo'limida va asosiy oynada ko'rinishi uchun.
       await _restoreActiveTrip();
       _startLocationTracking();
     } catch (e) {
@@ -359,7 +372,17 @@ class HomeCubit extends Cubit<HomeState> {
     if (permission == LocationPermission.deniedForever) {
       throw Exception('Location permission permanently denied');
     }
-    return await Geolocator.getCurrentPosition();
+    // getCurrentPosition ba'zan uzoq osilib qoladi yoki xato beradi. 8s
+    // timeout + oxirgi ma'lum joylashuv (cache) zaxira sifatida — app
+    // ochilishi va buyurtma tiklash bloklanmasligi uchun.
+    try {
+      return await Geolocator.getCurrentPosition()
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) return last;
+      rethrow;
+    }
   }
 
   void _startLocationTracking() {
