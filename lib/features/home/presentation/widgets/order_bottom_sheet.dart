@@ -37,10 +37,12 @@ class OrderBottomSheet extends StatefulWidget {
 }
 
 class _OrderBottomSheetState extends State<OrderBottomSheet> {
-  static const int _totalSeconds = 15;
+  static const int _totalSeconds = 10;
 
   Timer? _ticker;
-  int _remaining = _totalSeconds;
+  // Faqat shu qiymat har sekund o'zgaradi. ValueNotifier orqali FAQAT timer
+  // chizig'i yangilanadi — butun varaq (mijoz, narx, tugmalar) qayta qurilmaydi.
+  final ValueNotifier<int> _remaining = ValueNotifier<int>(_totalSeconds);
 
   bool _isAccepted = false;
   bool _isClosing = false;
@@ -48,11 +50,12 @@ class _OrderBottomSheetState extends State<OrderBottomSheet> {
   @override
   void initState() {
     super.initState();
-    // Sekundlik timer — xarita ustida uzluksiz animatsiya yo'q (yengil).
+    // Sekundlik timer — setState YO'Q, faqat ValueNotifier yangilanadi (yengil).
     _ticker = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
-      setState(() => _remaining--);
-      if (_remaining <= 0) {
+      final next = _remaining.value - 1;
+      _remaining.value = next;
+      if (next <= 0) {
         t.cancel();
         _autoReject();
       }
@@ -75,6 +78,7 @@ class _OrderBottomSheetState extends State<OrderBottomSheet> {
   @override
   void dispose() {
     _ticker?.cancel();
+    _remaining.dispose();
     super.dispose();
   }
 
@@ -134,47 +138,53 @@ class _OrderBottomSheetState extends State<OrderBottomSheet> {
   }
 
   Widget _buildTimerBar() {
-    final remaining = _remaining.clamp(0, _totalSeconds);
-    final danger = remaining <= 5;
-    final accent = danger ? AppColors.error : AppColors.primary;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Column(
-        children: [
-          Row(
+      // Faqat shu builder har sekund qayta ishlaydi — qolgan varaq tinch turadi.
+      child: ValueListenableBuilder<int>(
+        valueListenable: _remaining,
+        builder: (context, value, _) {
+          final remaining = value.clamp(0, _totalSeconds);
+          final danger = remaining <= 3;
+          final accent = danger ? AppColors.error : AppColors.primary;
+          return Column(
             children: [
-              Icon(Iconsax.clock, color: accent, size: 18.w),
-              SizedBox(width: 8.w),
-              Text(
-                'Yangi buyurtma',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                children: [
+                  Icon(Iconsax.clock, color: accent, size: 18.w),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Yangi buyurtma',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$remaining s',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                '$remaining s',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
-                  color: accent,
+              SizedBox(height: 10.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99.r),
+                child: LinearProgressIndicator(
+                  value: remaining / _totalSeconds,
+                  minHeight: 6.h,
+                  backgroundColor: AppColors.divider,
+                  valueColor: AlwaysStoppedAnimation<Color>(accent),
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 10.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99.r),
-            child: LinearProgressIndicator(
-              value: remaining / _totalSeconds,
-              minHeight: 6.h,
-              backgroundColor: AppColors.divider,
-              valueColor: AlwaysStoppedAnimation<Color>(accent),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

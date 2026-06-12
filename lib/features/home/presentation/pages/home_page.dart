@@ -139,6 +139,16 @@ class _HomePageState extends State<HomePage> {
           // Update map objects when state changes (no setState needed)
           _updateMapObjects(state);
         },
+        // Butun sahifani (xarita + ustki kartalar) faqat TUZILMAVIY o'zgarishda
+        // qayta quramiz. Safar/kutish hisoblagichi har sekund state emit qiladi,
+        // lekin u faqat soniya/narx/masofani o'zgartiradi — shu sabab bu yerga
+        // KIRMAYDI. Aks holda har sekund native xarita qayta qurilib app qotardi.
+        buildWhen: (prev, curr) =>
+            prev.status != curr.status ||
+            prev.isOnline != curr.isOnline ||
+            prev.currentOrder?.id != curr.currentOrder?.id ||
+            prev.currentLocation != curr.currentLocation ||
+            prev.routeGeometry != curr.routeGeometry,
         builder: (context, state) {
           // Mercure banner: online bo'lib, ulanish hali tiklanmagan bo'lsa
           // (yoki endigina tiklangan bo'lsa) tepada ko'rsatamiz.
@@ -236,7 +246,10 @@ class _HomePageState extends State<HomePage> {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  child: OrderInProgressWidget(
+                  // Timer/narx/masofa matni shu ichki BlocBuilder orqali har
+                  // sekund yangilanadi — tashqi builder (xarita) qayta qurilmaydi.
+                  child: BlocBuilder<HomeCubit, HomeState>(
+                    builder: (context, state) => OrderInProgressWidget(
                     clientPhone: state.currentOrder?.clientPhone,
                     clientName: state.currentOrder?.clientName,
                     pickupAddress: state.currentOrder?.pickupAddress,
@@ -298,6 +311,7 @@ class _HomePageState extends State<HomePage> {
                             );
                           }
                         : null,
+                  ),
                   ),
                 ),
 
