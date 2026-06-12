@@ -44,15 +44,40 @@ class MercureService {
   bool isConnected = false;
   List<String> _activeTariffs = const [];
 
-  /// Hub'ga ulanish.
+  // Qayta ulanish uchun saqlanadigan parametrlar.
+  int? _driverId;
+  int? _companyId;
+  String? _jwtToken;
+  bool _shouldConnect = false;
+  Timer? _reconnectTimer;
+  int _retryAttempt = 0;
+
+  /// Hub'ga ulanish. Haydovchi online bo'lganda chaqiriladi. Shundan keyin
+  /// ulanish uzilsa (tarmoq almashishi, SSE timeout, server qayta yuklanishi)
+  /// avtomatik qayta ulanadi — haydovchi `driver/{id}/orders` kanalini DOIM
+  /// eshitib turadi va yangi buyurtmani o'tkazib yubormaydi.
   void connect({
     required int driverId,
     required int companyId,
     required List<String> activeTariffs,
     String? jwtToken,
   }) {
-    disconnect();
+    _driverId = driverId;
+    _companyId = companyId;
+    _jwtToken = jwtToken;
     _activeTariffs = activeTariffs.map((e) => e.toLowerCase()).toList();
+    _shouldConnect = true;
+    _retryAttempt = 0;
+    _open();
+  }
+
+  void _open() {
+    _subscription?.cancel();
+    _reconnectTimer?.cancel();
+
+    final driverId = _driverId;
+    final companyId = _companyId;
+    if (driverId == null || companyId == null) return;
 
     final topics = <String>[
       'driver/$driverId/orders',
@@ -65,21 +90,24 @@ class MercureService {
       _mercure = mc.Mercure(
         url: AppConstants.mercureUrl,
         topics: topics,
-        token: jwtToken,
+        token: _jwtToken,
       );
 
       _subscription = _mercure!.listen(
         (event) {
           isConnected = true;
+          _retryAttempt = 0; // muvaffaqiyatli ulandik — hisobni nolga
           _processMessage(event.data, event.id);
         },
         onError: (error) {
           isConnected = false;
           // ignore: avoid_print
           print('🔴 Mercure error: $error');
+          _scheduleReconnect();
         },
         onDone: () {
           isConnected = false;
+          _scheduleReconnect();
         },
       );
       // ignore: avoid_print
@@ -87,7 +115,23 @@ class MercureService {
     } catch (e) {
       // ignore: avoid_print
       print('🔴 Mercure connect failed: $e');
+      _scheduleReconnect();
     }
+  }
+
+  /// Ulanish uzilsa va biz hali online bo'lsak — qayta ulanamiz.
+  /// Kechikish bosqichma-bosqich oshadi (3s, 6s, 9s ... maks 30s).
+  void _scheduleReconnect() {
+    if (!_shouldConnect) return; // ataylab offline bo'ldik — ulanmaymiz
+    _reconnectTimer?.cancel();
+    _retryAttempt++;
+    final delaySec = (3 * _retryAttempt).clamp(3, 30);
+    // ignore: avoid_print
+    print('🔄 Mercure qayta ulanish ${delaySec}s dan keyin '
+        '(urinish #$_retryAttempt)');
+    _reconnectTimer = Timer(Duration(seconds: delaySec), () {
+      if (_shouldConnect) _open();
+    });
   }
 
   void _processMessage(String rawData, String? eventId) {
@@ -158,6 +202,9 @@ class MercureService {
   }
 
   void disconnect() {
+    _shouldConnect = false;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     _subscription?.cancel();
     _subscription = null;
     _mercure = null;
