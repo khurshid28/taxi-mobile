@@ -285,15 +285,10 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> _pushLocation() async {
     if (_driverId == null || _companyId == null) {
-      // ignore: avoid_print
-      print('⚠️ Location push (10s) o\'tkazildi: driver/company ID yo\'q '
-          '(driverId=$_driverId, companyId=$_companyId)');
       return;
     }
     final loc = state.currentLocation;
     if (loc == null) {
-      // ignore: avoid_print
-      print('⚠️ Location push (10s) o\'tkazildi: GPS lokatsiya hali yo\'q');
       return;
     }
     // Safar davomida (mijoz mashinada) km + narx ham yuboriladi.
@@ -310,9 +305,6 @@ class HomeCubit extends Cubit<HomeState> {
         price: onTrip ? state.currentPrice.toDouble() : null,
         status: onTrip ? 'on_the_way' : null,
       );
-      // ignore: avoid_print
-      print('📍 Location push (10s) yuborildi → driver=$_driverId, '
-          'lat=${loc.latitude}, lng=${loc.longitude}, onTrip=$onTrip');
     } catch (e) {
       // ignore: avoid_print
       print('⚠️ location push xato: $e');
