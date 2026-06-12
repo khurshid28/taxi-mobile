@@ -6,6 +6,7 @@ import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_messenger.dart';
@@ -36,6 +37,18 @@ class _HomePageState extends State<HomePage> {
   bool _hasMovedToInitialLocation = false;
   Point? _lastMarkerLocation; // Track last GPS marker position
 
+  // Xarita obyektlari (marker/polyline) faqat O'ZI yangilanishi uchun.
+  // Bu o'zgarsa butun sahifa emas, faqat YandexMap o'ralgan
+  // ValueListenableBuilder qayta quriladi (silliq, qotmaydi).
+  final ValueNotifier<List<MapObject>> _mapObjectsListenable =
+      ValueNotifier<List<MapObject>>(const []);
+
+  // Marker rasmlari (PNG) bir marta chizilib keshlanadi. PNG kodlash qimmat —
+  // har yangilanishda qayta chizilsa xarita qotadi. Faqat point o'zgaradi.
+  Uint8List? _userMarkerBitmap;
+  Uint8List? _clientMarkerBitmap;
+  Uint8List? _destinationMarkerBitmap;
+
   // Connectivity
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _hasInternet = true;
@@ -51,6 +64,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().initialize();
+
+    // Marker rasmlarini oldindan bir marta tayyorlab keshlaymiz — safar
+    // boshlangach birinchi yangilanish ham darhol, qotmasdan ko'rinadi.
+    _prewarmMarkers();
 
     // Connectivity listener
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
@@ -143,12 +160,14 @@ class _HomePageState extends State<HomePage> {
         // qayta quramiz. Safar/kutish hisoblagichi har sekund state emit qiladi,
         // lekin u faqat soniya/narx/masofani o'zgartiradi — shu sabab bu yerga
         // KIRMAYDI. Aks holda har sekund native xarita qayta qurilib app qotardi.
+        // Butun sahifa faqat TUZILMAVIY o'zgarishda quriladi (status/online/
+        // buyurtma). Joylashuv (currentLocation) va marshrut (routeGeometry)
+        // bu yerda YO'Q — ular xaritani _mapObjectsListenable orqali alohida
+        // yangilaydi, butun sahifani emas. Shu sabab Yo'lda payti qotmaydi.
         buildWhen: (prev, curr) =>
             prev.status != curr.status ||
             prev.isOnline != curr.isOnline ||
-            prev.currentOrder?.id != curr.currentOrder?.id ||
-            prev.currentLocation != curr.currentLocation ||
-            prev.routeGeometry != curr.routeGeometry,
+            prev.currentOrder?.id != curr.currentOrder?.id,
         builder: (context, state) {
           // Mercure banner: online bo'lib, ulanish hali tiklanmagan bo'lsa
           // (yoki endigina tiklangan bo'lsa) tepada ko'rsatamiz.
@@ -162,25 +181,30 @@ class _HomePageState extends State<HomePage> {
 
           return Stack(
             children: [
-              // Yandex Map
-              YandexMap(
-                onMapCreated: (controller) {
-                  _mapController = controller;
-
-                  if (state.currentLocation != null) {
-                    _moveToLocation(state.currentLocation!);
-                  }
-                },
-                mapObjects: List.of(_mapObjects),
-                onCameraPositionChanged: (cameraPosition, reason, finished) {},
-                onMapTap: (point) {
-                  if (state.status == OrderStatus.initial) {
-                    context.read<HomeCubit>().setDestination(point);
-                  }
-                },
-                logoAlignment: const MapAlignment(
-                  horizontal: HorizontalAlignment.right,
-                  vertical: VerticalAlignment.bottom,
+              // Yandex Map — faqat O'ZI yangilanadi (ValueListenableBuilder).
+              // Xarita obyektlari o'zgarsa butun sahifa emas, shu blok quriladi.
+              ValueListenableBuilder<List<MapObject>>(
+                valueListenable: _mapObjectsListenable,
+                builder: (context, mapObjects, _) => YandexMap(
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    final loc =
+                        context.read<HomeCubit>().state.currentLocation;
+                    if (loc != null) _moveToLocation(loc);
+                  },
+                  mapObjects: mapObjects,
+                  onCameraPositionChanged:
+                      (cameraPosition, reason, finished) {},
+                  onMapTap: (point) {
+                    if (context.read<HomeCubit>().state.status ==
+                        OrderStatus.initial) {
+                      context.read<HomeCubit>().setDestination(point);
+                    }
+                  },
+                  logoAlignment: const MapAlignment(
+                    horizontal: HorizontalAlignment.right,
+                    vertical: VerticalAlignment.bottom,
+                  ),
                 ),
               ),
 
@@ -193,7 +217,10 @@ class _HomePageState extends State<HomePage> {
                   top: MediaQuery.of(context).padding.top + 10.h,
                   left: 16.w,
                   right: 16.w,
-                  child: _buildTopControls(state),
+                  // Narx/holat matni jonli bo'lsin, lekin xaritani qurmasin.
+                  child: BlocBuilder<HomeCubit, HomeState>(
+                    builder: (context, state) => _buildTopControls(state),
+                  ),
                 ),
 
               // Online (Liniya) status card — single clean header with Chiqish
@@ -354,9 +381,12 @@ class _HomePageState extends State<HomePage> {
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
                             onTap: () {
-                              if (state.currentLocation != null &&
-                                  _mapController != null) {
-                                _moveToLocation(state.currentLocation!);
+                              final loc = context
+                                  .read<HomeCubit>()
+                                  .state
+                                  .currentLocation;
+                              if (loc != null && _mapController != null) {
+                                _moveToLocation(loc);
                               }
                             },
                             child: Center(
@@ -765,9 +795,38 @@ class _HomePageState extends State<HomePage> {
         state.status == OrderStatus.inProgress) {
       await _addDestinationMarker(state.destinationLocation!);
     }
+
+    // Yangilangan obyektlarni xaritaga e'lon qilamiz — faqat YandexMap
+    // o'ralgan ValueListenableBuilder qayta quriladi, butun sahifa emas.
+    _mapObjectsListenable.value = List.of(_mapObjects);
+  }
+
+  /// Marker rasmlarini oldindan keshlash (PNG kodlash bir marta bo'ladi).
+  Future<void> _prewarmMarkers() async {
+    await _userMarkerBytes();
+    await _clientMarkerBytes();
+    await _destinationMarkerBytes();
   }
 
   Future<void> _addDestinationMarker(Point location) async {
+    final buffer = await _destinationMarkerBytes();
+    _mapObjects.add(
+      PlacemarkMapObject(
+        mapId: const MapObjectId('destination'),
+        point: location,
+        icon: PlacemarkIcon.single(
+          PlacemarkIconStyle(
+            image: BitmapDescriptor.fromBytes(buffer),
+            scale: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Manzil (finish flag) markeri rasmi — bir marta chizilib keshlanadi.
+  Future<Uint8List> _destinationMarkerBytes() async {
+    if (_destinationMarkerBitmap != null) return _destinationMarkerBitmap!;
     // Create custom finish flag marker with checkered pattern
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -856,23 +915,39 @@ class _HomePageState extends State<HomePage> {
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    final buffer = byteData!.buffer.asUint8List();
-
-    _mapObjects.add(
-      PlacemarkMapObject(
-        mapId: const MapObjectId('destination'),
-        point: location,
-        icon: PlacemarkIcon.single(
-          PlacemarkIconStyle(
-            image: BitmapDescriptor.fromBytes(buffer),
-            scale: 1.2,
-          ),
-        ),
-      ),
-    );
+    _destinationMarkerBitmap = byteData!.buffer.asUint8List();
+    return _destinationMarkerBitmap!;
   }
 
   Future<void> _addUserLocationMarker(Point location, double heading) async {
+    final buffer = await _userMarkerBytes();
+    final marker = PlacemarkMapObject(
+      mapId: const MapObjectId('current_location'),
+      point: location,
+      opacity: 1.0,
+      icon: PlacemarkIcon.single(
+        PlacemarkIconStyle(
+          image: BitmapDescriptor.fromBytes(buffer),
+          scale: 1.2,
+          rotationType:
+              RotationType.noRotation, // We handle rotation ourselves
+        ),
+      ),
+    );
+
+    // Rasm tayyor bo'lgach, eski markerni o'chirib yangisini qo'shamiz.
+    // Shu tartibda marker hech qachon ro'yxatdan yo'qolmaydi (blink yo'q).
+    _mapObjects.removeWhere(
+      (obj) =>
+          obj.mapId.value == 'current_location' ||
+          obj.mapId.value.toString().startsWith('current_location_'),
+    );
+    _mapObjects.add(marker);
+  }
+
+  /// Haydovchi joylashuvi markeri rasmi — bir marta chizilib keshlanadi.
+  Future<Uint8List> _userMarkerBytes() async {
+    if (_userMarkerBitmap != null) return _userMarkerBitmap!;
     // Create a red circle marker with light red outer ring
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -908,30 +983,8 @@ class _HomePageState extends State<HomePage> {
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    final buffer = byteData!.buffer.asUint8List();
-
-    final marker = PlacemarkMapObject(
-      mapId: const MapObjectId('current_location'),
-      point: location,
-      opacity: 1.0,
-      icon: PlacemarkIcon.single(
-        PlacemarkIconStyle(
-          image: BitmapDescriptor.fromBytes(buffer),
-          scale: 1.2,
-          rotationType:
-              RotationType.noRotation, // We handle rotation ourselves
-        ),
-      ),
-    );
-
-    // Rasm tayyor bo'lgach, eski markerni o'chirib yangisini qo'shamiz.
-    // Shu tartibda marker hech qachon ro'yxatdan yo'qolmaydi (blink yo'q).
-    _mapObjects.removeWhere(
-      (obj) =>
-          obj.mapId.value == 'current_location' ||
-          obj.mapId.value.toString().startsWith('current_location_'),
-    );
-    _mapObjects.add(marker);
+    _userMarkerBitmap = byteData!.buffer.asUint8List();
+    return _userMarkerBitmap!;
   }
 
   void _moveToLocation(Point point) {
@@ -945,6 +998,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _addClientLocationMarker(Point location) async {
+    final buffer = await _clientMarkerBytes();
+    _mapObjects.add(
+      PlacemarkMapObject(
+        mapId: const MapObjectId('client_location'),
+        point: location,
+        opacity: 1.0,
+        icon: PlacemarkIcon.single(
+          PlacemarkIconStyle(
+            image: BitmapDescriptor.fromBytes(buffer),
+            scale: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Mijoz markeri rasmi — bir marta chizilib keshlanadi.
+  Future<Uint8List> _clientMarkerBytes() async {
+    if (_clientMarkerBitmap != null) return _clientMarkerBitmap!;
     // Create custom client marker with bright red pin
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -989,21 +1061,8 @@ class _HomePageState extends State<HomePage> {
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.toInt(), size.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-    final buffer = byteData!.buffer.asUint8List();
-
-    _mapObjects.add(
-      PlacemarkMapObject(
-        mapId: const MapObjectId('client_location'),
-        point: location,
-        opacity: 1.0,
-        icon: PlacemarkIcon.single(
-          PlacemarkIconStyle(
-            image: BitmapDescriptor.fromBytes(buffer),
-            scale: 1.0,
-          ),
-        ),
-      ),
-    );
+    _clientMarkerBitmap = byteData!.buffer.asUint8List();
+    return _clientMarkerBitmap!;
   }
 
   Future<void> _openGoogleMaps(HomeState state) async {
@@ -1112,6 +1171,7 @@ class _HomePageState extends State<HomePage> {
     if (_mercureStatusListener != null) {
       sl<MercureService>().status.removeListener(_mercureStatusListener!);
     }
+    _mapObjectsListenable.dispose();
     super.dispose();
   }
 }
