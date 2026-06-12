@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:slide_to_act/slide_to_act.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
+import 'slide_to_online_button.dart';
 
 /// Aktiv safar varag'i (Yo'lda / Kutilmoqda / Safar).
 ///
@@ -664,10 +664,10 @@ class OrderInProgressWidget extends StatelessWidget {
       height: 52.h,
       child: Material(
         color: c.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(99.r),
         child: InkWell(
           onTap: onToggleWaitingTimer,
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(99.r),
           child: Center(
             child: Text(
               active ? 'Kutishni tugatish' : 'Kutishni boshlash',
@@ -691,30 +691,10 @@ class OrderInProgressWidget extends StatelessWidget {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SlideAction(
-            height: 58.h,
-            sliderButtonIconSize: 22.r,
-            sliderButtonIconPadding: 14.r,
-            borderRadius: 16.r,
-            innerColor: Colors.white,
-            outerColor: AppColors.primary,
-            sliderRotate: false,
-            animationDuration: const Duration(milliseconds: 300),
+          SlideToOnlineButton(
             text: 'Qani ketdik',
-            textStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-            ),
-            sliderButtonIcon: Icon(
-              Iconsax.arrow_right_3,
-              color: AppColors.primary,
-              size: 22.r,
-            ),
-            onSubmit: () {
-              onPickupClient!();
-              return null;
-            },
+            icon: Iconsax.arrow_right_3,
+            onConfirmed: onPickupClient!,
           ),
           SizedBox(height: 10.h),
           _cancelButton(expanded: true),
@@ -744,10 +724,10 @@ class OrderInProgressWidget extends StatelessWidget {
       height: 56.h,
       child: Material(
         color: AppColors.error.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(99.r),
         child: InkWell(
           onTap: onCancel,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(99.r),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Row(
@@ -782,10 +762,10 @@ class OrderInProgressWidget extends StatelessWidget {
       height: 56.h,
       child: Material(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(99.r),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(99.r),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -841,10 +821,10 @@ class OrderInProgressWidget extends StatelessWidget {
       height: 52.h,
       child: Material(
         color: color.withOpacity(enabled ? 0.12 : 0.05),
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(99.r),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(99.r),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

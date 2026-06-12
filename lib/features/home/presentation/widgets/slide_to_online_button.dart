@@ -15,10 +15,12 @@ class SlideToOnlineButton extends StatefulWidget {
     super.key,
     required this.onConfirmed,
     this.text = 'Liniyaga chiqish',
+    this.icon = Icons.power_settings_new,
   });
 
   final VoidCallback onConfirmed;
   final String text;
+  final IconData icon;
 
   @override
   State<SlideToOnlineButton> createState() => _SlideToOnlineButtonState();
@@ -147,7 +149,7 @@ class _SlideToOnlineButtonState extends State<SlideToOnlineButton>
                           ],
                         ),
                         child: Icon(
-                          Icons.power_settings_new,
+                          widget.icon,
                           color: AppColors.primary,
                           size: 24.w,
                         ),
