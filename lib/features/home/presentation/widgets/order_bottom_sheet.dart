@@ -414,14 +414,22 @@ class _OrderBottomSheetState extends State<OrderBottomSheet> {
               ),
               child: Center(
                 child: _isAccepted
-                    ? SizedBox(
-                        width: 22.w,
-                        height: 22.w,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2.4,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Iconsax.tick_circle,
+                              color: Colors.white, size: 22.w),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Qabul qilinmoqda...',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
                       )
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,

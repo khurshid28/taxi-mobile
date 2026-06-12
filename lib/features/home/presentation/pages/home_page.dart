@@ -454,11 +454,7 @@ class _HomePageState extends State<HomePage> {
             width: 20.w,
             height: 20.w,
             child: reconnecting
-                ? CircularProgressIndicator(
-                    strokeWidth: 2.4.w,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
+                ? Icon(Iconsax.refresh, color: Colors.white, size: 20.w)
                 : Icon(Iconsax.tick_circle, color: Colors.white, size: 20.w),
           ),
           SizedBox(width: 12.w),
