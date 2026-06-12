@@ -527,11 +527,8 @@ class _HomePageState extends State<HomePage> {
         (_lastMarkerLocation == null ||
             _lastMarkerLocation!.latitude != loc.latitude ||
             _lastMarkerLocation!.longitude != loc.longitude)) {
-      _mapObjects.removeWhere(
-        (obj) =>
-            obj.mapId.value == 'current_location' ||
-            obj.mapId.value.toString().startsWith('current_location_'),
-      );
+      // Marker rasmini avval tayyorlab, keyin eski->yangi atomik almashtiramiz
+      // (rasm tayyorlangunча eski marker ro'yxatda qoladi => o'chib-yonmaydi).
       await _addUserLocationMarker(loc, state.heading);
       _lastMarkerLocation = loc;
     }
@@ -734,21 +731,28 @@ class _HomePageState extends State<HomePage> {
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
     final buffer = byteData!.buffer.asUint8List();
 
-    _mapObjects.add(
-      PlacemarkMapObject(
-        mapId: const MapObjectId('current_location'),
-        point: location,
-        opacity: 1.0,
-        icon: PlacemarkIcon.single(
-          PlacemarkIconStyle(
-            image: BitmapDescriptor.fromBytes(buffer),
-            scale: 1.2,
-            rotationType:
-                RotationType.noRotation, // We handle rotation ourselves
-          ),
+    final marker = PlacemarkMapObject(
+      mapId: const MapObjectId('current_location'),
+      point: location,
+      opacity: 1.0,
+      icon: PlacemarkIcon.single(
+        PlacemarkIconStyle(
+          image: BitmapDescriptor.fromBytes(buffer),
+          scale: 1.2,
+          rotationType:
+              RotationType.noRotation, // We handle rotation ourselves
         ),
       ),
     );
+
+    // Rasm tayyor bo'lgach, eski markerni o'chirib yangisini qo'shamiz.
+    // Shu tartibda marker hech qachon ro'yxatdan yo'qolmaydi (blink yo'q).
+    _mapObjects.removeWhere(
+      (obj) =>
+          obj.mapId.value == 'current_location' ||
+          obj.mapId.value.toString().startsWith('current_location_'),
+    );
+    _mapObjects.add(marker);
   }
 
   void _moveToLocation(Point point) {
