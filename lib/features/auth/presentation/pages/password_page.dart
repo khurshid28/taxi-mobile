@@ -42,6 +42,19 @@ class _PasswordPageState extends State<PasswordPage> {
     context.read<AuthCubit>().login(pwd);
   }
 
+  /// Normalize qilingan raqamni (`01a777aa`) katta harf + bo'shliqli
+  /// ko'rinishga formatlaydi: `01 A 777 AA`. Mos kelmasa, faqat katta qiladi.
+  String get _displayCarNumber {
+    final clean = widget.carNumber
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (RegExp(r'^\d{2}[A-Z]\d{3}[A-Z]{2}$').hasMatch(clean)) {
+      return '${clean.substring(0, 2)} ${clean.substring(2, 3)} '
+          '${clean.substring(3, 6)} ${clean.substring(6, 8)}';
+    }
+    return clean;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +150,7 @@ class _PasswordPageState extends State<PasswordPage> {
                 ),
                 SizedBox(height: 12.h),
                 Text(
-                  widget.carNumber.toLowerCase(),
+                  _displayCarNumber,
                   style: TextStyle(
                     fontSize: 16.sp,
                     color: AppColors.primary,
