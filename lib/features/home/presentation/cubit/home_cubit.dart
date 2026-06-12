@@ -49,6 +49,13 @@ class HomeCubit extends Cubit<HomeState> {
   double _tripDistanceKm = 0; // safar davomida yig'ilgan aniq masofa (km)
   DateTime? _lastMapEmit; // oxirgi emit vaqti (10s throttle)
 
+  // ===== Kutish (pause) vaqti — ANIQ hisob (wall-clock) =====
+  // Hisoblagichni 10s'da +10 qilib emas, HAQIQIY o'tgan vaqtni o'lchaymiz.
+  // Shunda completed'ga yuboriladigan kutish vaqti soniyagacha aniq bo'ladi
+  // (mijozni kutish + safar ichidagi qo'lda pauzalar yig'indisi).
+  int _accumulatedWaitingSeconds = 0; // yakunlangan kutish segmentlari yig'indisi
+  DateTime? _waitingStartedAt; // joriy faol kutish segmenti boshlangan vaqt
+
   // Backend session
   int? _driverId;
   int? _companyId;
@@ -546,6 +553,10 @@ class HomeCubit extends Cubit<HomeState> {
     if (_orderTypes.isEmpty) await _loadOrderTypes();
     _activeTariff = _resolveTariff(acceptedOrder);
 
+    // Yangi buyurtma — kutish (pause) hisoblagichini noldan boshlaymiz.
+    _accumulatedWaitingSeconds = 0;
+    _waitingStartedAt = null;
+
     emit(state.copyWith(
       status: OrderStatus.orderAccepted,
       currentPrice: 0,
@@ -649,7 +660,8 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> completeOrder() async {
-    _waitingTimer?.cancel();
+    // Faol kutish segmentini yakunlaymiz — oxirgi pauza ham aniq qo'shiladi.
+    _stopWaitingTimer();
     _stopTripTimer();
 
     // Haqiqiy safar davomiyligi (daqiqa) - tripStartTime asosida hisoblanadi
@@ -662,8 +674,9 @@ class HomeCubit extends Cubit<HomeState> {
     }
     if (tripMinutes < 1) tripMinutes = 1;
 
-    // Kutish vaqti (daqiqa) - waitTime maydoni uchun.
-    final waitMinutes = (state.waitingSeconds / 60).round();
+    // Kutish vaqti (daqiqa) — waitTime maydoni uchun. _stopWaitingTimer()
+    // chaqirilgani uchun _accumulatedWaitingSeconds yakuniy aniq qiymat.
+    final waitMinutes = (_accumulatedWaitingSeconds / 60).round();
 
     final order = state.currentOrder;
     if (order != null) {
@@ -729,6 +742,8 @@ class HomeCubit extends Cubit<HomeState> {
     _tripDistanceKm = 0;
     _lastDistancePoint = null;
     _lastMapEmit = null;
+    _accumulatedWaitingSeconds = 0;
+    _waitingStartedAt = null;
     StorageHelper.remove(_activeTripKey);
   }
 
@@ -805,11 +820,27 @@ class HomeCubit extends Cubit<HomeState> {
 
   // ============== Waiting timer ==============
 
+  /// Joriy umumiy kutish vaqti (soniya): yakunlangan segmentlar + faol segment
+  /// (wall-clock). App fonda turgan vaqt ham avtomatik hisobga olinadi.
+  int get _currentWaitingSeconds {
+    var total = _accumulatedWaitingSeconds;
+    if (_waitingStartedAt != null) {
+      total += DateTime.now().difference(_waitingStartedAt!).inSeconds;
+    }
+    return total < 0 ? 0 : total;
+  }
+
   void _startWaitingTimer() {
     _waitingTimer?.cancel();
-    emit(state.copyWith(isWaitingTimerActive: true));
+    // Faol segment boshlanish vaqti (resume bo'lsa eskisi saqlanadi).
+    _waitingStartedAt ??= DateTime.now();
+    emit(state.copyWith(
+      isWaitingTimerActive: true,
+      waitingSeconds: _currentWaitingSeconds,
+    ));
 
-    // Har 10 soniyada bir marta (qotmaslik uchun).
+    // Har 10 soniyada FAQAT ekranni yangilaymiz — vaqtning o'zi wall-clock'dan
+    // o'lchanadi (qotmaslik uchun emit kam, lekin hisob aniq).
     _waitingTimer =
         Timer.periodic(const Duration(seconds: _updateIntervalSec), (timer) {
       // Kutish hisoblagichi faqat mijozni kutish bosqichida yoki safar ichida
@@ -822,15 +853,17 @@ class HomeCubit extends Cubit<HomeState> {
         return;
       }
 
-      final next = state.waitingSeconds + _updateIntervalSec;
+      final secs = _currentWaitingSeconds;
       // Mijozni kutish bosqichida narx ko'rsatilmaydi (0 turadi) — narx hisobi
       // on_the_way (mijoz mashinaga chiqqach) boshlanadi. Kutilgan vaqt esa
       // saqlanadi va keyin narxga (kutish haqi sifatida) qo'shiladi.
       if (state.status == OrderStatus.waitingForClient) {
-        emit(state.copyWith(waitingSeconds: next));
+        emit(state.copyWith(waitingSeconds: secs));
       } else {
-        final price = _computePrice(_tripDistanceKm, next);
-        emit(state.copyWith(waitingSeconds: next, currentPrice: price));
+        emit(state.copyWith(
+          waitingSeconds: secs,
+          currentPrice: _computePrice(_tripDistanceKm, secs),
+        ));
       }
     });
   }
@@ -838,7 +871,16 @@ class HomeCubit extends Cubit<HomeState> {
   void _stopWaitingTimer() {
     _waitingTimer?.cancel();
     _waitingTimer = null;
-    emit(state.copyWith(isWaitingTimerActive: false));
+    // Faol segmentni yakunlab, ANIQ o'tgan vaqtni umumiy yig'indiga qo'shamiz.
+    if (_waitingStartedAt != null) {
+      _accumulatedWaitingSeconds +=
+          DateTime.now().difference(_waitingStartedAt!).inSeconds;
+      _waitingStartedAt = null;
+    }
+    emit(state.copyWith(
+      isWaitingTimerActive: false,
+      waitingSeconds: _accumulatedWaitingSeconds,
+    ));
   }
 
   void toggleWaitingTimer() {
@@ -1046,7 +1088,6 @@ class HomeCubit extends Cubit<HomeState> {
 
     // Time / km — null bo'lmasligi kafolatlanadi.
     final traveled = (snap['traveledDistance'] as num?)?.toDouble() ?? 0;
-    int waitingSeconds = (snap['waitingSeconds'] as num?)?.toInt() ?? 0;
     int currentPrice = (snap['currentPrice'] as num?)?.toInt() ?? 0;
     final clientPickedUp = snap['clientPickedUp'] == true;
     final isWaitingActive = snap['isWaitingTimerActive'] == true;
@@ -1054,12 +1095,11 @@ class HomeCubit extends Cubit<HomeState> {
     final tripStartTime =
         DateTime.tryParse((snap['tripStartTime'] ?? '').toString());
 
-    // Kutish hisoblagichi yoqilgan bo'lsa, app yopiq turgan vaqt ham
-    // kutishga qo'shiladi (wall-clock).
-    if (isWaitingActive) {
-      final gap = DateTime.now().difference(savedAt).inSeconds;
-      if (gap > 0) waitingSeconds += gap;
-    }
+    // Kutish vaqtini ANIQ tiklaymiz: saqlangan yig'indi + (kutish faol bo'lsa)
+    // app yopiq turgan vaqt (wall-clock) avtomatik qo'shiladi.
+    _accumulatedWaitingSeconds = (snap['waitingSeconds'] as num?)?.toInt() ?? 0;
+    _waitingStartedAt = isWaitingActive ? savedAt : null;
+    int waitingSeconds = _currentWaitingSeconds;
 
     // Safar vaqti har doim tripStartTime'dan hisoblanadi.
     int tripSeconds = state.tripSeconds;
