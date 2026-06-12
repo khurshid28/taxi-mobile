@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:slide_to_act/slide_to_act.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -121,11 +120,11 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // Top controls - show when online (and not completed) or in active status, but hide when going to client
+              // Top controls - active order states only (initial/online-idle
+              // uses the dedicated Liniya card below). Hidden while going to client.
               if (state.status != OrderStatus.goingToClient &&
-                  ((state.isOnline && state.status != OrderStatus.completed) ||
-                      (state.status != OrderStatus.initial &&
-                          state.status != OrderStatus.completed)))
+                  state.status != OrderStatus.initial &&
+                  state.status != OrderStatus.completed)
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 10.h,
                   left: 16.w,
@@ -133,130 +132,22 @@ class _HomePageState extends State<HomePage> {
                   child: _buildTopControls(state),
                 ),
 
-              // Online status indicator
+              // Online (Liniya) status card — single clean header with Chiqish
               if (state.isOnline && state.status == OrderStatus.initial)
                 Positioned(
-                  top: MediaQuery.of(context).padding.top + 16.h,
-                  left: 20.w,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8.r,
-                          offset: Offset(0, 2.h),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8.w,
-                          height: 8.h,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Liniya',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  top: MediaQuery.of(context).padding.top + 10.h,
+                  left: 16.w,
+                  right: 16.w,
+                  child: _buildOnlineIdleCard(context),
                 ),
 
-              // Online/Offline Slider - show when driver is offline and not in order
+              // Go online button - show when driver is offline and not in order
               if (!state.isOnline && state.status == OrderStatus.initial)
                 Positioned(
                   bottom: 40.h,
                   left: 20.w,
                   right: 20.w,
-                  child: SlideAction(
-                    height: 60.h,
-                    sliderButtonIconSize: 22.r,
-                    sliderButtonIconPadding: 14.r,
-                    borderRadius: 30.r,
-                    innerColor: Colors.white,
-                    outerColor: AppColors.primary,
-                    sliderRotate: false,
-                    animationDuration: const Duration(milliseconds: 300),
-                    text: 'Liniyaga chiqish uchun suring',
-                    textStyle: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                    sliderButtonIcon: Icon(
-                      Iconsax.arrow_right_3,
-                      color: AppColors.primary,
-                      size: 22.r,
-                    ),
-                    onSubmit: () {
-                      context.read<HomeCubit>().toggleOnline();
-                      return null;
-                    },
-                  ),
-                ),
-
-              // Offline Button - show when online
-              if (state.isOnline && state.status == OrderStatus.initial)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 16.h,
-                  right: 20.w,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(20.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.3),
-                          blurRadius: 8.r,
-                          offset: Offset(0, 2.h),
-                        ),
-                      ],
-                    ),
-                    child: InkWell(
-                      onTap: () => context.read<HomeCubit>().toggleOnline(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.power_settings_new,
-                            color: Colors.white,
-                            size: 16.w,
-                          ),
-                          SizedBox(width: 6.w),
-                          Text(
-                            'Chiqish',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: _buildGoOnlineButton(context),
                 ),
 
               // Bottom sheet based on state
@@ -383,6 +274,151 @@ class _HomePageState extends State<HomePage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Liniyada (online) va buyurtma kutilayotgan holatdagi yagona, toza karta.
+  /// Status ikonkasi + "Liniyadasiz" + "Hozircha buyurtma yo'q" + Chiqish tugmasi.
+  Widget _buildOnlineIdleCard(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.18),
+          width: 1.5.w,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 16.r,
+            offset: Offset(0, 4.h),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Status icon
+          Container(
+            width: 42.w,
+            height: 42.w,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 10.r,
+                  offset: Offset(0, 3.h),
+                ),
+              ],
+            ),
+            child: Icon(
+              Iconsax.tick_circle,
+              color: Colors.white,
+              size: 22.w,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          // Title + subtitle
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Liniyadasiz',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'Hozircha buyurtma yo\'q',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10.w),
+          // Chiqish (go offline) button
+          Material(
+            color: AppColors.error,
+            borderRadius: BorderRadius.circular(12.r),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12.r),
+              onTap: () => context.read<HomeCubit>().toggleOnline(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.power_settings_new,
+                      color: Colors.white,
+                      size: 16.w,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Chiqish',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Liniyaga chiqish uchun oddiy, yengil bosiladigan tugma (surish o'rniga).
+  Widget _buildGoOnlineButton(BuildContext context) {
+    return SizedBox(
+      height: 60.h,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(30.r),
+        elevation: 6,
+        shadowColor: AppColors.primary.withOpacity(0.4),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30.r),
+          onTap: () => context.read<HomeCubit>().toggleOnline(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.power_settings_new,
+                color: Colors.white,
+                size: 22.w,
+              ),
+              SizedBox(width: 10.w),
+              Text(
+                'Liniyaga chiqish',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
