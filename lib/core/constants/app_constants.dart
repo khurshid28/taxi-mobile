@@ -19,6 +19,7 @@ class AppConstants {
   static const String keyToken = 'auth_token'; // legacy
   static const String keyAccessToken = 'access_token';
   static const String keyRefreshToken = 'refresh_token';
+  static const String keyMercureToken = 'mercure_token';
   static const String keyUserId = 'user_id';
   static const String keyDriverId = 'driver_id';
   static const String keyCompanyId = 'company_id';

@@ -22,6 +22,9 @@ class AuthService {
       },
     );
     final data = (res.data as Map).cast<String, dynamic>();
+    // Mercure tokenini topish uchun login javobining kalitlarini log qilamiz.
+    // ignore: avoid_print
+    print('\ud83d\udd11 drivers/auth javob kalitlari: ${data.keys.toList()}');
     final tokens = TokensDto.fromJson(data);
     await _saveTokens(tokens);
     return tokens;
@@ -44,6 +47,10 @@ class AuthService {
         AppConstants.keyAccessToken, t.accessToken);
     await StorageHelper.saveString(
         AppConstants.keyRefreshToken, t.refreshToken);
+    if (t.mercureToken != null && t.mercureToken!.isNotEmpty) {
+      await StorageHelper.saveString(
+          AppConstants.keyMercureToken, t.mercureToken!);
+    }
   }
 
   Future<void> logout() async {

@@ -42,6 +42,7 @@ class HomeCubit extends Cubit<HomeState> {
   int? _companyId;
   List<String> _tariffs = const ['Start'];
   String? _accessToken;
+  String? _mercureToken;
 
   // Tarif narxlari (OrderTypes). Bir marta yuklab, cache qilinadi.
   List<OrderTypeModel> _orderTypes = const [];
@@ -93,6 +94,8 @@ class HomeCubit extends Cubit<HomeState> {
     _companyId = await StorageHelper.getInt(AppConstants.keyCompanyId);
     _accessToken =
         await StorageHelper.getString(AppConstants.keyAccessToken);
+    _mercureToken =
+        await StorageHelper.getString(AppConstants.keyMercureToken);
 
     // Cache'da driver/company ID yo'q bo'lsa - bir marta about_me orqali
     // olib kelamiz va cache'laymiz. Keyingi safar so'rov bermaymiz.
@@ -198,15 +201,20 @@ class HomeCubit extends Cubit<HomeState> {
       return;
     }
     final svc = sl<MercureService>();
+    // Mercure uchun maxsus token bo'lsa - shuni, bo'lmasa access token.
+    final mercureJwt =
+        (_mercureToken != null && _mercureToken!.isNotEmpty)
+            ? _mercureToken
+            : _accessToken;
     // ignore: avoid_print
     print('\ud83d\udce1 Mercure connect \u2192 driverId=$_driverId, '
         'companyId=$_companyId, tariffs=$_tariffs, '
-        'token=${_accessToken != null ? "bor" : "yoq"}');
+        'token=${mercureJwt != null ? "bor (${_mercureToken != null ? "mercure" : "access"})" : "yoq"}');
     svc.connect(
       driverId: _driverId!,
       companyId: _companyId!,
       activeTariffs: _tariffs,
-      jwtToken: _accessToken,
+      jwtToken: mercureJwt,
     );
     _mercureSub?.cancel();
     _mercureSub = svc.events.listen(_onMercureEvent);
