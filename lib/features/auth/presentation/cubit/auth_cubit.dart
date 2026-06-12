@@ -48,10 +48,25 @@ class AuthCubit extends Cubit<AuthState> {
       // Profil va kompaniya ma'lumotlarini keshlaymiz.
       try {
         await driver.aboutMe();
-      } catch (_) {}
+      } catch (e) {
+        // ignore: avoid_print
+        print('\ud83d\udd34 aboutMe xato: $e');
+      }
       try {
         await driver.aboutMyData();
-      } catch (_) {}
+      } catch (e) {
+        // ignore: avoid_print
+        print('\ud83d\udd34 aboutMyData xato: $e');
+      }
+
+      // Login natijasini tekshirish uchun saqlangan ID larni log qilamiz.
+      final savedDriverId =
+          await StorageHelper.getInt(AppConstants.keyDriverId);
+      final savedCompanyId =
+          await StorageHelper.getInt(AppConstants.keyCompanyId);
+      // ignore: avoid_print
+      print('\ud83d\udd11 Login natija: driverId=$savedDriverId, '
+          'companyId=$savedCompanyId');
 
       await StorageHelper.saveBool(AppConstants.keyIsLoggedIn, true);
 

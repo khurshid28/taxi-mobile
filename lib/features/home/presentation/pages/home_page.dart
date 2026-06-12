@@ -17,6 +17,7 @@ import '../widgets/order_in_progress_widget.dart';
 import '../widgets/cancel_trip_sheet.dart';
 import '../widgets/trip_complete_dialog.dart';
 import '../widgets/home_shimmer_loading.dart';
+import '../widgets/slide_to_online_button.dart';
 import 'no_internet_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -386,40 +387,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// Liniyaga chiqish uchun oddiy, yengil bosiladigan tugma (surish o'rniga).
+  /// Liniyaga chiqish uchun silliq surish tugmasi.
   Widget _buildGoOnlineButton(BuildContext context) {
-    return SizedBox(
-      height: 60.h,
-      child: Material(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(30.r),
-        elevation: 6,
-        shadowColor: AppColors.primary.withOpacity(0.4),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(30.r),
-          onTap: () => context.read<HomeCubit>().toggleOnline(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.power_settings_new,
-                color: Colors.white,
-                size: 22.w,
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                'Liniyaga chiqish',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return SlideToOnlineButton(
+      text: 'Liniyaga chiqish',
+      onConfirmed: () => context.read<HomeCubit>().toggleOnline(),
     );
   }
 

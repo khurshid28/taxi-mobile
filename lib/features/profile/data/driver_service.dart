@@ -23,6 +23,8 @@ class DriverService {
       await StorageHelper.saveString(
           AppConstants.keyUserPhone, profile.phone);
     }
+    // ignore: avoid_print
+    print('\ud83d\udc64 aboutMe \u2192 driverId=${profile.id}, phone=${profile.phone}');
     return profile;
   }
 
@@ -41,6 +43,9 @@ class DriverService {
         jsonEncode(model.tariffs),
       );
     }
+    // ignore: avoid_print
+    print('\ud83c\udfe2 aboutMyData \u2192 company raw=${data['company']}, '
+        'companyId=${model.companyId}, tariffs=${model.tariffs}');
     return model;
   }
 

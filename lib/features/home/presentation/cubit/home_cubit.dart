@@ -174,10 +174,15 @@ class HomeCubit extends Cubit<HomeState> {
   void _connectMercure() {
     if (_driverId == null || _companyId == null) {
       // ignore: avoid_print
-      print('⚠️ Mercure: driver/company ID yo\'q');
+      print('\u26a0\ufe0f Mercure ulanmadi: driver/company ID yo\'q '
+          '(driverId=$_driverId, companyId=$_companyId)');
       return;
     }
     final svc = sl<MercureService>();
+    // ignore: avoid_print
+    print('\ud83d\udce1 Mercure connect \u2192 driverId=$_driverId, '
+        'companyId=$_companyId, tariffs=$_tariffs, '
+        'token=${_accessToken != null ? "bor" : "yoq"}');
     svc.connect(
       driverId: _driverId!,
       companyId: _companyId!,
@@ -242,9 +247,18 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> _pushLocation() async {
-    if (_driverId == null || _companyId == null) return;
+    if (_driverId == null || _companyId == null) {
+      // ignore: avoid_print
+      print('⚠️ Location push (10s) o\'tkazildi: driver/company ID yo\'q '
+          '(driverId=$_driverId, companyId=$_companyId)');
+      return;
+    }
     final loc = state.currentLocation;
-    if (loc == null) return;
+    if (loc == null) {
+      // ignore: avoid_print
+      print('⚠️ Location push (10s) o\'tkazildi: GPS lokatsiya hali yo\'q');
+      return;
+    }
     // Safar davomida (mijoz mashinada) km + narx ham yuboriladi.
     final onTrip = state.status == OrderStatus.inProgress;
     try {
@@ -259,9 +273,12 @@ class HomeCubit extends Cubit<HomeState> {
         price: onTrip ? state.currentPrice.toDouble() : null,
         status: onTrip ? 'on_the_way' : null,
       );
+      // ignore: avoid_print
+      print('📍 Location push (10s) yuborildi → driver=$_driverId, '
+          'lat=${loc.latitude}, lng=${loc.longitude}, onTrip=$onTrip');
     } catch (e) {
       // ignore: avoid_print
-      print('⚠️ location push: $e');
+      print('⚠️ location push xato: $e');
     }
   }
 
