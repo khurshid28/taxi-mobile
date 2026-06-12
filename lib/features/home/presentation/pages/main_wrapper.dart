@@ -1,7 +1,9 @@
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_rebuilder.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../orders/presentation/pages/orders_page.dart';
 import '../../../payments/presentation/pages/payments_page.dart';
@@ -17,11 +19,11 @@ class MainWrapper extends StatefulWidget {
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    OrdersPage(),
-    PaymentsPage(),
-    ProfilePage(),
+  final List<Widget> _pages = [
+    ThemeRebuilder(builder: (_) => HomePage()),
+    ThemeRebuilder(builder: (_) => OrdersPage()),
+    ThemeRebuilder(builder: (_) => PaymentsPage()),
+    ThemeRebuilder(builder: (_) => ProfilePage()),
   ];
 
   @override

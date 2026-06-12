@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/storage_helper.dart';
+import 'app_colors.dart';
 
 /// App-level theme mode holder. Persists the user's choice (light / dark /
 /// system) and notifies [MaterialApp] to rebuild via [mode].
@@ -17,12 +18,25 @@ class ThemeController {
   Future<void> load() async {
     final saved = await StorageHelper.getString(_key);
     mode.value = _fromString(saved);
+    _applyIsDark(mode.value);
   }
 
   /// Updates and persists the theme mode.
   Future<void> setMode(ThemeMode value) async {
+    _applyIsDark(value);
     mode.value = value;
     await StorageHelper.saveString(_key, _toString(value));
+  }
+
+  /// Global [AppColors.isDark] flag'ni darhol (sinxron) yangilaydi - shunda
+  /// mode listener'lari (ThemeRebuilder) qayta qurilganda rang allaqachon
+  /// to'g'ri bo'ladi. Tizim rejimida OS yorqinligidan foydalanamiz.
+  void _applyIsDark(ThemeMode m) {
+    final platformDark = WidgetsBinding
+            .instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+    AppColors.isDark =
+        m == ThemeMode.dark || (m == ThemeMode.system && platformDark);
   }
 
   static ThemeMode _fromString(String? value) {

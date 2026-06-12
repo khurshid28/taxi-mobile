@@ -1,5 +1,7 @@
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../theme/theme_rebuilder.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/car_number_page.dart';
@@ -19,7 +21,7 @@ class AppRouter {
         path: '/',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const SplashPage(),
+          child: ThemeRebuilder(builder: (_) => SplashPage()),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
@@ -29,7 +31,7 @@ class AppRouter {
         path: '/onboarding',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const OnboardingPage(),
+          child: ThemeRebuilder(builder: (_) => OnboardingPage()),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const begin = Offset(1.0, 0.0);
             const end = Offset.zero;
@@ -47,7 +49,7 @@ class AppRouter {
         path: '/phone',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const CarNumberPage(),
+          child: ThemeRebuilder(builder: (_) => CarNumberPage()),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
@@ -59,7 +61,9 @@ class AppRouter {
           final carNumber = state.extra as String;
           return CustomTransitionPage(
             key: state.pageKey,
-            child: PasswordPage(carNumber: carNumber),
+            child: ThemeRebuilder(
+              builder: (_) => PasswordPage(carNumber: carNumber),
+            ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
@@ -71,7 +75,7 @@ class AppRouter {
         path: '/complete-profile',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const CompleteProfilePage(),
+          child: ThemeRebuilder(builder: (_) => CompleteProfilePage()),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
@@ -81,7 +85,7 @@ class AppRouter {
         path: '/home',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const MainWrapper(),
+          child: ThemeRebuilder(builder: (_) => MainWrapper()),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
