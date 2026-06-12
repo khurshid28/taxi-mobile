@@ -76,31 +76,108 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierColor: Colors.black.withOpacity(0.45),
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        insetPadding: EdgeInsets.symmetric(horizontal: 32.w),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(24.r),
         ),
-        title: const Text('Chiqish'),
-        content: const Text('Hisobingizdan chiqmoqchimisiz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Yo\'q',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64.w,
+                height: 64.w,
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(
+                    AppColors.isDark ? 0.18 : 0.10,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Iconsax.logout,
+                  color: AppColors.error,
+                  size: 30.w,
+                ),
               ),
-            ),
-            child: const Text('Ha', style: TextStyle(color: Colors.white)),
+              SizedBox(height: 18.h),
+              Text(
+                'Hisobdan chiqish',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Rostdan ham hisobingizdan chiqmoqchimisiz?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50.h,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.surfaceVariant,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Bekor qilish',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50.h,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Chiqish',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
 

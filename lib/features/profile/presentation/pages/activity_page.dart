@@ -365,7 +365,7 @@ class _ActivityPageState extends State<ActivityPage>
                   child: BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
-                      maxY: 2000000,
+                      maxY: _monthlyMaxY,
                       barTouchData: BarTouchData(
                         enabled: true,
                         touchCallback: (event, response) {
@@ -416,9 +416,10 @@ class _ActivityPageState extends State<ActivityPage>
                           sideTitles: SideTitles(
                             showTitles: true,
                             reservedSize: 40,
+                            interval: _monthlyMaxY / 4,
                             getTitlesWidget: (value, meta) {
                               return Text(
-                                '${(value / 1000000).toStringAsFixed(1)}M',
+                                '${(value / 1000000).toStringAsFixed(0)}M',
                                 style: TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 10,
@@ -432,7 +433,7 @@ class _ActivityPageState extends State<ActivityPage>
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
-                        horizontalInterval: 500000,
+                        horizontalInterval: _monthlyMaxY / 4,
                         getDrawingHorizontalLine: (value) {
                           return FlLine(
                             color: AppColors.divider,
@@ -616,37 +617,56 @@ class _ActivityPageState extends State<ActivityPage>
   }
 
   Widget _buildYearDropdown() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.w),
+    return PopupMenuButton<int>(
+      initialValue: _selectedYear,
+      onSelected: (v) => setState(() => _selectedYear = v),
+      color: AppColors.surface,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14.r),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: _selectedYear,
-          dropdownColor: AppColors.primary,
-          isDense: true,
-          icon: Icon(Iconsax.arrow_down_1, color: Colors.white, size: 18.sp),
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
+      itemBuilder: (context) => _availableYears.map((y) {
+        final selected = y == _selectedYear;
+        return PopupMenuItem<int>(
+          value: y,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$y',
+                style: TextStyle(
+                  color: selected ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 14.sp,
+                ),
+              ),
+              if (selected)
+                Icon(Iconsax.tick_circle, color: AppColors.primary, size: 18.sp),
+            ],
           ),
-          items: _availableYears.map((year) {
-            return DropdownMenuItem<int>(
-              value: year,
-              child: Text('$year'),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _selectedYear = value;
-              });
-            }
-          },
+        );
+      }).toList(),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.w),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$_selectedYear',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Icon(Iconsax.arrow_down_1, color: Colors.white, size: 16.sp),
+          ],
         ),
       ),
     );
@@ -706,6 +726,17 @@ class _ActivityPageState extends State<ActivityPage>
     ];
     if (index >= 0 && index < names.length) return names[index];
     return '';
+  }
+
+  /// Eng yuqori oylik daromaddan kelib chiqib grafik shkalasini hisoblaydi
+  /// (2 mln'gacha yaxlitlab, ustunlar to'g'ri ko'rinishi uchun).
+  double get _monthlyMaxY {
+    final maxE = _monthlyData
+        .map((m) => m.earnings)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
+    final rounded = ((maxE / 2000000).ceil() * 2000000).toDouble();
+    return rounded <= 0 ? 2000000 : rounded;
   }
 
   Widget _buildWeeklyChart() {
@@ -818,34 +849,37 @@ class _ActivityPageState extends State<ActivityPage>
             ),
           ),
           SizedBox(height: 6.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                  letterSpacing: -1,
-                  height: 1,
-                ),
-              ),
-              SizedBox(width: 3.w),
-              Padding(
-                padding: EdgeInsets.only(bottom: 2.h),
-                child: Text(
-                  subtitle,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
                   style: TextStyle(
-                    fontSize: 11.sp,
-                    color: color.withOpacity(0.8),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
+                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: -1,
+                    height: 1,
                   ),
                 ),
-              ),
-            ],
+                SizedBox(width: 3.w),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 2.h),
+                  child: Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: color.withOpacity(0.8),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

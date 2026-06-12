@@ -247,21 +247,24 @@ class _HomePageState extends State<HomePage> {
                         width: 56.w,
                         height: 56.w,
                         child: Material(
-                          elevation: 8,
-                          borderRadius: BorderRadius.circular(16.r),
-                          child: FloatingActionButton(
-                            onPressed: () {
+                          elevation: 6,
+                          shadowColor: Colors.black.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(18.r),
+                          color: AppColors.surface,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18.r),
+                            onTap: () {
                               if (state.currentLocation != null &&
                                   _mapController != null) {
                                 _moveToLocation(state.currentLocation!);
                               }
                             },
-                            backgroundColor: AppColors.primary,
-                            elevation: 0,
-                            child: Icon(
-                              Icons.my_location_rounded,
-                              color: Colors.white,
-                              size: 26.w,
+                            child: Center(
+                              child: Icon(
+                                Icons.my_location,
+                                color: AppColors.primary,
+                                size: 26.w,
+                              ),
                             ),
                           ),
                         ),
