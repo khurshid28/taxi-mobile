@@ -225,6 +225,9 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void _onMercureEvent(MercureEvent event) {
+    // ignore: avoid_print
+    print('🎯 HomeCubit Mercure event: ${event.type} '
+        '(orderId=${event.orderId}, holat=${state.status}, online=${state.isOnline})');
     switch (event.type) {
       case MercureEventType.newOrder:
         if (event.order != null && state.status == OrderStatus.initial) {
@@ -235,12 +238,21 @@ class HomeCubit extends Cubit<HomeState> {
           // Ovoz showNewOrderNotification ichida bir marta ijro etiladi
           // (ikki marta chaqirilsa player qotib qolardi).
           NotificationService().showNewOrderNotification();
+          // ignore: avoid_print
+          print('🔔 Yangi buyurtma ekranga chiqarildi: #${event.order!.id}');
+        } else {
+          // ignore: avoid_print
+          print('⚠️ Yangi buyurtma KO\'RSATILMADI: order=${event.order != null}, '
+              'holat=${state.status} (faqat "initial" holatda chiqadi)');
         }
         break;
       case MercureEventType.accepted:
       case MercureEventType.canceled:
         if (state.currentOrder?.id == event.orderId &&
             state.status == OrderStatus.orderReceived) {
+          // ignore: avoid_print
+          print('↩️ Buyurtma #${event.orderId} bekor/qabul qilindi — '
+              'ekran tozalandi');
           emit(state.copyWith(
             status: OrderStatus.initial,
             currentOrder: null,

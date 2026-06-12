@@ -122,6 +122,8 @@ class MercureService {
         },
         onDone: () {
           isConnected = false;
+          // ignore: avoid_print
+          print('🔌 Mercure ulanishi yopildi (onDone)');
           _scheduleReconnect();
         },
       );
@@ -159,54 +161,73 @@ class MercureService {
   }
 
   void _processMessage(String rawData, String? eventId) {
+    // Hub'dan kelgan HAR QANDAY xabarni to'liq logga chiqaramiz — bu real
+    // buyurtma kelganda nima sodir bo'layotganini ko'rish uchun eng muhim joy.
+    // ignore: avoid_print
+    print('📨 Mercure xabar keldi (id=$eventId): $rawData');
     try {
       final dynamic decoded = jsonDecode(rawData);
       final Map<String, dynamic> data = decoded is Map<String, dynamic>
           ? decoded
           : <String, dynamic>{'data': decoded};
 
-      // Topic ko'pincha payload ichida bo'lmaydi - turini taxmin qilamiz
+      // Backend payload: {type, orderId, tariff, message}. Turi (type) bo'yicha
+      // yangi / qabul / bekor ekanini ajratamiz.
       final action = (data['action'] ?? data['type'] ?? data['event'] ?? '')
           .toString()
           .toLowerCase();
+      final orderId =
+          (data['orderId'] ?? data['id'] ?? data['@id'] ?? '').toString();
 
       if (action.contains('cancel')) {
+        // ignore: avoid_print
+        print('🚫 Mercure: buyurtma bekor qilindi (orderId=$orderId)');
         _eventsCtrl.add(MercureEvent(
           type: MercureEventType.canceled,
-          orderId: (data['id'] ?? data['orderId'])?.toString(),
+          orderId: orderId.isNotEmpty ? orderId : null,
           raw: data,
         ));
         return;
       }
 
       if (action.contains('accept')) {
+        // ignore: avoid_print
+        print('✅ Mercure: buyurtmani boshqa haydovchi qabul qildi '
+            '(orderId=$orderId)');
         _eventsCtrl.add(MercureEvent(
           type: MercureEventType.accepted,
-          orderId: (data['id'] ?? data['orderId'])?.toString(),
+          orderId: orderId.isNotEmpty ? orderId : null,
           raw: data,
         ));
         return;
       }
 
-      // Default: yangi buyurtma
-      final order = OrderModel.fromJson(data);
+      // ===== Yangi buyurtma (notification) =====
+      final incomingTariff = (data['tariff'] ?? '').toString().toLowerCase();
 
-      // Tarif filter
-      final incomingTariff =
-          (data['tariff'] ?? order.tariff ?? '').toString().toLowerCase();
-      if (_activeTariffs.isNotEmpty &&
+      // Tarif filtri FAQAT global broadcast uchun. Shaxsiy `driver/{id}/orders`
+      // xabari allaqachon backend tomonidan shu haydovchiga yo'naltirilgan —
+      // uni hech qachon filtrlab tashlamaymiz.
+      final isGlobal = action.contains('global');
+      if (isGlobal &&
+          _activeTariffs.isNotEmpty &&
           incomingTariff.isNotEmpty &&
           !_activeTariffs.contains(incomingTariff)) {
         // ignore: avoid_print
-        print('⏭️ Tarif mos kelmadi: $incomingTariff vs $_activeTariffs');
+        print('⏭️ Tarif mos kelmadi: "$incomingTariff" ∉ $_activeTariffs '
+            '— buyurtma o\'tkazib yuborildi');
         return;
       }
 
+      final order = OrderModel.fromJson(data);
+      // ignore: avoid_print
+      print('🆕 Mercure: YANGI BUYURTMA #${orderId.isNotEmpty ? orderId : order.id} '
+          '(tarif=$incomingTariff, global=$isGlobal) → UI ga uzatildi');
       _playOrderSound();
       _eventsCtrl.add(MercureEvent(
         type: MercureEventType.newOrder,
         order: order,
-        orderId: order.id,
+        orderId: orderId.isNotEmpty ? orderId : order.id,
         raw: data,
       ));
     } catch (e) {
