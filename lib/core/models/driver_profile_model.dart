@@ -1,5 +1,6 @@
 class DriverProfileModel {
   final int? id;
+  final int? companyId;
   final String name;
   final String fullname;
   final String email;
@@ -12,6 +13,7 @@ class DriverProfileModel {
 
   DriverProfileModel({
     this.id,
+    this.companyId,
     required this.name,
     required this.fullname,
     required this.email,
@@ -37,6 +39,24 @@ class DriverProfileModel {
       return null;
     }
 
+    // Kompaniya ID: drivers/about_me -> userCompany: "/api/user_companies/2"
+    // (yoki company: "/api/companies/2"). IRI dan oxirgi raqamni olamiz.
+    int? company() {
+      final v = json['company'] ?? json['userCompany'];
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) {
+        final last = v.split('/').last;
+        return int.tryParse(last);
+      }
+      if (v is Map) {
+        final cid = v['id'];
+        if (cid is int) return cid;
+        if (cid is String) return int.tryParse(cid);
+      }
+      return null;
+    }
+
     double d(dynamic v) {
       if (v is num) return v.toDouble();
       if (v is String) return double.tryParse(v) ?? 0;
@@ -52,6 +72,7 @@ class DriverProfileModel {
 
     return DriverProfileModel(
       id: id(),
+      companyId: company(),
       name: (json['name'] ?? json['firstName'] ?? '').toString(),
       fullname:
           (json['fullname'] ?? json['fullName'] ?? json['name'] ?? '').toString(),
@@ -67,6 +88,7 @@ class DriverProfileModel {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'companyId': companyId,
         'name': name,
         'fullname': fullname,
         'email': email,
@@ -80,6 +102,7 @@ class DriverProfileModel {
 
   DriverProfileModel copyWith({
     int? id,
+    int? companyId,
     String? name,
     String? fullname,
     String? email,
@@ -92,6 +115,7 @@ class DriverProfileModel {
   }) {
     return DriverProfileModel(
       id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
       name: name ?? this.name,
       fullname: fullname ?? this.fullname,
       email: email ?? this.email,

@@ -19,12 +19,19 @@ class DriverService {
     if (profile.id != null) {
       await StorageHelper.saveInt(AppConstants.keyDriverId, profile.id!);
     }
+    // Kompaniya ID shu yerda (userCompany IRI) keladi - cache'ga saqlaymiz,
+    // shunda Mercure uchun qayta-qayta so'rov bermaymiz.
+    if (profile.companyId != null) {
+      await StorageHelper.saveInt(
+          AppConstants.keyCompanyId, profile.companyId!);
+    }
     if (profile.phone.isNotEmpty) {
       await StorageHelper.saveString(
           AppConstants.keyUserPhone, profile.phone);
     }
     // ignore: avoid_print
-    print('\ud83d\udc64 aboutMe \u2192 driverId=${profile.id}, phone=${profile.phone}');
+    print('\ud83d\udc64 aboutMe \u2192 driverId=${profile.id}, '
+        'companyId=${profile.companyId}, phone=${profile.phone}');
     return profile;
   }
 

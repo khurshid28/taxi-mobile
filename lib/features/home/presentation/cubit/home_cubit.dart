@@ -93,6 +93,25 @@ class HomeCubit extends Cubit<HomeState> {
     _companyId = await StorageHelper.getInt(AppConstants.keyCompanyId);
     _accessToken =
         await StorageHelper.getString(AppConstants.keyAccessToken);
+
+    // Cache'da driver/company ID yo'q bo'lsa - bir marta about_me orqali
+    // olib kelamiz va cache'laymiz. Keyingi safar so'rov bermaymiz.
+    if (_driverId == null || _companyId == null) {
+      try {
+        final profile = await sl<DriverService>().aboutMe();
+        _driverId = profile.id ?? _driverId;
+        _companyId = profile.companyId ?? _companyId;
+        // ignore: avoid_print
+        print('\ud83d\udd04 about_me orqali yuklandi: driverId=$_driverId, '
+            'companyId=$_companyId');
+      } catch (e) {
+        // ignore: avoid_print
+        print('\ud83d\udd34 about_me yuklash xato: $e');
+      }
+    } else {
+      // ignore: avoid_print
+      print('\ud83d\udcbe Cache\'dan: driverId=$_driverId, companyId=$_companyId');
+    }
     final raw = await StorageHelper.getString(AppConstants.keyDriverTariffs);
     if (raw != null && raw.isNotEmpty) {
       try {
