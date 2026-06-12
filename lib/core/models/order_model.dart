@@ -66,11 +66,23 @@ class OrderModel {
     // `orders//api/orders/5/.../accept` ko'rinishida buzilib 404 beradi.
     String parseId(dynamic raw) {
       final s = (raw ?? '').toString().trim();
+      if (s.isEmpty || s == 'null') return '';
       if (s.contains('/')) return s.split('/').last;
       return s;
     }
 
-    final id = parseId(json['id'] ?? json['orderId'] ?? json['@id']);
+    // Backend turli nomlar ishlatishi mumkin: orderId / order_id / orderID /
+    // id / @id, yoki id nested `order`/`data` obyekti ichida. Hammasini
+    // tekshiramiz - chunki accept URL aynan shu id bilan quriladi.
+    final nestedOrder = asMap(json['order']) ?? asMap(json['data']);
+    final id = parseId(json['id'] ??
+        json['orderId'] ??
+        json['order_id'] ??
+        json['orderID'] ??
+        json['@id'] ??
+        nestedOrder?['id'] ??
+        nestedOrder?['orderId'] ??
+        nestedOrder?['@id']);
 
     // Mijoz (nested `client` obyekti yoki yassi maydonlar)
     final client = asMap(json['client']);

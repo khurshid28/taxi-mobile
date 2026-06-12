@@ -449,6 +449,22 @@ class HomeCubit extends Cubit<HomeState> {
     AppLogger.header('ACCEPT');
     AppLogger.info('orderId  = "$orderId"');
     AppLogger.info('driverId = $_driverId');
+
+    // orderId bo'sh bo'lsa - so'rov yubormaymiz. Aks holda URL `orders//1/accept`
+    // ko'rinishida buzilib backend 404 qaytaradi. Bu Mercure xabarida orderId
+    // kelmaganini bildiradi (backend tomonidagi muammo).
+    if (orderId.isEmpty) {
+      AppLogger.error('ACCEPT BEKOR: orderId BO\'SH — Mercure xabarida '
+          'orderId kelmagan. Backend payload\'ga orderId qo\'shishi kerak.');
+      emit(state.copyWith(
+        status: OrderStatus.initial,
+        currentOrder: null,
+        error: 'Buyurtma raqami (orderId) kelmadi. Backend Mercure xabariga '
+            'orderId qo\'shishi kerak.',
+      ));
+      return;
+    }
+
     AppLogger.info('URL      = ${AppConstants.baseUrl}orders/$orderId/'
         '$_driverId/accept');
     try {

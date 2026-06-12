@@ -176,8 +176,19 @@ class MercureService {
       final action = (data['action'] ?? data['type'] ?? data['event'] ?? '')
           .toString()
           .toLowerCase();
-      final orderId =
-          (data['orderId'] ?? data['id'] ?? data['@id'] ?? '').toString();
+      // orderId turli nomlarda kelishi mumkin. Hammasini tekshiramiz.
+      final nestedOrder = data['order'] is Map
+          ? (data['order'] as Map)
+          : (data['data'] is Map ? data['data'] as Map : null);
+      final orderId = (data['orderId'] ??
+              data['order_id'] ??
+              data['orderID'] ??
+              data['id'] ??
+              data['@id'] ??
+              nestedOrder?['orderId'] ??
+              nestedOrder?['id'] ??
+              '')
+          .toString();
 
       // orderId ni qaysi maydondan olganimizni aniq ko'rsatamiz.
       AppLogger.info('action        = "$action"');
