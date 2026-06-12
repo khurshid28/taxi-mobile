@@ -112,6 +112,17 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       body: BlocConsumer<HomeCubit, HomeState>(
+        // Xarita obyektlarini (marker/polyline) YANGILASH qimmat (canvas bilan
+        // PNG chizish). Uni faqat XARITAGA taalluqli maydon o'zgarganda
+        // bajaramiz. Aks holda safar vaqti / kutish hisoblagichi har sekund
+        // state emit qilgani uchun har sekund qayta chizilib app qotardi.
+        listenWhen: (prev, curr) =>
+            prev.error != curr.error ||
+            prev.currentLocation != curr.currentLocation ||
+            prev.routeGeometry != curr.routeGeometry ||
+            prev.status != curr.status ||
+            prev.isOnline != curr.isOnline ||
+            prev.currentOrder?.id != curr.currentOrder?.id,
         listener: (context, state) {
           if (state.error != null) {
             AppMessenger.error(context, state.error!);
@@ -150,7 +161,7 @@ class _HomePageState extends State<HomePage> {
                     _moveToLocation(state.currentLocation!);
                   }
                 },
-                mapObjects: _mapObjects,
+                mapObjects: List.of(_mapObjects),
                 onCameraPositionChanged: (cameraPosition, reason, finished) {},
                 onMapTap: (point) {
                   if (state.status == OrderStatus.initial) {
@@ -698,9 +709,6 @@ class _HomePageState extends State<HomePage> {
 
     // Add route polyline if we have route geometry (updates when route changes)
     if (state.routeGeometry != null && state.routeGeometry!.isNotEmpty) {
-      print(
-        '🗺️ Drawing route: ${state.routeGeometry!.length} points (Status: ${state.status})',
-      );
       _mapObjects.add(
         PolylineMapObject(
           mapId: const MapObjectId('route_polyline'),
@@ -714,8 +722,6 @@ class _HomePageState extends State<HomePage> {
           gapLength: 0,
         ),
       );
-    } else {
-      print('❌ No route geometry available');
     }
 
     // Remove client marker if order completed, initial state, when going offline, or client picked up
@@ -726,7 +732,6 @@ class _HomePageState extends State<HomePage> {
         state.currentOrder == null ||
         state.status == OrderStatus.inProgress) {
       _mapObjects.removeWhere((obj) => obj.mapId.value == 'client_location');
-      print('🧹 Cleaned up client location marker');
     }
 
     // Add client location marker ONLY if going to client or waiting
