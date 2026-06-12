@@ -26,12 +26,27 @@ class DriverDataModel {
     return null;
   }
 
+  /// Tarif ro'yxati. Backend endi obyekt qaytaradi:
+  /// `[{id: 1, name: "Start", active: true}, {id: 2, name: "Kamfort", active: false}]`.
+  /// Faqat `active: true` bo'lgan tariflar nomi (filtr va location uchun) olinadi.
   List<String> get tariffs {
     final t = raw['tariff'] ?? raw['tariffs'];
     if (t is List) {
-      return t.map((e) => e.toString()).toList();
+      final names = <String>[];
+      for (final e in t) {
+        if (e is Map) {
+          if (e['active'] == false) continue; // faqat aktiv tariflar
+          final name = e['name'];
+          if (name != null && name.toString().isNotEmpty) {
+            names.add(name.toString());
+          }
+        } else if (e != null && e.toString().isNotEmpty) {
+          names.add(e.toString());
+        }
+      }
+      return names.isEmpty ? const ['Start'] : names;
     }
-    if (t is String) return [t];
+    if (t is String && t.isNotEmpty) return [t];
     return const ['Start'];
   }
 
