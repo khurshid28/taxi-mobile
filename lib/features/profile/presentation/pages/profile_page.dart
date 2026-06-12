@@ -238,18 +238,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   // Balance Card
                   Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.8),
-                        ],
-                      ),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(20.r),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 15.r,
-                          offset: Offset(0.w, 8.h),
+                          color: AppColors.primary.withOpacity(0.25),
+                          blurRadius: 24.r,
+                          offset: Offset(0.w, 10.h),
+                          spreadRadius: -4.w,
                         ),
                       ],
                     ),
@@ -464,86 +460,53 @@ class _ProfilePageState extends State<ProfilePage> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
+    final Color accent = isDestructive ? AppColors.error : AppColors.primary;
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.surface,
-            (isDestructive ? Colors.red : AppColors.primary).withOpacity(0.01),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: (isDestructive ? Colors.red : AppColors.primary).withOpacity(
-            0.1,
-          ),
-          width: 2.w,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12.r,
-            offset: Offset(0.w, 4.h),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppColors.divider, width: 1.w),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(16.r),
           onTap: onTap,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 18.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             child: Row(
               children: [
                 Container(
-                  width: 48.w,
-                  height: 48.h,
+                  width: 44.w,
+                  height: 44.w,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (isDestructive ? Colors.red : AppColors.primary),
-                        (isDestructive ? Colors.red : AppColors.primary)
-                            .withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isDestructive ? Colors.red : AppColors.primary)
-                            .withOpacity(0.3),
-                        blurRadius: 10.r,
-                        offset: Offset(0, 4.h),
-                      ),
-                    ],
+                    color: accent.withOpacity(AppColors.isDark ? 0.18 : 0.10),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Center(
-                    child: Icon(icon, color: Colors.white, size: 24.w),
+                    child: Icon(icon, color: accent, size: 22.w),
                   ),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: 14.w),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
                       color: isDestructive
-                          ? Colors.red[700]
+                          ? AppColors.error
                           : AppColors.textPrimary,
-                      letterSpacing: -0.3,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),
                 Icon(
                   Iconsax.arrow_right_3,
                   color: AppColors.textHint,
-                  size: 28.w,
+                  size: 20.w,
                 ),
               ],
             ),

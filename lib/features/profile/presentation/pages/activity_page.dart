@@ -107,7 +107,6 @@ class _ActivityPageState extends State<ActivityPage>
     final now = DateTime.now();
     _dailyData = List.generate(7, (index) {
       final day = now.subtract(Duration(days: 6 - index));
-      final dayNames = ['Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan', 'Yak'];
       return DailyActivity(
         day: index == 6 ? 'Bugun' : '${day.day}',
         date: DateFormat('dd MMM').format(day),
@@ -132,20 +131,6 @@ class _ActivityPageState extends State<ActivityPage>
 
   @override
   Widget build(BuildContext context) {
-    final selectedMonth = _monthlyData[_selectedIndex];
-    final totalEarnings = _monthlyData.fold<int>(
-      0,
-      (sum, month) => sum + month.earnings,
-    );
-    final totalDistance = _monthlyData.fold<int>(
-      0,
-      (sum, month) => sum + month.distance,
-    );
-    final totalClients = _monthlyData.fold<int>(
-      0,
-      (sum, month) => sum + month.clients,
-    );
-
     return Scaffold(
       backgroundColor: AppColors.surfaceVariant,
       appBar: AppBar(
@@ -297,7 +282,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: (totalEarnings / 1000000).toStringAsFixed(1),
                       subtitle: 'mln',
                       color: const Color(0xFF4CAF50),
-                      bgColor: const Color(0xFFE8F5E9),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -308,7 +292,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: '$totalDistance',
                       subtitle: 'km',
                       color: const Color(0xFF2196F3),
-                      bgColor: const Color(0xFFE3F2FD),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -319,7 +302,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: '$totalClients',
                       subtitle: 'ta',
                       color: const Color(0xFFFF9800),
-                      bgColor: const Color(0xFFFFF3E0),
                     ),
                   ),
                 ],
@@ -492,7 +474,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: (totalEarnings / 1000000).toStringAsFixed(1),
                       subtitle: 'mln',
                       color: const Color(0xFF4CAF50),
-                      bgColor: const Color(0xFFE8F5E9),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -503,7 +484,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: '$totalDistance',
                       subtitle: 'km',
                       color: const Color(0xFF2196F3),
-                      bgColor: const Color(0xFFE3F2FD),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -514,7 +494,6 @@ class _ActivityPageState extends State<ActivityPage>
                       value: '$totalClients',
                       subtitle: 'safar',
                       color: const Color(0xFFFF9800),
-                      bgColor: const Color(0xFFFFF3E0),
                     ),
                   ),
                 ],
@@ -672,12 +651,7 @@ class _ActivityPageState extends State<ActivityPage>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withOpacity(0.08),
-                        AppColors.primary.withOpacity(0.03),
-                      ],
-                    ),
+                    color: AppColors.primary.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -769,29 +743,21 @@ class _ActivityPageState extends State<ActivityPage>
     required String value,
     required String subtitle,
     required Color color,
-    required Color bgColor,
   }) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: color.withOpacity(0.1), width: 1.5.w),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.08),
-            blurRadius: 20.r,
-            offset: Offset(0, 6.h),
-            spreadRadius: -2.w,
-          ),
-        ],
+        border: Border.all(color: AppColors.divider, width: 1.w),
+        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: color.withOpacity(AppColors.isDark ? 0.18 : 0.12),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(icon, color: color, size: 24.w),
@@ -978,12 +944,7 @@ class _ActivityPageState extends State<ActivityPage>
               Container(
                 padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.05),
-                      AppColors.primary.withOpacity(0.02),
-                    ],
-                  ),
+                  color: AppColors.primary.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16.r),
                 ),
                 child: Column(
