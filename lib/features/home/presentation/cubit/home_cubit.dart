@@ -67,6 +67,13 @@ class HomeCubit extends Cubit<HomeState> {
   // Aktiv buyurtma uchun aniqlangan tarif (narx hisobida ishlatiladi).
   OrderTypeModel? _activeTariff;
 
+  // Accept jarayoni davom etyaptimi. Backend buyurtma qabul qilinganda BARCHA
+  // haydovchilarga Mercure "accepted" xabarini tarqatadi (shu haydovchiga ham).
+  // accept/getOrder kutilayotgan payt status hali "orderReceived" bo'lgani uchun
+  // _onMercureEvent currentOrder'ni reset qilib app'ni qotirardi. Bu bayroq
+  // shu oraliqda reset'ni bloklaydi.
+  bool _isAccepting = false;
+
   // Aktiv safar holatini saqlash kaliti — app yopilib qayta ochilsa
   // (time, km, narx) yo'qolmasligi uchun.
   static const String _activeTripKey = 'active_trip_state';
@@ -275,7 +282,8 @@ class HomeCubit extends Cubit<HomeState> {
         break;
       case MercureEventType.accepted:
       case MercureEventType.canceled:
-        if (state.currentOrder?.id == event.orderId &&
+        if (!_isAccepting &&
+            state.currentOrder?.id == event.orderId &&
             state.status == OrderStatus.orderReceived) {
           AppLogger.info('Buyurtma #${event.orderId} bekor/qabul qilindi — '
               'ekran tozalandi');
@@ -451,7 +459,11 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> acceptOrder() async {
     if (state.currentOrder == null || _driverId == null) return;
 
-    final orderId = state.currentOrder!.id;
+    // Buyurtmani BOSHIDA lokal nusxaga saqlaymiz — accept/getOrder kutilayotgan
+    // payt state biror sabab bilan o'zgarsa ham (mas. Mercure xabari) buyurtma
+    // yo'qolmasin. Pastda state.currentOrder! o'rniga shu `order` ishlatiladi.
+    final order = state.currentOrder!;
+    final orderId = order.id;
     AppLogger.header('ACCEPT');
     AppLogger.info('orderId  = "$orderId"');
     AppLogger.info('driverId = $_driverId');
@@ -462,9 +474,8 @@ class HomeCubit extends Cubit<HomeState> {
     if (orderId.isEmpty) {
       AppLogger.error('ACCEPT BEKOR: orderId BO\'SH — Mercure xabarida '
           'orderId kelmagan. Backend payload\'ga orderId qo\'shishi kerak.');
+      _resetOrderState();
       emit(state.copyWith(
-        status: OrderStatus.initial,
-        currentOrder: null,
         error: 'Buyurtma raqami (orderId) kelmadi. Backend Mercure xabariga '
             'orderId qo\'shishi kerak.',
       ));
@@ -473,81 +484,80 @@ class HomeCubit extends Cubit<HomeState> {
 
     AppLogger.info('URL      = ${AppConstants.baseUrl}orders/$orderId/'
         '$_driverId/accept');
+
+    // Accept davom etmoqda — Mercure "accepted" xabari (shu haydovchining o'z
+    // qabuli ham) currentOrder'ni reset qilib qo'ymasin.
+    _isAccepting = true;
     try {
-      await sl<OrderService>().accept(orderId: orderId, driverId: _driverId!);
-      AppLogger.success('ACCEPT muvaffaqiyatli (orderId=$orderId, '
-          'driverId=$_driverId)');
-    } catch (e) {
-      // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
-      // DIQQAT: backend 404 javobida ulkan stack-trace yuboradi. Uni to'liq
-      // bossak, uzun satr logcat'da bo'linib rang keyingi loglarga yuqadi.
-      // Shuning uchun faqat foydali maydonlarni (status + detail) chiqaramiz.
-      if (e is DioException) {
-        final data = e.response?.data;
-        final detail = data is Map
-            ? (data['detail'] ?? data['title'] ?? data['message'] ?? data)
-            : data;
-        AppLogger.error('ACCEPT XATO — status ${e.response?.statusCode}');
-        AppLogger.error('URL: ${e.requestOptions.uri}');
-        AppLogger.error('Sabab: $detail');
-      } else {
-        AppLogger.error('ACCEPT XATO: $e');
+      try {
+        await sl<OrderService>().accept(orderId: orderId, driverId: _driverId!);
+        AppLogger.success('ACCEPT muvaffaqiyatli (orderId=$orderId, '
+            'driverId=$_driverId)');
+      } catch (e) {
+        // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
+        if (e is DioException) {
+          final data = e.response?.data;
+          final detail = data is Map
+              ? (data['detail'] ?? data['title'] ?? data['message'] ?? data)
+              : data;
+          AppLogger.error('ACCEPT XATO — status ${e.response?.statusCode}');
+          AppLogger.error('URL: ${e.requestOptions.uri}');
+          AppLogger.error('Sabab: $detail');
+        } else {
+          AppLogger.error('ACCEPT XATO: $e');
+        }
+        // Qabul qilib bo'lmadi (mas. 404 — allaqachon olingan). Toza holatga
+        // qaytamiz va xabar ko'rsatamiz.
+        _activeTariff = null;
+        _resetOrderState();
+        emit(state.copyWith(
+          error: 'Buyurtmani qabul qilib bo\'lmadi — u allaqachon olingan '
+              'yoki mavjud emas.',
+        ));
+        return;
       }
-      // Qabul qilib bo'lmadi (mas. 404 — buyurtma allaqachon olingan yoki
-      // mavjud emas). Ekran qotib qolmasligi uchun boshlang'ich holatga
-      // qaytamiz va xabar ko'rsatamiz.
-      _activeTariff = null;
+
+      // Ovoz (fire-and-forget) — faqat muvaffaqiyatli qabuldan keyin.
+      SoundService().playOrderAcceptedSound();
+
+      // To'liq ma'lumotni (mijoz tel, aniq manzillar, narx) REST orqali
+      // tortamiz. currentOrder o'rniga lokal `order` ishlatamiz.
+      var acceptedOrder = order;
+      try {
+        acceptedOrder = await sl<OrderService>().getOrder(order.id);
+      } catch (e) {
+        // ignore: avoid_print
+        print('⚠️ getOrder (accept keyin): $e');
+      }
+
+      // Mos tarifni aniqlaymiz (narx hisobi shu asosda). Kerak bo'lsa yuklaymiz.
+      if (_orderTypes.isEmpty) await _loadOrderTypes();
+      _activeTariff = _resolveTariff(acceptedOrder);
+
+      // Yangi buyurtma — kutish (pause) hisoblagichini noldan boshlaymiz.
+      _accumulatedWaitingSeconds = 0;
+      _waitingStartedAt = null;
+
+      // Darhol "Mijoz oldiga" (goingToClient) holatiga o'tamiz: panel ko'rinadi,
+      // marshrut esa orqa fonda yuklanadi. currentOrder ni emitga qo'shamiz —
+      // shunda oraliqda biror reset bo'lsa ham buyurtma qaytadi.
+      _lastMapEmit = null; // marker/masofa darhol yangilansin (10s kutmasin)
+      _lastDistancePoint = state.currentLocation;
       emit(state.copyWith(
-        status: OrderStatus.initial,
-        error: 'Buyurtmani qabul qilib bo\'lmadi — u allaqachon olingan '
-            'yoki mavjud emas.',
+        status: OrderStatus.goingToClient,
+        currentOrder: acceptedOrder,
+        currentPrice: _computePrice(0, 0),
+        traveledDistance: 0,
+        waitingSeconds: 0,
+        isWaitingTimerActive: false,
       ));
-      return;
+
+      // Yo'l olish (mijozgacha) — tugagach polyline xaritaga chiziladi.
+      await _requestRouteToClient();
+      _persistActiveTrip();
+    } finally {
+      _isAccepting = false;
     }
-
-    // Ovoz (fire-and-forget) — faqat muvaffaqiyatli qabuldan keyin.
-    SoundService().playOrderAcceptedSound();
-
-    // Buyurtma qabul qilindi — to'liq ma'lumotni (mijoz tel, aniq manzillar,
-    // narx) REST orqali alohida tortib olamiz. Mercure faqat xabar bergan edi.
-    var acceptedOrder = state.currentOrder!;
-    try {
-      acceptedOrder = await sl<OrderService>().getOrder(acceptedOrder.id);
-      emit(state.copyWith(currentOrder: acceptedOrder));
-    } catch (e) {
-      // ignore: avoid_print
-      print('⚠️ getOrder (accept keyin): $e');
-    }
-
-    // Mos tarifni aniqlaymiz (narx hisobi shu asosda). Kerak bo'lsa yuklaymiz.
-    if (_orderTypes.isEmpty) await _loadOrderTypes();
-    _activeTariff = _resolveTariff(acceptedOrder);
-
-    // Yangi buyurtma — kutish (pause) hisoblagichini noldan boshlaymiz.
-    _accumulatedWaitingSeconds = 0;
-    _waitingStartedAt = null;
-
-    emit(state.copyWith(
-      status: OrderStatus.orderAccepted,
-      currentPrice: 0,
-      traveledDistance: 0,
-      waitingSeconds: 0,
-      isWaitingTimerActive: false,
-    ));
-
-    // Yo'l olish
-    await _requestRouteToClient();
-
-    // goingToClient: safar hali boshlanmagan, lekin "Narx" 0 ko'rinmasin —
-    // tarif asosidagi bazaviy (minimal) narxni ko'rsatamiz. Masofa esa
-    // mijozgacha bo'lgan yo'l masofasi (routeDistanceKm) orqali ko'rinadi.
-    _lastMapEmit = null; // marker/masofa darhol yangilansin (10s kutmasin)
-    _lastDistancePoint = state.currentLocation;
-    emit(state.copyWith(
-      status: OrderStatus.goingToClient,
-      currentPrice: _computePrice(0, 0),
-    ));
-    _persistActiveTrip();
   }
 
   Future<void> rejectOrder() async {
