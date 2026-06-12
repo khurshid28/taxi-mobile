@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,17 +9,25 @@ import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
 
 /// Yangi buyurtma kelganda chiqadigan pastki varaq.
-/// Toza, gradientsiz, silliq dizayn. Timer animatsiya orqali silliq sanaydi
-/// va vaqt tugasa avtomatik rad qiladi. Qabul qilish — oddiy bitta bosishli
-/// tugma (eski "surib qabul qilish" o'rniga).
+/// Toza, gradientsiz, silliq dizayn. Timer sekundlik sanaydi va vaqt tugasa
+/// avtomatik rad qiladi. Qabul qilish — oddiy bitta bosishli tugma.
+///
+/// MUHIM (performance): bu varaq native YandexMap (platform view) ustida
+/// chiziladi. Android'da xarita ustidagi har bir Flutter kadri qimmat
+/// "hybrid composition" qiladi. Shu sababli bu yerda UZLUKSIZ 60fps animatsiya
+/// ISHLATILMAYDI — timer sekundiga bir marta yangilanadi (app qotmaydi).
 class OrderBottomSheet extends StatefulWidget {
   final OrderModel order;
+
+  /// Tarif asosidagi boshlang'ich (fix) narx — qabul qilishda shu ko'rinadi.
+  final int price;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
   const OrderBottomSheet({
     super.key,
     required this.order,
+    required this.price,
     required this.onAccept,
     required this.onReject,
   });
@@ -26,15 +36,11 @@ class OrderBottomSheet extends StatefulWidget {
   State<OrderBottomSheet> createState() => _OrderBottomSheetState();
 }
 
-class _OrderBottomSheetState extends State<OrderBottomSheet>
-    with TickerProviderStateMixin {
+class _OrderBottomSheetState extends State<OrderBottomSheet> {
   static const int _totalSeconds = 15;
 
-  late final AnimationController _entrance;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-
-  late final AnimationController _timer;
+  Timer? _ticker;
+  int _remaining = _totalSeconds;
 
   bool _isAccepted = false;
   bool _isClosing = false;
@@ -42,26 +48,15 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
   @override
   void initState() {
     super.initState();
-    _entrance = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 420),
-    )..forward();
-    _fade = CurvedAnimation(parent: _entrance, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.18),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entrance, curve: Curves.easeOutCubic));
-
-    // Silliq sanaydigan timer — alohida Timer.periodic kerak emas. UI uni
-    // AnimatedBuilder orqali kuzatadi, vaqt tugasa avtomatik rad qiladi.
-    _timer = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: _totalSeconds),
-    )
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) _autoReject();
-      })
-      ..forward();
+    // Sekundlik timer — xarita ustida uzluksiz animatsiya yo'q (yengil).
+    _ticker = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() => _remaining--);
+      if (_remaining <= 0) {
+        t.cancel();
+        _autoReject();
+      }
+    });
   }
 
   void _autoReject() {
@@ -73,14 +68,13 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
   void _accept() {
     if (_isAccepted) return;
     setState(() => _isAccepted = true);
-    _timer.stop();
+    _ticker?.cancel();
     widget.onAccept();
   }
 
   @override
   void dispose() {
-    _entrance.dispose();
-    _timer.dispose();
+    _ticker?.cancel();
     super.dispose();
   }
 
@@ -93,13 +87,10 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
             borderRadius:
                 BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
             boxShadow: AppColors.floatingShadow,
@@ -127,48 +118,8 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
                   child: Column(
                     children: [
                       _buildClientRow(),
-                      if (widget.order.tariff != null &&
-                          widget.order.tariff!.isNotEmpty) ...[
-                        SizedBox(height: 16.h),
-                        _buildTariffBadge(widget.order.tariff!),
-                      ],
-                      SizedBox(height: 20.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoCard(
-                              icon: Iconsax.routing,
-                              title: 'Masofa',
-                              value:
-                                  '${widget.order.distance.toStringAsFixed(1)} km',
-                              color: AppColors.info,
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: _buildInfoCard(
-                              icon: Iconsax.wallet_3,
-                              title: 'Narx',
-                              value: NumberFormatter.formatPriceWithCurrency(
-                                widget.order.price,
-                              ),
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildAddressRow(
-                        isStart: true,
-                        label: 'Boshlanish',
-                        address: widget.order.pickupAddress,
-                      ),
-                      SizedBox(height: 10.h),
-                      _buildAddressRow(
-                        isStart: false,
-                        label: 'Tugatish',
-                        address: widget.order.destinationAddress,
-                      ),
+                      SizedBox(height: 18.h),
+                      _buildPriceCard(),
                       SizedBox(height: 22.h),
                       _buildActions(),
                       SizedBox(height: 8.h),
@@ -179,59 +130,52 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
             ),
           ),
         ),
-      ),
     );
   }
 
   Widget _buildTimerBar() {
-    return AnimatedBuilder(
-      animation: _timer,
-      builder: (context, _) {
-        final remaining =
-            (_totalSeconds * (1 - _timer.value)).ceil().clamp(0, _totalSeconds);
-        final danger = remaining <= 5;
-        final accent = danger ? AppColors.error : AppColors.primary;
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Column(
+    final remaining = _remaining.clamp(0, _totalSeconds);
+    final danger = remaining <= 5;
+    final accent = danger ? AppColors.error : AppColors.primary;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(Iconsax.clock, color: accent, size: 18.w),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Yangi buyurtma',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '$remaining s',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w800,
-                      color: accent,
-                    ),
-                  ),
-                ],
+              Icon(Iconsax.clock, color: accent, size: 18.w),
+              SizedBox(width: 8.w),
+              Text(
+                'Yangi buyurtma',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              SizedBox(height: 10.h),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99.r),
-                child: LinearProgressIndicator(
-                  value: 1 - _timer.value,
-                  minHeight: 6.h,
-                  backgroundColor: AppColors.divider,
-                  valueColor: AlwaysStoppedAnimation<Color>(accent),
+              const Spacer(),
+              Text(
+                '$remaining s',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: accent,
                 ),
               ),
             ],
           ),
-        );
-      },
+          SizedBox(height: 10.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99.r),
+            child: LinearProgressIndicator(
+              value: remaining / _totalSeconds,
+              minHeight: 6.h,
+              backgroundColor: AppColors.divider,
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -294,141 +238,79 @@ class _OrderBottomSheetState extends State<OrderBottomSheet>
     );
   }
 
-  Widget _buildTariffBadge(String tariff) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Iconsax.car, color: AppColors.primary, size: 16.w),
-            SizedBox(width: 6.w),
-            Text(
-              tariff.toUpperCase(),
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w800,
-                color: AppColors.primary,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
+  Widget _buildPriceCard() {
+    final tariff = widget.order.tariff;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.divider),
       ),
-      child: Column(
-        children: [
-          Container(
-            width: 42.w,
-            height: 42.w,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(icon, size: 22.w, color: color),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.3,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddressRow({
-    required bool isStart,
-    required String label,
-    required String address,
-  }) {
-    final color = isStart ? AppColors.success : AppColors.error;
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.divider),
-      ),
       child: Row(
         children: [
           Container(
-            width: 38.w,
-            height: 38.w,
+            width: 46.w,
+            height: 46.w,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(11.r),
+              color: AppColors.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(13.r),
             ),
-            child: Icon(
-              isStart ? Iconsax.location : Iconsax.flag,
-              color: color,
-              size: 19.w,
-            ),
+            child: Icon(Iconsax.wallet_3, color: AppColors.primary, size: 24.w),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 14.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  'Narx',
                   style: TextStyle(
-                    fontSize: 11.sp,
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  address.isEmpty ? 'Manzil aniqlanmagan' : address,
+                  NumberFormatter.formatPriceWithCurrency(widget.price),
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    height: 1.25,
+                    letterSpacing: -0.3,
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+          if (tariff != null && tariff.isNotEmpty) _buildTariffChip(tariff),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTariffChip(String tariff) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Iconsax.car, color: AppColors.primary, size: 15.w),
+          SizedBox(width: 6.w),
+          Text(
+            tariff.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+              letterSpacing: 0.5,
             ),
           ),
         ],

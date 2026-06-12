@@ -204,6 +204,9 @@ class _HomePageState extends State<HomePage> {
                   right: 0,
                   child: OrderBottomSheet(
                     order: state.currentOrder!,
+                    price: context
+                        .read<HomeCubit>()
+                        .resolveOrderBasePrice(state.currentOrder!),
                     onAccept: () {
                       context.read<HomeCubit>().acceptOrder();
                     },

@@ -153,6 +153,15 @@ class HomeCubit extends Cubit<HomeState> {
     return null;
   }
 
+  /// Yangi buyurtma kartasida ko'rsatiladigan boshlang'ich (fix) narx.
+  /// Tarif (OrderTypes) ning `minPrice` qiymati: Start=2500, Comfort=3000 ...
+  /// Tarif topilmasa AppConstants.basePrice zaxira sifatida ishlatiladi.
+  int resolveOrderBasePrice(OrderModel order) {
+    final t = _resolveTariff(order);
+    final base = t?.minPrice ?? AppConstants.basePrice.toDouble();
+    return base.round();
+  }
+
   // ============== Online toggle ==============
 
   Future<void> toggleOnline() async {
@@ -436,18 +445,26 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> acceptOrder() async {
     if (state.currentOrder == null || _driverId == null) return;
 
-    // Ovozni kutmaymiz (fire-and-forget) — accept jarayonini sekinlatmaslik uchun.
-    SoundService().playOrderAcceptedSound();
-
     try {
       await sl<OrderService>()
           .accept(orderId: state.currentOrder!.id, driverId: _driverId!);
     } catch (e) {
-      emit(state.copyWith(error: 'Accept xatosi: $e'));
       // ignore: avoid_print
       print('⚠️ accept: $e');
+      // Qabul qilib bo'lmadi (mas. 404 — buyurtma allaqachon olingan yoki
+      // mavjud emas). Ekran qotib qolmasligi uchun boshlang'ich holatga
+      // qaytamiz va xabar ko'rsatamiz.
+      _activeTariff = null;
+      emit(state.copyWith(
+        status: OrderStatus.initial,
+        error: 'Buyurtmani qabul qilib bo\'lmadi — u allaqachon olingan '
+            'yoki mavjud emas.',
+      ));
       return;
     }
+
+    // Ovoz (fire-and-forget) — faqat muvaffaqiyatli qabuldan keyin.
+    SoundService().playOrderAcceptedSound();
 
     // Buyurtma qabul qilindi — to'liq ma'lumotni (mijoz tel, aniq manzillar,
     // narx) REST orqali alohida tortib olamiz. Mercure faqat xabar bergan edi.

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mercure_client/mercure_client.dart' as mc;
 
@@ -39,7 +38,6 @@ class MercureService {
 
   mc.Mercure? _mercure;
   StreamSubscription<mc.MercureEvent>? _subscription;
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   final StreamController<MercureEvent> _eventsCtrl =
       StreamController<MercureEvent>.broadcast();
@@ -223,7 +221,8 @@ class MercureService {
       // ignore: avoid_print
       print('🆕 Mercure: YANGI BUYURTMA #${orderId.isNotEmpty ? orderId : order.id} '
           '(tarif=$incomingTariff, global=$isGlobal) → UI ga uzatildi');
-      _playOrderSound();
+      // Ovoz NotificationService ichida bir marta chalinadi (bu yerda chalsak
+      // ikki marta bo'lardi va order kelganda yukni oshirardi).
       _eventsCtrl.add(MercureEvent(
         type: MercureEventType.newOrder,
         order: order,
@@ -238,12 +237,6 @@ class MercureService {
         raw: const {},
       ));
     }
-  }
-
-  Future<void> _playOrderSound() async {
-    try {
-      await _audioPlayer.play(AssetSource('sounds/new_order.mp3'));
-    } catch (_) {}
   }
 
   void disconnect() {
