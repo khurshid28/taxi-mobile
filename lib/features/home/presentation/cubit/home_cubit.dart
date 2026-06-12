@@ -14,6 +14,7 @@ import '../../../../core/models/order_type_model.dart';
 import '../../../../core/network/mapbox_route_service.dart';
 import '../../../../core/network/mercure_service.dart';
 import '../../../../core/network/yandex_route_drawer.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../../../core/utils/notification_service.dart';
 import '../../../../core/utils/sound_service.dart';
 import '../../../../core/utils/storage_helper.dart';
@@ -235,9 +236,9 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void _onMercureEvent(MercureEvent event) {
-    // ignore: avoid_print
-    print('🎯 HomeCubit Mercure event: ${event.type} '
-        '(orderId=${event.orderId}, holat=${state.status}, online=${state.isOnline})');
+    AppLogger.info('HomeCubit event: ${event.type} '
+        '(orderId=${event.orderId}, holat=${state.status}, '
+        'online=${state.isOnline})');
     switch (event.type) {
       case MercureEventType.newOrder:
         if (event.order != null && state.status == OrderStatus.initial) {
@@ -248,20 +249,18 @@ class HomeCubit extends Cubit<HomeState> {
           // Ovoz showNewOrderNotification ichida bir marta ijro etiladi
           // (ikki marta chaqirilsa player qotib qolardi).
           NotificationService().showNewOrderNotification();
-          // ignore: avoid_print
-          print('🔔 Yangi buyurtma ekranga chiqarildi: #${event.order!.id}');
+          AppLogger.order('EKRANGA CHIQARILDI: buyurtma #${event.order!.id}');
         } else {
-          // ignore: avoid_print
-          print('⚠️ Yangi buyurtma KO\'RSATILMADI: order=${event.order != null}, '
-              'holat=${state.status} (faqat "initial" holatda chiqadi)');
+          AppLogger.warn('Yangi buyurtma KO\'RSATILMADI: '
+              'order=${event.order != null}, holat=${state.status} '
+              '(faqat "initial" holatda chiqadi)');
         }
         break;
       case MercureEventType.accepted:
       case MercureEventType.canceled:
         if (state.currentOrder?.id == event.orderId &&
             state.status == OrderStatus.orderReceived) {
-          // ignore: avoid_print
-          print('↩️ Buyurtma #${event.orderId} bekor/qabul qilindi — '
+          AppLogger.info('Buyurtma #${event.orderId} bekor/qabul qilindi — '
               'ekran tozalandi');
           emit(state.copyWith(
             status: OrderStatus.initial,
@@ -446,23 +445,25 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> acceptOrder() async {
     if (state.currentOrder == null || _driverId == null) return;
 
-    // ignore: avoid_print
-    print('🚕 ACCEPT so\'rovi → orders/${state.currentOrder!.id}/'
+    final orderId = state.currentOrder!.id;
+    AppLogger.header('ACCEPT');
+    AppLogger.info('orderId  = "$orderId"');
+    AppLogger.info('driverId = $_driverId');
+    AppLogger.info('URL      = ${AppConstants.baseUrl}orders/$orderId/'
         '$_driverId/accept');
     try {
-      await sl<OrderService>()
-          .accept(orderId: state.currentOrder!.id, driverId: _driverId!);
+      await sl<OrderService>().accept(orderId: orderId, driverId: _driverId!);
+      AppLogger.success('ACCEPT muvaffaqiyatli (orderId=$orderId, '
+          'driverId=$_driverId)');
     } catch (e) {
       // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
       if (e is DioException) {
-        // ignore: avoid_print
-        print('⚠️ accept XATO\n'
-            '   → URL: ${e.requestOptions.uri}\n'
-            '   → status: ${e.response?.statusCode}\n'
-            '   → javob: ${e.response?.data}');
+        AppLogger.error('ACCEPT XATO');
+        AppLogger.error('   URL    : ${e.requestOptions.uri}');
+        AppLogger.error('   status : ${e.response?.statusCode}');
+        AppLogger.error('   javob  : ${e.response?.data}');
       } else {
-        // ignore: avoid_print
-        print('⚠️ accept: $e');
+        AppLogger.error('ACCEPT XATO: $e');
       }
       // Qabul qilib bo'lmadi (mas. 404 — buyurtma allaqachon olingan yoki
       // mavjud emas). Ekran qotib qolmasligi uchun boshlang'ich holatga

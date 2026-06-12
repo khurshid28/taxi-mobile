@@ -6,6 +6,7 @@ import 'package:mercure_client/mercure_client.dart' as mc;
 
 import '../constants/app_constants.dart';
 import '../models/order_model.dart';
+import '../utils/app_logger.dart';
 
 /// Backend tomondan PHP `Update()` orqali yuboriladigan to'rt asosiy topic:
 ///  * `driver/{driverId}/orders`            - shaxsiy
@@ -161,8 +162,9 @@ class MercureService {
   void _processMessage(String rawData, String? eventId) {
     // Hub'dan kelgan HAR QANDAY xabarni to'liq logga chiqaramiz — bu real
     // buyurtma kelganda nima sodir bo'layotganini ko'rish uchun eng muhim joy.
-    // ignore: avoid_print
-    print('📨 Mercure xabar keldi (id=$eventId): $rawData');
+    AppLogger.header('MERCURE XABAR KELDI');
+    AppLogger.mercure('event.id = $eventId');
+    AppLogger.mercure('raw      = $rawData');
     try {
       final dynamic decoded = jsonDecode(rawData);
       final Map<String, dynamic> data = decoded is Map<String, dynamic>
@@ -177,9 +179,13 @@ class MercureService {
       final orderId =
           (data['orderId'] ?? data['id'] ?? data['@id'] ?? '').toString();
 
+      // orderId ni qaysi maydondan olganimizni aniq ko'rsatamiz.
+      AppLogger.info('action        = "$action"');
+      AppLogger.info('orderId (xom) = "$orderId"  '
+          '[orderId=${data['orderId']}, id=${data['id']}, @id=${data['@id']}]');
+
       if (action.contains('cancel')) {
-        // ignore: avoid_print
-        print('🚫 Mercure: buyurtma bekor qilindi (orderId=$orderId)');
+        AppLogger.warn('Buyurtma BEKOR qilindi (orderId=$orderId)');
         _eventsCtrl.add(MercureEvent(
           type: MercureEventType.canceled,
           orderId: orderId.isNotEmpty ? orderId : null,
@@ -189,8 +195,7 @@ class MercureService {
       }
 
       if (action.contains('accept')) {
-        // ignore: avoid_print
-        print('✅ Mercure: buyurtmani boshqa haydovchi qabul qildi '
+        AppLogger.success('Buyurtmani boshqa haydovchi QABUL qildi '
             '(orderId=$orderId)');
         _eventsCtrl.add(MercureEvent(
           type: MercureEventType.accepted,
@@ -211,27 +216,28 @@ class MercureService {
           _activeTariffs.isNotEmpty &&
           incomingTariff.isNotEmpty &&
           !_activeTariffs.contains(incomingTariff)) {
-        // ignore: avoid_print
-        print('⏭️ Tarif mos kelmadi: "$incomingTariff" ∉ $_activeTariffs '
+        AppLogger.warn('Tarif mos kelmadi: "$incomingTariff" ∉ $_activeTariffs '
             '— buyurtma o\'tkazib yuborildi');
         return;
       }
 
       final order = OrderModel.fromJson(data);
-      // ignore: avoid_print
-      print('🆕 Mercure: YANGI BUYURTMA #${orderId.isNotEmpty ? orderId : order.id} '
-          '(tarif=$incomingTariff, global=$isGlobal) → UI ga uzatildi');
+      // orderId xom holatda va OrderModel parse qilgandan keyin — solishtirish
+      // uchun ikkalasini ham ko'rsatamiz. Accept URL aynan shu id bilan ketadi.
+      final finalId = orderId.isNotEmpty ? orderId : order.id;
+      AppLogger.info('OrderModel.id = "${order.id}"  (tarif=$incomingTariff, '
+          'global=$isGlobal)');
+      AppLogger.order('YANGI BUYURTMA #$finalId → UI ga uzatildi');
       // Ovoz NotificationService ichida bir marta chalinadi (bu yerda chalsak
       // ikki marta bo'lardi va order kelganda yukni oshirardi).
       _eventsCtrl.add(MercureEvent(
         type: MercureEventType.newOrder,
         order: order,
-        orderId: orderId.isNotEmpty ? orderId : order.id,
+        orderId: finalId,
         raw: data,
       ));
     } catch (e) {
-      // ignore: avoid_print
-      print('🔴 Mercure decode error: $e | raw=$rawData');
+      AppLogger.error('Mercure decode XATO: $e | raw=$rawData');
       _eventsCtrl.add(MercureEvent(
         type: MercureEventType.unknown,
         raw: const {},
