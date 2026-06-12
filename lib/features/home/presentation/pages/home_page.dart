@@ -258,13 +258,10 @@ class _HomePageState extends State<HomePage> {
                             },
                             backgroundColor: AppColors.primary,
                             elevation: 0,
-                            child: Transform.rotate(
-                              angle: 35 * 3.14159 / 180,
-                              child: Icon(
-                                Iconsax.gps,
-                                color: Colors.white,
-                                size: 24.w,
-                              ),
+                            child: Icon(
+                              Icons.my_location_rounded,
+                              color: Colors.white,
+                              size: 26.w,
                             ),
                           ),
                         ),

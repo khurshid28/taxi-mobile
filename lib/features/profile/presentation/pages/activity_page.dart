@@ -206,71 +206,16 @@ class _ActivityPageState extends State<ActivityPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(color: AppColors.primary),
-            padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Oxirgi 7 kun',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Icon(
-                        Iconsax.trend_up,
-                        color: Colors.white,
-                        size: 32.w,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Haftalik statistika',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            '${NumberFormatter.formatPriceWithCurrency(totalEarnings)} • $totalDistance km • $totalClients safar',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          _buildHeader(
+            label: 'Oxirgi 7 kun',
+            title: 'Haftalik statistika',
+            subtitle:
+                '${NumberFormatter.formatPriceWithCurrency(totalEarnings)} • $totalDistance km • $totalClients safar',
           ),
 
           // Summary Cards
           Transform.translate(
-            offset: Offset(0, -15.h),
+            offset: Offset(0, -22.h),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(
@@ -309,7 +254,15 @@ class _ActivityPageState extends State<ActivityPage>
             ),
           ),
 
+          // Weekly chart
+          _buildSectionTitle('Kunlik daromad', 'Oxirgi 7 kun tahlili'),
+          SizedBox(height: 16.h),
+          _buildWeeklyChart(),
+          SizedBox(height: 28.h),
+
           // Daily list
+          _buildSectionTitle('Kunlar bo\'yicha', null),
+          SizedBox(height: 16.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Column(
@@ -343,126 +296,17 @@ class _ActivityPageState extends State<ActivityPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(color: AppColors.primary),
-            padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Oxirgi 12 oy',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    // Year Dropdown
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 6.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.w,
-                        ),
-                      ),
-                      child: DropdownButton<int>(
-                        value: _selectedYear,
-                        dropdownColor: AppColors.primary,
-                        underline: SizedBox(),
-                        icon: Icon(
-                          Iconsax.arrow_down_1,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        items: _availableYears.map((year) {
-                          return DropdownMenuItem<int>(
-                            value: year,
-                            child: Text(
-                              '$year',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedYear = value;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Icon(
-                        Iconsax.trend_up,
-                        color: Colors.white,
-                        size: 32.w,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Yillik statistika',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            '${(totalEarnings / 1000000).toStringAsFixed(1)} mln so\'m • $totalDistance km • $totalClients safar',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          _buildHeader(
+            label: 'Oxirgi 12 oy',
+            title: 'Yillik statistika',
+            subtitle:
+                '${(totalEarnings / 1000000).toStringAsFixed(1)} mln so\'m • $totalDistance km • $totalClients safar',
+            trailing: _buildYearDropdown(),
           ),
 
           // Total Summary Cards
           Transform.translate(
-            offset: Offset(0, -15.h),
+            offset: Offset(0, -22.h),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(
@@ -502,48 +346,17 @@ class _ActivityPageState extends State<ActivityPage>
           ),
 
           // Monthly Chart
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Oylik daromad',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Oxirgi 12 oyning tahlili',
-                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
+          _buildSectionTitle('Oylik daromad', 'Oxirgi 12 oyning tahlili'),
           SizedBox(height: 16.h),
 
           Container(
             margin: EdgeInsets.symmetric(horizontal: 16.w),
-            padding: EdgeInsets.all(24.w),
+            padding: EdgeInsets.all(20.w),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.1),
-                width: 1.5.w,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.08),
-                  blurRadius: 30.r,
-                  offset: Offset(0, 8.h),
-                  spreadRadius: -4.w,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: AppColors.divider, width: 1.w),
+              boxShadow: AppColors.cardShadow,
             ),
             child: Column(
               children: [
@@ -581,12 +394,12 @@ class _ActivityPageState extends State<ActivityPage>
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(
-                                    'H${value.toInt() + 1}',
+                                    _shortMonth(value.toInt()),
                                     style: TextStyle(
                                       color: _selectedIndex == value.toInt()
                                           ? AppColors.primary
                                           : AppColors.textSecondary,
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       fontWeight:
                                           _selectedIndex == value.toInt()
                                           ? FontWeight.bold
@@ -685,40 +498,23 @@ class _ActivityPageState extends State<ActivityPage>
           SizedBox(height: 30.h),
 
           // Detailed breakdown
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Oylik batafsil',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
+          _buildSectionTitle(
+            'Oylik batafsil',
+            null,
+            trailing: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Text(
+                '${_monthlyData.length} oy',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    '${_monthlyData.length} oy',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           SizedBox(height: 16.h),
@@ -733,6 +529,255 @@ class _ActivityPageState extends State<ActivityPage>
           ),
           SizedBox(height: 20.h),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeader({
+    required String label,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28.r)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.25),
+            blurRadius: 24.r,
+            offset: Offset(0, 10.h),
+            spreadRadius: -6.w,
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 36.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (trailing != null) trailing,
+            ],
+          ),
+          SizedBox(height: 14.h),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: Icon(Iconsax.trend_up, color: Colors.white, size: 28.w),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYearDropdown() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.w),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: _selectedYear,
+          dropdownColor: AppColors.primary,
+          isDense: true,
+          icon: Icon(Iconsax.arrow_down_1, color: Colors.white, size: 18.sp),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+          ),
+          items: _availableYears.map((year) {
+            return DropdownMenuItem<int>(
+              value: year,
+              child: Text('$year'),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _selectedYear = value;
+              });
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, String? subtitle, {Widget? trailing}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  SizedBox(height: 3.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  String _shortMonth(int index) {
+    const names = [
+      'Yan',
+      'Fev',
+      'Mar',
+      'Apr',
+      'May',
+      'Iyn',
+      'Iyl',
+      'Avg',
+      'Sen',
+      'Okt',
+      'Noy',
+      'Dek',
+    ];
+    if (index >= 0 && index < names.length) return names[index];
+    return '';
+  }
+
+  Widget _buildWeeklyChart() {
+    final maxEarning = _dailyData
+        .map((d) => d.earnings)
+        .reduce((a, b) => a > b ? a : b);
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.fromLTRB(12.w, 18.h, 12.w, 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: AppColors.divider, width: 1.w),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: _dailyData.map((day) {
+          final ratio = maxEarning == 0 ? 0.0 : day.earnings / maxEarning;
+          final isToday = day.day == 'Bugun';
+          final barColor = isToday
+              ? AppColors.primary
+              : AppColors.primary.withOpacity(0.28);
+          return Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${(day.earnings / 1000000).toStringAsFixed(1)}M',
+                  style: TextStyle(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
+                    color: isToday
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                ),
+                SizedBox(height: 6.h),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: ratio),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, child) {
+                    return Container(
+                      height: (110.h * v).clamp(4.h, 110.h),
+                      margin: EdgeInsets.symmetric(horizontal: 5.w),
+                      decoration: BoxDecoration(
+                        color: barColor,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(8.r),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  day.day,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                    color: isToday
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
