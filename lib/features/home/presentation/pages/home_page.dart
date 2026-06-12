@@ -243,16 +243,35 @@ class _HomePageState extends State<HomePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // My location button
-                      SizedBox(
-                        width: 56.w,
-                        height: 56.w,
-                        child: Material(
-                          elevation: 6,
-                          shadowColor: Colors.black.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(18.r),
+                      Container(
+                        width: 54.w,
+                        height: 54.w,
+                        decoration: BoxDecoration(
                           color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.18),
+                            width: 1.5.w,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.18),
+                              blurRadius: 16.r,
+                              offset: Offset(0, 6.h),
+                              spreadRadius: -2.w,
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 6.r,
+                              offset: Offset(0, 2.h),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          shape: const CircleBorder(),
+                          clipBehavior: Clip.antiAlias,
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(18.r),
                             onTap: () {
                               if (state.currentLocation != null &&
                                   _mapController != null) {
@@ -261,9 +280,9 @@ class _HomePageState extends State<HomePage> {
                             },
                             child: Center(
                               child: Icon(
-                                Icons.my_location,
+                                Icons.my_location_rounded,
                                 color: AppColors.primary,
-                                size: 26.w,
+                                size: 25.w,
                               ),
                             ),
                           ),

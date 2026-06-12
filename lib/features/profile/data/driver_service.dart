@@ -52,7 +52,8 @@ class DriverService {
     }
     // ignore: avoid_print
     print('\ud83c\udfe2 aboutMyData \u2192 company raw=${data['company']}, '
-        'companyId=${model.companyId}, tariffs=${model.tariffs}');
+        'companyId=${model.companyId}, tariffs=${model.tariffs}, '
+        'balance raw=${data['balance']} \u2192 ${model.balance}');
     return model;
   }
 

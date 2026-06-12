@@ -975,26 +975,30 @@ class _ActivityPageState extends State<ActivityPage>
                       ),
                       if (!isExpanded) ...[
                         SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            _buildModernMonthStat(
-                              Iconsax.wallet,
-                              '${(month.earnings / 1000000).toStringAsFixed(2)} mln',
-                              const Color(0xFF4CAF50),
-                            ),
-                            SizedBox(width: 16.w),
-                            _buildModernMonthStat(
-                              Iconsax.car,
-                              '${month.distance}km',
-                              const Color(0xFF2196F3),
-                            ),
-                            SizedBox(width: 16.w),
-                            _buildModernMonthStat(
-                              Iconsax.people,
-                              '${month.clients}',
-                              const Color(0xFFFF9800),
-                            ),
-                          ],
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              _buildModernMonthStat(
+                                Iconsax.wallet,
+                                '${(month.earnings / 1000000).toStringAsFixed(2)} mln',
+                                const Color(0xFF4CAF50),
+                              ),
+                              SizedBox(width: 14.w),
+                              _buildModernMonthStat(
+                                Iconsax.car,
+                                '${month.distance}km',
+                                const Color(0xFF2196F3),
+                              ),
+                              SizedBox(width: 14.w),
+                              _buildModernMonthStat(
+                                Iconsax.people,
+                                '${month.clients}',
+                                const Color(0xFFFF9800),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ],
