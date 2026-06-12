@@ -78,6 +78,21 @@ class OrderInProgressWidget extends StatelessWidget {
 
   bool get _isInProgress => !isWaitingForClient && !isGoingToClient;
 
+  // Bo'sh / placeholder ma'lumotlarni yashirish uchun yordamchilar.
+  // Backend ism yubormasa model 'Mijoz' qo'yadi, manzil bo'sh ('') bo'ladi —
+  // bunday hollarda satr ko'rsatilmaydi (bo'sh karta chiqmasin).
+  bool get _hasClientName =>
+      clientName != null &&
+      clientName!.trim().isNotEmpty &&
+      clientName!.trim() != 'Mijoz';
+  bool get _hasClientPhone =>
+      clientPhone != null && clientPhone!.trim().isNotEmpty;
+  bool get _hasClient => _hasClientName || _hasClientPhone;
+  bool get _hasPickup =>
+      pickupAddress != null && pickupAddress!.trim().isNotEmpty;
+  bool get _hasDestination =>
+      destinationAddress != null && destinationAddress!.trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final Color accent =
@@ -116,32 +131,32 @@ class OrderInProgressWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _statusPill(accent),
-                      SizedBox(height: 16.h),
-                      if (clientName != null || clientPhone != null) ...[
+                      SizedBox(height: 14.h),
+                      if (_hasClient) ...[
                         _clientCard(),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                       ],
-                      if (pickupAddress != null ||
-                          destinationAddress != null) ...[
+                      if (_hasPickup || _hasDestination) ...[
                         _addressCard(),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                       ],
                       _metricsCard(),
                       if (_isInProgress) ...[
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                         _tripTimeRow(),
                       ],
                       if (waitingSeconds > 0 &&
                           (isWaitingForClient || isWaitingTimerActive)) ...[
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                         _waitingRow(),
                       ],
-                      if (routeDurationMinutes != null &&
+                      if (isGoingToClient &&
+                          routeDurationMinutes != null &&
                           routeDistanceKm != null) ...[
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                         _etaRow(),
                       ],
-                      SizedBox(height: 14.h),
+                      SizedBox(height: 12.h),
                       _callMapsRow(),
                       if (_isInProgress && onToggleWaitingTimer != null) ...[
                         SizedBox(height: 10.h),
@@ -209,32 +224,54 @@ class OrderInProgressWidget extends StatelessWidget {
   }
 
   Widget _clientCard() {
+    final String title = _hasClientName ? clientName!.trim() : 'Mijoz';
     return Container(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: AppColors.info.withOpacity(0.08),
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          _sectionHeader(Iconsax.user, 'Mijoz ma\'lumoti', AppColors.info),
-          SizedBox(height: 10.h),
-          if (clientName != null)
-            _buildInfoRow(
-              icon: Iconsax.user,
-              label: 'Ism',
-              value: clientName!,
-              color: AppColors.info,
+          Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(
+              color: AppColors.info.withOpacity(0.15),
+              shape: BoxShape.circle,
             ),
-          if (clientName != null && clientPhone != null) SizedBox(height: 8.h),
-          if (clientPhone != null)
-            _buildInfoRow(
-              icon: Iconsax.call,
-              label: 'Telefon',
-              value: clientPhone!,
-              color: AppColors.info,
+            child: Icon(Iconsax.user, color: AppColors.info, size: 20.w),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (_hasClientPhone) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    clientPhone!.trim(),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -242,7 +279,7 @@ class OrderInProgressWidget extends StatelessWidget {
 
   Widget _addressCard() {
     return Container(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -250,22 +287,19 @@ class OrderInProgressWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader(Iconsax.location, 'Manzillar', AppColors.primary),
-          SizedBox(height: 10.h),
-          if (pickupAddress != null)
+          if (_hasPickup)
             _buildInfoRow(
               icon: Iconsax.gps,
               label: 'Qayerdan',
-              value: pickupAddress!,
+              value: pickupAddress!.trim(),
               color: AppColors.primary,
             ),
-          if (pickupAddress != null && destinationAddress != null)
-            SizedBox(height: 8.h),
-          if (destinationAddress != null)
+          if (_hasPickup && _hasDestination) SizedBox(height: 8.h),
+          if (_hasDestination)
             _buildInfoRow(
               icon: Iconsax.location,
               label: 'Qayerga',
-              value: destinationAddress!,
+              value: destinationAddress!.trim(),
               color: AppColors.primary,
             ),
         ],
@@ -314,7 +348,7 @@ class OrderInProgressWidget extends StatelessWidget {
       icon: Iconsax.clock,
       color: AppColors.primary,
       child: Text(
-        'Safar vaqti: ${_formatTime(tripSeconds)}',
+        'Safar vaqti: ${_formatMinutes(tripSeconds)}',
         style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 15.sp,
@@ -561,23 +595,6 @@ class OrderInProgressWidget extends StatelessWidget {
 
   // ===================== Kichik yordamchilar =====================
 
-  Widget _sectionHeader(IconData icon, String title, Color color) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20.w),
-        SizedBox(width: 8.w),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _infoBanner({
     required IconData icon,
     required Color color,
@@ -708,6 +725,12 @@ class OrderInProgressWidget extends StatelessWidget {
     final m = seconds ~/ 60;
     final s = seconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  /// Soniyalarni daqiqa ko'rinishida ko'rsatadi (safar vaqti uchun).
+  String _formatMinutes(int seconds) {
+    final m = seconds ~/ 60;
+    return '$m daqiqa';
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:shimmer/shimmer.dart';
-import 'dart:math' as math;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/number_formatter.dart';
 
-class TripCompleteDialog extends StatefulWidget {
+class TripCompleteDialog extends StatelessWidget {
   final int totalPrice;
   final double distance;
-  final int duration; // in minutes
+  final int duration; // daqiqa
 
   const TripCompleteDialog({
     super.key,
@@ -18,121 +17,34 @@ class TripCompleteDialog extends StatefulWidget {
   });
 
   @override
-  State<TripCompleteDialog> createState() => _TripCompleteDialogState();
-}
-
-class _TripCompleteDialogState extends State<TripCompleteDialog>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
-  late Animation<int> _counterAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
-      ),
-    );
-
-    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-
-    _counterAnimation = IntTween(begin: 0, end: widget.totalPrice).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32.r)),
+      insetPadding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
       child: Container(
-        padding: EdgeInsets.all(32.w),
+        padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 20.h),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(32.r),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.2),
-            width: 2.w,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.15),
-              blurRadius: 40.r,
-              offset: Offset(0.w, 20.h),
-              spreadRadius: -5,
-            ),
-          ],
+          borderRadius: BorderRadius.circular(28.r),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Success icon with animation
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Transform.rotate(
-                    angle: _rotationAnimation.value,
-                    child: Container(
-                      width: 100.w,
-                      height: 100.h,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withOpacity(0.2),
-                            AppColors.primary.withOpacity(0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 30.r,
-                            offset: Offset(0.w, 10.h),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Iconsax.tick_circle,
-                          size: 60.w,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
+            // Muvaffaqiyat belgisi (statik — animatsiyasiz, xarita qotmasin)
+            Container(
+              width: 72.w,
+              height: 72.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.tick_circle,
+                size: 44.w,
+                color: AppColors.primary,
+              ),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
 
             Text(
               'Safar tugadi!',
@@ -193,51 +105,19 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                     ),
                   ),
                   SizedBox(height: 10.h),
-                  AnimatedBuilder(
-                    animation: _counterAnimation,
-                    builder: (context, child) {
-                      final isCompleted =
-                          _counterAnimation.status == AnimationStatus.completed;
-                      final priceText =
-                          '${_counterAnimation.value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} so\'m';
-
-                      return isCompleted
-                          ? Shimmer.fromColors(
-                              baseColor: AppColors.primary,
-                              highlightColor: AppColors.primary.withOpacity(
-                                0.6,
-                              ),
-                              period: const Duration(milliseconds: 1500),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  priceText,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 38.sp,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.primary,
-                                    letterSpacing: -1.5,
-                                    height: 1.1,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                priceText,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 38.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary,
-                                  letterSpacing: -1.5,
-                                  height: 1.1,
-                                ),
-                              ),
-                            );
-                    },
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      NumberFormatter.formatPriceWithCurrency(totalPrice),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 34.sp,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        letterSpacing: -1.5,
+                        height: 1.1,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -252,13 +132,13 @@ class _TripCompleteDialogState extends State<TripCompleteDialog>
                 _buildDetailItem(
                   icon: Iconsax.routing,
                   label: 'Masofa',
-                  value: '${widget.distance.toStringAsFixed(1)} km',
+                  value: '${distance.toStringAsFixed(1)} km',
                 ),
                 Container(width: 1.w, height: 40.h, color: AppColors.divider),
                 _buildDetailItem(
                   icon: Iconsax.timer_1,
                   label: 'Vaqt',
-                  value: '${widget.duration} min',
+                  value: '$duration daqiqa',
                 ),
               ],
             ),

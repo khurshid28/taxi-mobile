@@ -26,97 +26,62 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Container(
-        constraints: BoxConstraints(
-          minHeight: 600.h, // Minimum height to show all content
-        ),
         padding: EdgeInsets.only(
           left: 24.w,
           right: 24.w,
-          top: 24.w,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24.w,
+          top: 14.w,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20.w,
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border(
-            top: BorderSide(color: Colors.red, width: 3.w),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 40.r,
-              offset: Offset(0.w, -10.h),
-              spreadRadius: -5,
-            ),
-          ],
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 50.w,
+              width: 44.w,
               height: 5.h,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.red.withOpacity(0.5), Colors.red],
-                ),
-                borderRadius: BorderRadius.circular(10.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.3),
-                    blurRadius: 8.r,
-                    offset: Offset(0.w, 2.h),
-                  ),
-                ],
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(99.r),
               ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 16.h),
             Container(
-              width: 80.w,
-              height: 80.h,
+              width: 64.w,
+              height: 64.w,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.red[50]!, Colors.red[100]!],
-                ),
+                color: Colors.red.withOpacity(0.1),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.3),
-                    blurRadius: 20.r,
-                    offset: Offset(0.w, 8.h),
-                  ),
-                ],
               ),
               child: Center(
                 child: Icon(
                   Iconsax.close_circle,
-                  size: 40.w,
+                  size: 34.w,
                   color: Colors.red,
                 ),
               ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 14.h),
             Text(
               'Safarni bekor qilish',
               style: TextStyle(
-                fontSize: 22.sp,
+                fontSize: 19.sp,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
-                letterSpacing: -0.8,
-                height: 1.2,
               ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               'Iltimos, bekor qilish sababini tanlang',
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: 13.sp,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
-                letterSpacing: 0.1,
               ),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 18.h),
 
             // Reasons list
             ..._reasons.asMap().entries.map((entry) {
@@ -129,35 +94,19 @@ class _CancelTripSheetState extends State<CancelTripSheet> {
                   });
                 },
                 child: Container(
-                  margin: EdgeInsets.only(bottom: 12.h),
-                  padding: EdgeInsets.all(18.w),
+                  margin: EdgeInsets.only(bottom: 10.h),
+                  padding: EdgeInsets.all(14.w),
                   decoration: BoxDecoration(
                     color: _selectedReason == index
-                        ? Colors.red[50]
+                        ? Colors.red.withOpacity(0.06)
                         : AppColors.surface,
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(14.r),
                     border: Border.all(
                       color: _selectedReason == index
                           ? Colors.red
                           : AppColors.divider,
-                      width: 2.w,
+                      width: 1.5.w,
                     ),
-                    boxShadow: _selectedReason == index
-                        ? [
-                            BoxShadow(
-                              color: Colors.red.withOpacity(0.15),
-                              blurRadius: 16.r,
-                              offset: Offset(0.w, 4.h),
-                              spreadRadius: -2,
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: AppColors.shadow,
-                              blurRadius: 8.r,
-                              offset: Offset(0.w, 2.h),
-                            ),
-                          ],
                   ),
                   child: Row(
                     children: [
