@@ -5,7 +5,7 @@ class AppConstants {
 
   // API
   static const String baseUrl = 'http://89.39.95.62/api/';
-  static const String mercureUrl = 'http://89.39.95.62/.well-known/mercure';
+  static const String mercureUrl = 'http://89.39.95.62/mercure';
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
 
