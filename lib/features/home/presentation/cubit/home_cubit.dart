@@ -16,7 +16,6 @@ import '../../../../core/network/mercure_service.dart';
 import '../../../../core/network/yandex_route_drawer.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../../core/utils/notification_service.dart';
-import '../../../../core/utils/sound_service.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../injection_container.dart';
 import '../../../orders/data/order_service.dart';
@@ -542,8 +541,8 @@ class HomeCubit extends Cubit<HomeState> {
         return;
       }
 
-      // Ovoz (fire-and-forget) — faqat muvaffaqiyatli qabuldan keyin.
-      SoundService().playOrderAcceptedSound();
+      // Ovoz FAQAT yangi buyurtma kelganda chalinadi (showNewOrderNotification
+      // ichida). Qabul/yetib kelish/yakunlashda ovoz YO'Q.
 
       // To'liq ma'lumotni (mijoz tel, aniq manzillar, narx) REST orqali
       // tortamiz. currentOrder o'rniga lokal `order` ishlatamiz.
