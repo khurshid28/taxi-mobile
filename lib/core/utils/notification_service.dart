@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'sound_service.dart';
 
@@ -8,6 +9,14 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+
+  /// Ilova hozir ekranda (foreground) ochiqmi?
+  /// `lifecycleState` `resumed` bo'lsa — foreground. Ilova endi ishga tushgan
+  /// payt (null) ham foreground deb hisoblanadi.
+  bool get _isAppInForeground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null || state == AppLifecycleState.resumed;
+  }
 
   Future<void> initialize() async {
     const androidSettings = AndroidInitializationSettings(
@@ -38,6 +47,22 @@ class NotificationService {
     required String body,
     bool playSound = true,
   }) async {
+    // 1) Ovoz — KUTMASDAN (fire-and-forget). Audio plagini sekin javob bersa
+    //    ham na chaqiruvchi (cubit), na bildirishnoma yo'li bloklanadi. Yangi
+    //    buyurtma ovozi haydovchini ogohlantirishi uchun foreground'da ham
+    //    ijro etiladi (lekin banner emas).
+    if (playSound) {
+      // ignore: discarded_futures
+      SoundService().playNewOrderSound();
+    }
+
+    // 2) Ilova OCHIQ (foreground) bo'lsa — TIZIM bildirishnomasi (banner)
+    //    KO'RSATILMAYDI. Buyurtma/holat allaqachon ilova ichidagi UI'da
+    //    (bottom sheet / panel) ko'rinadi. Banner + ovoz + xarita qayta
+    //    chizilishi bir vaqtda kelganda app qotardi — endi foreground'da
+    //    faqat UI yangilanadi (banner platform-chaqiruvi tushib qoladi).
+    if (_isAppInForeground) return;
+
     const androidDetails = AndroidNotificationDetails(
       'taxi_channel',
       'Taxi Notifications',
@@ -59,11 +84,6 @@ class NotificationService {
     );
 
     await _notifications.show(DateTime.now().millisecond, title, body, details);
-
-    // Play custom sound through SoundService
-    if (playSound) {
-      await SoundService().playNewOrderSound();
-    }
   }
 
   Future<void> showNewOrderNotification() async {
