@@ -281,86 +281,98 @@ class _HomePageState extends State<HomePage> {
               if (state.status == OrderStatus.inProgress ||
                   state.status == OrderStatus.waitingForClient ||
                   state.status == OrderStatus.goingToClient)
-                Positioned(
-                  // Faqat pastga mahkamlanadi (top YO'Q) — aks holda top:0+bottom:0
-                  // qattiq to'liq balandlik berib, varaqning maxHeight:0.74.sh
-                  // cheklovini bekor qilardi va u butun ekranni qoplab qotardi.
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  // Timer/narx/masofa matni shu ichki BlocBuilder orqali har
-                  // sekund yangilanadi — tashqi builder (xarita) qayta qurilmaydi.
-                  // Varaq KONTENT bo'yicha o'lchanadi (AnimatedSize + min) —
-                  // qotirilgan balandlik yo'q, qirqilib qolmaydi.
-                  child: BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) => OrderInProgressWidget(
-                      clientPhone: state.currentOrder?.clientPhone,
-                      clientName: state.currentOrder?.clientName,
-                      pickupAddress: state.currentOrder?.pickupAddress,
-                      destinationAddress:
-                          state.currentOrder?.destinationAddress,
-                      currentPrice: state.currentPrice,
-                      traveledDistance: state.traveledDistance,
-                      waitingSeconds: state.waitingSeconds,
-                      tripSeconds: state.tripSeconds,
-                      isWaitingTimerActive: state.isWaitingTimerActive,
-                      distanceToClient: state.distanceToClient,
-                      isWaitingForClient:
-                          state.status == OrderStatus.waitingForClient,
-                      isGoingToClient:
-                          state.status == OrderStatus.goingToClient,
-                      isTimeoutEnabled: state.isTimeoutEnabled,
-                      routeDurationMinutes: state.routeDurationMinutes,
-                      routeDistanceKm: state.routeDistanceKm,
-                      onComplete: () => _showCompleteDialog(state),
-                      onCancel: () => _showCancelSheet(context),
-                      onOpenMaps: state.currentOrder != null
-                          ? () => _openClientInMaps(
-                              state.currentOrder!.pickupLocation,
-                            )
-                          : null,
-                      onArrived: () {
-                        context.read<HomeCubit>().arrivedAtClient();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Mijoz oldiga yetib keldingiz 📍'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      onToggleTimeout: () {
-                        context.read<HomeCubit>().toggleTimeout();
-                      },
-                      onToggleWaitingTimer: () {
-                        final cubit = context.read<HomeCubit>();
-                        final isStarting = !cubit.state.isWaitingTimerActive;
-
-                        cubit.toggleWaitingTimer();
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isStarting
-                                  ? '⏱️ Kutish boshlandi'
-                                  : '⏹️ Kutish to\'xtatildi',
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      onPickupClient:
-                          state.status == OrderStatus.waitingForClient
-                          ? () {
-                              context.read<HomeCubit>().markClientPickedUp();
+                Positioned.fill(
+                  // Tortib ochiladigan/yopiladigan varaq. Balandlikni barmoq
+                  // belgilaydi: pastga tortilsa peek (xarita ochiladi), yuqoriga
+                  // tortilsa to'liq; ichidagi kontent o'sha skroll bilan suriladi.
+                  // DraggableScrollableSheet'ning bo'sh (yuqori) qismi teginishni
+                  // o'tkazib yuboradi — xarita pan/zoom ishlayveradi. Xarita
+                  // alohida ValueListenableBuilder ichida — drag uni qurmaydi.
+                  child: DraggableScrollableSheet(
+                    initialChildSize: 0.5,
+                    minChildSize: 0.18,
+                    maxChildSize: 0.92,
+                    snap: true,
+                    snapSizes: const [0.5],
+                    // Timer/narx/masofa shu ichki BlocBuilder orqali har sekund
+                    // yangilanadi — tashqi builder (xarita) qayta qurilmaydi.
+                    builder: (context, scrollController) =>
+                        BlocBuilder<HomeCubit, HomeState>(
+                          builder: (context, state) => OrderInProgressWidget(
+                            scrollController: scrollController,
+                            clientPhone: state.currentOrder?.clientPhone,
+                            clientName: state.currentOrder?.clientName,
+                            pickupAddress: state.currentOrder?.pickupAddress,
+                            destinationAddress:
+                                state.currentOrder?.destinationAddress,
+                            currentPrice: state.currentPrice,
+                            traveledDistance: state.traveledDistance,
+                            waitingSeconds: state.waitingSeconds,
+                            tripSeconds: state.tripSeconds,
+                            isWaitingTimerActive: state.isWaitingTimerActive,
+                            distanceToClient: state.distanceToClient,
+                            isWaitingForClient:
+                                state.status == OrderStatus.waitingForClient,
+                            isGoingToClient:
+                                state.status == OrderStatus.goingToClient,
+                            isTimeoutEnabled: state.isTimeoutEnabled,
+                            routeDurationMinutes: state.routeDurationMinutes,
+                            routeDistanceKm: state.routeDistanceKm,
+                            onComplete: () => _showCompleteDialog(state),
+                            onCancel: () => _showCancelSheet(context),
+                            onOpenMaps: state.currentOrder != null
+                                ? () => _openClientInMaps(
+                                    state.currentOrder!.pickupLocation,
+                                  )
+                                : null,
+                            onArrived: () {
+                              context.read<HomeCubit>().arrivedAtClient();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Safar boshlandi! 🚗'),
+                                  content: Text(
+                                    'Mijoz oldiga yetib keldingiz 📍',
+                                  ),
                                   duration: Duration(seconds: 2),
                                 ),
                               );
-                            }
-                          : null,
-                    ),
+                            },
+                            onToggleTimeout: () {
+                              context.read<HomeCubit>().toggleTimeout();
+                            },
+                            onToggleWaitingTimer: () {
+                              final cubit = context.read<HomeCubit>();
+                              final isStarting =
+                                  !cubit.state.isWaitingTimerActive;
+
+                              cubit.toggleWaitingTimer();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isStarting
+                                        ? '⏱️ Kutish boshlandi'
+                                        : '⏹️ Kutish to\'xtatildi',
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            onPickupClient:
+                                state.status == OrderStatus.waitingForClient
+                                ? () {
+                                    context
+                                        .read<HomeCubit>()
+                                        .markClientPickedUp();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Safar boshlandi! 🚗'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                          ),
+                        ),
                   ),
                 ),
 

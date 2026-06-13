@@ -8,14 +8,14 @@ import 'slide_to_online_button.dart';
 
 /// Aktiv safar varag'i (Yo'lda / Kutilmoqda / Safar).
 ///
-/// MUHIM: bu varaq native YandexMap (platform view) ustida chiziladi.
-/// Android hybrid composition'da xarita ustidagi har bir Flutter kadri qimmat,
-/// shuning uchun:
-///  * `DraggableScrollableSheet` ishlatilmaydi (u butun xaritani qoplaydigan,
-///    har drag'da qayta kompozitsiya qiladigan og'ir overlay edi — qotardi);
-///  * varaq pastga o'rnatilgan, balandligi cheklangan va `RepaintBoundary`
-///    ichida — uning qayta chizilishi xarita qatlamiga tegmaydi;
-///  * uzluksiz (60fps) animatsiya yo'q.
+/// Varaq `DraggableScrollableSheet` ichida ko'rsatiladi:
+///  * barmoq bilan pastga tortib YOPILADI (peek — faqat sarlavha ko'rinadi,
+///    xarita ochiladi) yoki yuqoriga tortib OCHILADI;
+///  * ichidagi kontent o'sha BITTA skroll bilan suriladi (drag ↔ scroll
+///    o'tishini DraggableScrollableSheet o'zi to'g'ri boshqaradi);
+///  * harakat FAQAT barmoqqa bog'liq — uzluksiz (60fps) animatsiya yo'q,
+///    xarita alohida `ValueListenableBuilder` ichida bo'lgani uchun drag
+///    paytida QAYTA QURILMAYDI, shuning uchun qotmaydi.
 ///
 /// Har bosqichda haydovchiga aniq bitta asosiy amal + doim "Bekor qilish":
 ///  * goingToClient    → "Yetib keldim" (GPS kutmasdan qo'lda o'tish)
@@ -53,6 +53,10 @@ class OrderInProgressWidget extends StatelessWidget {
   final int? routeDurationMinutes;
   final String? routeDistanceKm;
 
+  /// DraggableScrollableSheet bergan kontroller — ichki skroll shu bilan
+  /// boshqariladi (drag ↔ scroll o'tishi to'g'ri ishlashi uchun).
+  final ScrollController? scrollController;
+
   const OrderInProgressWidget({
     super.key,
     required this.onComplete,
@@ -77,6 +81,7 @@ class OrderInProgressWidget extends StatelessWidget {
     this.isTimeoutEnabled = true,
     this.routeDurationMinutes,
     this.routeDistanceKm,
+    this.scrollController,
   });
 
   bool get _isInProgress => !isWaitingForClient && !isGoingToClient;
@@ -102,109 +107,103 @@ class OrderInProgressWidget extends StatelessWidget {
         ? AppColors.warning
         : (isGoingToClient ? AppColors.info : AppColors.primary);
 
-    // Bosqichlar orasida silliq o'tish: balandlik BIR MARTALIK (one-shot)
-    // animatsiya bilan o'zgaradi — uzluksiz 60fps emas, shuning uchun native
-    // xarita qotmaydi, ammo o'tish silliq ko'rinadi.
+    // Varaq DraggableScrollableSheet ichida: balandlikni barmoq belgilaydi,
+    // shuning uchun bu yerda qattiq balandlik (maxHeight) yoki AnimatedSize
+    // KERAK EMAS. Kontent o'sha bitta skroll (scrollController) bilan suriladi.
     return RepaintBoundary(
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          constraints: BoxConstraints(maxHeight: 0.76.sh),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(AppRadius.sheet.r)),
-            boxShadow: AppColors.floatingShadow,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sheet.r),
           ),
-          child: SafeArea(
-            top: false,
-            // BUTUN varaq YAGONA skroll: header, ma'lumot va tugmalar birga
-            // sudraladi. O'rta qism alohida sudralib, pastki tugmalar qotib
-            // turmaydi. Kontent kalta bo'lsa (mas. "Qani ketdik" bosqichi) —
-            // hech narsa sudralmaydi, tugmalar to'g'ri kontent ostida turadi.
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Drag handle (faqat bezak)
-                  Center(
-                    child: Container(
-                      margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
-                      width: 40.w,
-                      height: 5.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(99.r),
-                      ),
-                    ),
+          boxShadow: AppColors.floatingShadow,
+        ),
+        child: SingleChildScrollView(
+          controller: scrollController,
+          // Kontent kalta bo'lsa ham varaqni tortib yopish/ochish ishlashi
+          // uchun har doim skroll qabul qilinadi (DraggableScrollableSheet shu
+          // orqali barmoqni varaq harakatiga uzatadi).
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag handle — varaqni tortish uchun ham, bezak ham.
+              Center(
+                child: Container(
+                  margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
+                  width: 40.w,
+                  height: 5.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(99.r),
                   ),
-
-                  // Sarlavha: bosqich ikonkasi + nomi + izoh
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: _header(accent),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Bosqich indikatori (Yo'lda → Kutish → Safar)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: _progressStepper(accent),
-                  ),
-                  SizedBox(height: 14.h),
-
-                  // Ma'lumot qismi
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_hasClient) ...[
-                          _clientCard(),
-                          SizedBox(height: 10.h),
-                        ],
-                        if (_hasPickup || _hasDestination) ...[
-                          _addressCard(),
-                          SizedBox(height: 10.h),
-                        ],
-                        _metricsCard(),
-                        if (_isInProgress) ...[
-                          SizedBox(height: 10.h),
-                          _tripTimeRow(),
-                        ],
-                        if (waitingSeconds > 0 &&
-                            (isWaitingForClient || isWaitingTimerActive)) ...[
-                          SizedBox(height: 10.h),
-                          _waitingRow(),
-                        ],
-                        if (isGoingToClient &&
-                            routeDurationMinutes != null &&
-                            routeDistanceKm != null) ...[
-                          SizedBox(height: 10.h),
-                          _etaRow(),
-                        ],
-                        SizedBox(height: 12.h),
-                        _callMapsRow(),
-                        if (_isInProgress && onToggleWaitingTimer != null) ...[
-                          SizedBox(height: 10.h),
-                          _waitingToggleButton(),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // Asosiy amal + bekor qilish (endi kontent bilan birga
-                  // sudraladi, alohida qotmaydi).
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 8.h),
-                    child: _bottomActions(),
-                  ),
-                ],
+                ),
               ),
-            ),
+
+              // Sarlavha: bosqich ikonkasi + nomi + izoh
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: _header(accent),
+              ),
+              SizedBox(height: 16.h),
+
+              // Bosqich indikatori (Yo'lda → Kutish → Safar)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: _progressStepper(accent),
+              ),
+              SizedBox(height: 14.h),
+
+              // Ma'lumot qismi
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_hasClient) ...[_clientCard(), SizedBox(height: 10.h)],
+                    if (_hasPickup || _hasDestination) ...[
+                      _addressCard(),
+                      SizedBox(height: 10.h),
+                    ],
+                    _metricsCard(),
+                    if (_isInProgress) ...[
+                      SizedBox(height: 10.h),
+                      _tripTimeRow(),
+                    ],
+                    if (waitingSeconds > 0 &&
+                        (isWaitingForClient || isWaitingTimerActive)) ...[
+                      SizedBox(height: 10.h),
+                      _waitingRow(),
+                    ],
+                    if (isGoingToClient &&
+                        routeDurationMinutes != null &&
+                        routeDistanceKm != null) ...[
+                      SizedBox(height: 10.h),
+                      _etaRow(),
+                    ],
+                    SizedBox(height: 12.h),
+                    _callMapsRow(),
+                    if (_isInProgress && onToggleWaitingTimer != null) ...[
+                      SizedBox(height: 10.h),
+                      _waitingToggleButton(),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Asosiy amal + bekor qilish (kontent bilan birga suriladi).
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20.w,
+                  14.h,
+                  20.w,
+                  8.h + MediaQuery.of(context).padding.bottom,
+                ),
+                child: _bottomActions(),
+              ),
+            ],
           ),
         ),
       ),
@@ -220,8 +219,8 @@ class OrderInProgressWidget extends StatelessWidget {
   String get _stageSubtitle => isWaitingForClient
       ? 'Mijoz chiqishini kuting'
       : (isGoingToClient
-          ? 'Mijozni olib ketishga yo\'l oling'
-          : 'Manzilga yetganda yakunlang');
+            ? 'Mijozni olib ketishga yo\'l oling'
+            : 'Manzilga yetganda yakunlang');
 
   IconData get _stageIcon => isWaitingForClient
       ? Iconsax.timer_1
@@ -298,8 +297,8 @@ class OrderInProgressWidget extends StatelessWidget {
                 color: active
                     ? accent
                     : (done
-                        ? accent.withOpacity(0.15)
-                        : AppColors.surfaceVariant),
+                          ? accent.withOpacity(0.15)
+                          : AppColors.surfaceVariant),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: (done || active) ? accent : AppColors.divider,
@@ -443,8 +442,8 @@ class OrderInProgressWidget extends StatelessWidget {
     final String distanceText = _isInProgress
         ? '${traveledDistance.toStringAsFixed(1)} km'
         : (routeDistanceKm != null
-            ? '$routeDistanceKm km'
-            : '${traveledDistance.toStringAsFixed(1)} km');
+              ? '$routeDistanceKm km'
+              : '${traveledDistance.toStringAsFixed(1)} km');
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -479,7 +478,10 @@ class OrderInProgressWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.primary.withOpacity(0.35), width: 1.w),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.35),
+          width: 1.w,
+        ),
       ),
       child: Row(
         children: [
@@ -529,8 +531,9 @@ class OrderInProgressWidget extends StatelessWidget {
     final bool over = waitingSeconds > freeSeconds;
     final Color c = over ? AppColors.warning : AppColors.success;
     // Bepul vaqt qancha sarflangani (0..1). over bo'lsa to'lgan ko'rsatkich.
-    final double freeProgress =
-        (waitingSeconds / freeSeconds).clamp(0.0, 1.0).toDouble();
+    final double freeProgress = (waitingSeconds / freeSeconds)
+        .clamp(0.0, 1.0)
+        .toDouble();
     final int freeLeft = (freeSeconds - waitingSeconds).clamp(0, freeSeconds);
 
     return Container(
@@ -589,9 +592,7 @@ class OrderInProgressWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(9.r),
                 ),
                 child: Text(
-                  over
-                      ? (isTimeoutEnabled ? 'Pullik' : 'O\'chiq')
-                      : 'Bepul',
+                  over ? (isTimeoutEnabled ? 'Pullik' : 'O\'chiq') : 'Bepul',
                   style: TextStyle(
                     fontSize: 11.5.sp,
                     fontWeight: FontWeight.w800,
@@ -617,8 +618,8 @@ class OrderInProgressWidget extends StatelessWidget {
           Text(
             over
                 ? (isTimeoutEnabled
-                    ? 'Bepul vaqt tugadi • 1000 so\'m/daqiqa'
-                    : 'Bepul vaqt tugadi • timeout o\'chirilgan')
+                      ? 'Bepul vaqt tugadi • 1000 so\'m/daqiqa'
+                      : 'Bepul vaqt tugadi • timeout o\'chirilgan')
                 : 'Bepul tugashiga ${_formatTime(freeLeft)}',
             style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
           ),
@@ -858,9 +859,11 @@ class OrderInProgressWidget extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  color: enabled ? color : AppColors.textSecondary,
-                  size: 20.w),
+              Icon(
+                icon,
+                color: enabled ? color : AppColors.textSecondary,
+                size: 20.w,
+              ),
               SizedBox(width: 8.w),
               Text(
                 label,
