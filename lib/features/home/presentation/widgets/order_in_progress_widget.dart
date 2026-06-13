@@ -120,38 +120,45 @@ class OrderInProgressWidget extends StatelessWidget {
           ),
           child: SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle (faqat bezak — varaq sudralmaydi)
-                Container(
-                  margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
-                  width: 40.w,
-                  height: 5.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(99.r),
+            // BUTUN varaq YAGONA skroll: header, ma'lumot va tugmalar birga
+            // sudraladi. O'rta qism alohida sudralib, pastki tugmalar qotib
+            // turmaydi. Kontent kalta bo'lsa (mas. "Qani ketdik" bosqichi) —
+            // hech narsa sudralmaydi, tugmalar to'g'ri kontent ostida turadi.
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Drag handle (faqat bezak)
+                  Center(
+                    child: Container(
+                      margin: EdgeInsets.only(top: 10.h, bottom: 12.h),
+                      width: 40.w,
+                      height: 5.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        borderRadius: BorderRadius.circular(99.r),
+                      ),
+                    ),
                   ),
-                ),
 
-                // Sarlavha: bosqich ikonkasi + nomi + izoh
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: _header(accent),
-                ),
-                SizedBox(height: 16.h),
+                  // Sarlavha: bosqich ikonkasi + nomi + izoh
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: _header(accent),
+                  ),
+                  SizedBox(height: 16.h),
 
-                // Bosqich indikatori (Yo'lda → Kutish → Safar)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: _progressStepper(accent),
-                ),
-                SizedBox(height: 14.h),
+                  // Bosqich indikatori (Yo'lda → Kutish → Safar)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: _progressStepper(accent),
+                  ),
+                  SizedBox(height: 14.h),
 
-                // Skroll qilinadigan ma'lumot qismi
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
+                  // Ma'lumot qismi
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -185,18 +192,18 @@ class OrderInProgressWidget extends StatelessWidget {
                           SizedBox(height: 10.h),
                           _waitingToggleButton(),
                         ],
-                        SizedBox(height: 6.h),
                       ],
                     ),
                   ),
-                ),
 
-                // Pastga mahkamlangan asosiy amal + bekor qilish
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
-                  child: _bottomActions(),
-                ),
-              ],
+                  // Asosiy amal + bekor qilish (endi kontent bilan birga
+                  // sudraladi, alohida qotmaydi).
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 8.h),
+                    child: _bottomActions(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
