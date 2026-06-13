@@ -34,6 +34,33 @@ class OrderService {
     return OrderModel.fromJson(_asMap(res.data));
   }
 
+  /// `GET /api/orders` — buyurtmalar ro'yxati (API Platform / Hydra collection).
+  ///
+  /// Tugatilgan buyurtmalar tarixini backenddan olish uchun. Lokal xotira APK
+  /// qayta o'rnatilganda tozalanadi — shuning uchun ro'yxat backenddan
+  /// tortiladi. [driverId]/[status] berilsa, server filtri bilan cheklashga
+  /// urinadi; natija mijoz tomonida ham filtrlanadi (filtr sozlanmagan bo'lsa).
+  Future<List<OrderModel>> fetchOrders({int? driverId, String? status}) async {
+    final query = <String, dynamic>{};
+    if (driverId != null) query['driver'] = '/api/drivers/$driverId';
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    final res = await _client.get(
+      'orders',
+      queryParameters: query.isEmpty ? null : query,
+    );
+    final data = res.data;
+    final members = data is Map
+        ? (data['member'] ?? data['hydra:member'])
+        : (data is List ? data : null);
+    if (members is List) {
+      return members
+          .whereType<Map>()
+          .map((e) => OrderModel.fromJson(e.cast<String, dynamic>()))
+          .toList();
+    }
+    return const [];
+  }
+
   /// `POST /api/orders/{id}/{driverId}/accept`
   Future<Map<String, dynamic>> accept({
     required String orderId,

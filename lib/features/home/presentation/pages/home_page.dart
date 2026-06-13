@@ -11,14 +11,12 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_messenger.dart';
-import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/network/mercure_service.dart';
 import '../../../../injection_container.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
 import '../widgets/order_in_progress_widget.dart';
-import '../widgets/collapsible_sheet.dart';
 import '../widgets/cancel_trip_sheet.dart';
 import '../widgets/trip_complete_dialog.dart';
 import '../widgets/slide_to_online_button.dart';
@@ -38,14 +36,6 @@ class _HomePageState extends State<HomePage> {
   Point? _lastMarkerLocation; // Track last GPS marker position
   // Mijozga yo'l olishda kamerani (haydovchi + mijoz) bir marta moslash uchun.
   String? _fittedClientOrderId;
-
-  // Marshrut chizig'i (polyline) geometriyasining OXIRGI havolasi. Polyline'ni
-  // FAQAT geometriya o'zgarganda qayta quramiz — har lokatsiya yangilanishida
-  // (har 10s) emas. Aks holda uzun marshrutni native xarita har safar qayta
-  // tessellatsiya qilib (qayta chizib) app QOTARDI. Mijozga yo'l olishda
-  // marshrut bir marta yuklanadi, keyin o'zgarmaydi — shuning uchun bir marta
-  // chizilib, keyin tegilmaydi.
-  List<Point>? _lastRouteGeometryRef;
 
   // Xarita obyektlari (marker/polyline) faqat O'ZI yangilanishi uchun.
   // Bu o'zgarsa butun sahifa emas, faqat YandexMap o'ralgan
@@ -198,14 +188,19 @@ class _HomePageState extends State<HomePage> {
             prev.isOnline != curr.isOnline ||
             prev.currentOrder?.id != curr.currentOrder?.id,
         builder: (context, state) {
-          // Mercure banner: online bo'lib, ulanish hali tiklanmagan bo'lsa
-          // (yoki endigina tiklangan bo'lsa) tepada ko'rsatamiz.
-          final showReconnecting =
-              state.isOnline && _mercureStatus != MercureStatus.connected;
-          final showReconnected = state.isOnline &&
-              _showReconnected &&
-              _mercureStatus == MercureStatus.connected;
-          final bannerVisible = showReconnecting || showReconnected;
+          // Ulanish holati. Idle (buyurtma kutilayotgan) holatda buni PASTDAGI
+          // "Liniya" kartasi ko'rsatadi: ulanmoqda — to'q sariq, ulandi —
+          // yashil. Tepadagi banner esa FAQAT buyurtma kelganda (orderReceived)
+          // chiqadi — birinchi marta liniyaga chiqishda "Liniyadasiz" birdan
+          // chiqib qolmasligi uchun.
+          final mercureConnected = _mercureStatus == MercureStatus.connected;
+          final showReconnecting = state.isOnline && !mercureConnected;
+          final showReconnected =
+              state.isOnline && _showReconnected && mercureConnected;
+          // Banner faqat buyurtma kutilayotgan ekranda (idle'da karta bor).
+          final bannerVisible =
+              state.status == OrderStatus.orderReceived &&
+              (showReconnecting || showReconnected);
           final topInset = MediaQuery.of(context).padding.top + 10.h;
 
           return Stack(
@@ -217,8 +212,7 @@ class _HomePageState extends State<HomePage> {
                 builder: (context, mapObjects, _) => YandexMap(
                   onMapCreated: (controller) {
                     _mapController = controller;
-                    final loc =
-                        context.read<HomeCubit>().state.currentLocation;
+                    final loc = context.read<HomeCubit>().state.currentLocation;
                     if (loc != null) _moveToLocation(loc);
                   },
                   mapObjects: mapObjects,
@@ -237,30 +231,20 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // Top controls - active order states only (initial/online-idle
-              // uses the dedicated Liniya card below). Hidden while going to client.
-              if (state.status != OrderStatus.goingToClient &&
-                  state.status != OrderStatus.initial &&
-                  state.status != OrderStatus.completed)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10.h,
-                  left: 16.w,
-                  right: 16.w,
-                  // Narx/holat matni jonli bo'lsin, lekin xaritani qurmasin.
-                  child: BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) => _buildTopControls(state),
-                  ),
-                ),
+              // Top banner OLIB TASHLANDI — holat (narx/bosqich) endi faqat
+              // pastdagi varaqda ko'rsatiladi. Xarita tepasi toza qoladi.
 
-              // Online (Liniya) status card — single clean header with Chiqish
+              // Online (Liniya) status card — ulanish holatini ko'rsatadi:
+              // ulanmoqda (to'q sariq) → ulandi "Liniyadasiz" (yashil).
               if (state.isOnline && state.status == OrderStatus.initial)
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  top: topInset + (bannerVisible ? 56.h : 0),
+                Positioned(
+                  top: topInset,
                   left: 16.w,
                   right: 16.w,
-                  child: _buildOnlineIdleCard(context),
+                  child: _buildOnlineIdleCard(
+                    context,
+                    connected: mercureConnected,
+                  ),
                 ),
 
               // Go online button - show when driver is offline and not in order
@@ -281,9 +265,9 @@ class _HomePageState extends State<HomePage> {
                   right: 0,
                   child: OrderBottomSheet(
                     order: state.currentOrder!,
-                    price: context
-                        .read<HomeCubit>()
-                        .resolveOrderBasePrice(state.currentOrder!),
+                    price: context.read<HomeCubit>().resolveOrderBasePrice(
+                      state.currentOrder!,
+                    ),
                     onAccept: () {
                       context.read<HomeCubit>().acceptOrder();
                     },
@@ -306,72 +290,76 @@ class _HomePageState extends State<HomePage> {
                   right: 0,
                   // Timer/narx/masofa matni shu ichki BlocBuilder orqali har
                   // sekund yangilanadi — tashqi builder (xarita) qayta qurilmaydi.
+                  // Varaq KONTENT bo'yicha o'lchanadi (AnimatedSize + min) —
+                  // qotirilgan balandlik yo'q, qirqilib qolmaydi.
                   child: BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) => CollapsibleSheet(
-                      child: OrderInProgressWidget(
-                    clientPhone: state.currentOrder?.clientPhone,
-                    clientName: state.currentOrder?.clientName,
-                    pickupAddress: state.currentOrder?.pickupAddress,
-                    destinationAddress: state.currentOrder?.destinationAddress,
-                    currentPrice: state.currentPrice,
-                    traveledDistance: state.traveledDistance,
-                    waitingSeconds: state.waitingSeconds,
-                    tripSeconds: state.tripSeconds,
-                    isWaitingTimerActive: state.isWaitingTimerActive,
-                    distanceToClient: state.distanceToClient,
-                    isWaitingForClient:
-                        state.status == OrderStatus.waitingForClient,
-                    isGoingToClient: state.status == OrderStatus.goingToClient,
-                    isTimeoutEnabled: state.isTimeoutEnabled,
-                    routeDurationMinutes: state.routeDurationMinutes,
-                    routeDistanceKm: state.routeDistanceKm,
-                    onComplete: () => _showCompleteDialog(state),
-                    onCancel: () => _showCancelSheet(context),
-                    onOpenMaps: state.currentOrder != null
-                        ? () => _openClientInMaps(
-                            state.currentOrder!.pickupLocation)
-                        : null,
-                    onArrived: () {
-                      context.read<HomeCubit>().arrivedAtClient();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Mijoz oldiga yetib keldingiz 📍'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    onToggleTimeout: () {
-                      context.read<HomeCubit>().toggleTimeout();
-                    },
-                    onToggleWaitingTimer: () {
-                      final cubit = context.read<HomeCubit>();
-                      final isStarting = !cubit.state.isWaitingTimerActive;
-
-                      cubit.toggleWaitingTimer();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isStarting
-                                ? '⏱️ Kutish boshlandi'
-                                : '⏹️ Kutish to\'xtatildi',
+                    builder: (context, state) => OrderInProgressWidget(
+                      clientPhone: state.currentOrder?.clientPhone,
+                      clientName: state.currentOrder?.clientName,
+                      pickupAddress: state.currentOrder?.pickupAddress,
+                      destinationAddress:
+                          state.currentOrder?.destinationAddress,
+                      currentPrice: state.currentPrice,
+                      traveledDistance: state.traveledDistance,
+                      waitingSeconds: state.waitingSeconds,
+                      tripSeconds: state.tripSeconds,
+                      isWaitingTimerActive: state.isWaitingTimerActive,
+                      distanceToClient: state.distanceToClient,
+                      isWaitingForClient:
+                          state.status == OrderStatus.waitingForClient,
+                      isGoingToClient:
+                          state.status == OrderStatus.goingToClient,
+                      isTimeoutEnabled: state.isTimeoutEnabled,
+                      routeDurationMinutes: state.routeDurationMinutes,
+                      routeDistanceKm: state.routeDistanceKm,
+                      onComplete: () => _showCompleteDialog(state),
+                      onCancel: () => _showCancelSheet(context),
+                      onOpenMaps: state.currentOrder != null
+                          ? () => _openClientInMaps(
+                              state.currentOrder!.pickupLocation,
+                            )
+                          : null,
+                      onArrived: () {
+                        context.read<HomeCubit>().arrivedAtClient();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Mijoz oldiga yetib keldingiz 📍'),
+                            duration: Duration(seconds: 2),
                           ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    onPickupClient: state.status == OrderStatus.waitingForClient
-                        ? () {
-                            context.read<HomeCubit>().markClientPickedUp();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Safar boshlandi! 🚗'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        : null,
-                      ),
+                        );
+                      },
+                      onToggleTimeout: () {
+                        context.read<HomeCubit>().toggleTimeout();
+                      },
+                      onToggleWaitingTimer: () {
+                        final cubit = context.read<HomeCubit>();
+                        final isStarting = !cubit.state.isWaitingTimerActive;
+
+                        cubit.toggleWaitingTimer();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isStarting
+                                  ? '⏱️ Kutish boshlandi'
+                                  : '⏹️ Kutish to\'xtatildi',
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      onPickupClient:
+                          state.status == OrderStatus.waitingForClient
+                          ? () {
+                              context.read<HomeCubit>().markClientPickedUp();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Safar boshlandi! 🚗'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          : null,
                     ),
                   ),
                 ),
@@ -437,9 +425,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-              // Mercure ulanish banneri (eng ustda chiziladi)
-              if (state.status == OrderStatus.initial ||
-                  state.status == OrderStatus.orderReceived)
+              // Mercure ulanish banneri — faqat buyurtma kutilayotganda
+              // (orderReceived). Idle holatda ulanish holatini Liniya kartasi
+              // ko'rsatadi, shuning uchun bu yerda banner chiqarilmaydi.
+              if (state.status == OrderStatus.orderReceived)
                 Positioned(
                   top: topInset,
                   left: 16.w,
@@ -452,7 +441,9 @@ class _HomePageState extends State<HomePage> {
                       child: AnimatedOpacity(
                         duration: const Duration(milliseconds: 280),
                         opacity: bannerVisible ? 1 : 0,
-                        child: _buildMercureBanner(reconnecting: showReconnecting),
+                        child: _buildMercureBanner(
+                          reconnecting: showReconnecting,
+                        ),
                       ),
                     ),
                   ),
@@ -516,110 +507,122 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// Liniyada (online) va buyurtma kutilayotgan holatdagi yagona, toza karta.
-  /// Status ikonkasi + "Liniyadasiz" + "Hozircha buyurtma yo'q" + Chiqish tugmasi.
-  Widget _buildOnlineIdleCard(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.18),
-          width: 1.5.w,
+  /// Liniyada (online) holatdagi yagona, toza karta. Mercure'ga ulanayotganda
+  /// to'q sariq "Ulanmoqda…", ulanib bo'lgach yashil "Liniyadasiz" ko'rsatadi.
+  /// Holatlar orasidagi o'tish silliq (AnimatedSwitcher — bir martalik fade,
+  /// xarita ustida xavfsiz, uzluksiz animatsiya emas).
+  Widget _buildOnlineIdleCard(BuildContext context, {required bool connected}) {
+    final accent = connected ? AppColors.primary : AppColors.warning;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOutCubic,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: Container(
+        key: ValueKey<bool>(connected),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: accent.withOpacity(0.18), width: 1.5.w),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 16.r,
+              offset: Offset(0, 4.h),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 16.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Status icon
-          Container(
-            width: 42.w,
-            height: 42.w,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
-                  blurRadius: 10.r,
-                  offset: Offset(0, 3.h),
-                ),
-              ],
-            ),
-            child: Icon(
-              Iconsax.tick_circle,
-              color: Colors.white,
-              size: 22.w,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          // Title + subtitle
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Liniyadasiz',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.3,
+        child: Row(
+          children: [
+            // Status icon — ulangach tasdiq belgisi, ulanayotganda yangilanish.
+            Container(
+              width: 42.w,
+              height: 42.w,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withOpacity(0.3),
+                    blurRadius: 10.r,
+                    offset: Offset(0, 3.h),
                   ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Hozircha buyurtma yo\'q',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: Icon(
+                connected ? Iconsax.tick_circle : Iconsax.refresh,
+                color: Colors.white,
+                size: 22.w,
+              ),
             ),
-          ),
-          SizedBox(width: 10.w),
-          // Chiqish (go offline) button
-          Material(
-            color: AppColors.error,
-            borderRadius: BorderRadius.circular(12.r),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12.r),
-              onTap: () => context.read<HomeCubit>().toggleOnline(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.power_settings_new,
-                      color: Colors.white,
-                      size: 16.w,
+            SizedBox(width: 12.w),
+            // Title + subtitle
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    connected ? 'Liniyadasiz' : 'Ulanmoqda…',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
                     ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      'Chiqish',
-                      style: TextStyle(
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    connected
+                        ? 'Hozircha buyurtma yo\'q'
+                        : 'Liniyaga ulanyapmiz, biroz kuting',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 10.w),
+            // Chiqish (go offline) button
+            Material(
+              color: AppColors.error,
+              borderRadius: BorderRadius.circular(12.r),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12.r),
+                onTap: () => context.read<HomeCubit>().toggleOnline(),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 10.h,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.power_settings_new,
                         color: Colors.white,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
+                        size: 16.w,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 6.w),
+                      Text(
+                        'Chiqish',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -630,138 +633,6 @@ class _HomePageState extends State<HomePage> {
       text: 'Liniyaga chiqish',
       onConfirmed: () => context.read<HomeCubit>().toggleOnline(),
     );
-  }
-
-  Widget _buildTopControls(HomeState state) {
-    final statusColor = _getStatusColor(state.status);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 27.5.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: statusColor.withOpacity(0.2), width: 1.5.w),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 16.r,
-            offset: Offset(0, 4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.h,
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: statusColor.withOpacity(0.3),
-                  blurRadius: 10.r,
-                  offset: Offset(0, 3.h),
-                ),
-              ],
-            ),
-            child: Icon(
-              _getStatusIcon(state.status),
-              color: Colors.white,
-              size: 20.w,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Text(
-            _getStatusText(state.status),
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.3,
-            ),
-          ),
-          if (state.status == OrderStatus.inProgress &&
-              state.currentPrice > 0) ...[
-            SizedBox(width: 8.w),
-            Text(
-              NumberFormatter.formatPriceWithCurrency(state.currentPrice),
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Color _getStatusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.initial:
-      case OrderStatus.drawingRoute:
-        return AppColors.primary;
-      case OrderStatus.waitingForOrder:
-        return const Color(0xFFFF9800);
-      case OrderStatus.orderReceived:
-        return const Color(0xFF2196F3);
-      case OrderStatus.orderAccepted:
-      case OrderStatus.goingToClient:
-        return const Color(0xFF9C27B0);
-      case OrderStatus.waitingForClient:
-        return const Color(0xFFFF5722);
-      case OrderStatus.inProgress:
-        return const Color(0xFF4CAF50);
-      case OrderStatus.completed:
-        return const Color(0xFF00BCD4);
-    }
-  }
-
-  IconData _getStatusIcon(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.initial:
-      case OrderStatus.drawingRoute:
-        return Iconsax.tick_circle;
-      case OrderStatus.waitingForOrder:
-        return Iconsax.clock;
-      case OrderStatus.orderReceived:
-        return Iconsax.notification_bing;
-      case OrderStatus.orderAccepted:
-      case OrderStatus.goingToClient:
-        return Iconsax.car;
-      case OrderStatus.waitingForClient:
-        return Iconsax.location;
-      case OrderStatus.inProgress:
-        return Iconsax.gps;
-      case OrderStatus.completed:
-        return Iconsax.tick_circle;
-    }
-  }
-
-  String _getStatusText(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.initial:
-        return 'Hozircha buyurtma yo\'q';
-      case OrderStatus.drawingRoute:
-        return 'Yo\'l chizilmoqda...';
-      case OrderStatus.waitingForOrder:
-        return 'Hozircha buyurtma yo\'q'; // Won't be used anymore
-      case OrderStatus.orderReceived:
-        return 'Yangi buyurtma!';
-      case OrderStatus.orderAccepted:
-        return 'Buyurtma qabul qilindi';
-      case OrderStatus.goingToClient:
-        return 'Mijozga ketilmoqda';
-      case OrderStatus.waitingForClient:
-        return 'Mijozni kutmoqda';
-      case OrderStatus.inProgress:
-        return 'Yo\'lda';
-      case OrderStatus.completed:
-        return 'Tugatildi!';
-    }
   }
 
   Future<void> _updateMapObjects(HomeState state) async {
@@ -778,30 +649,11 @@ class _HomePageState extends State<HomePage> {
       _lastMarkerLocation = loc;
     }
 
-    // Marshrut chizig'i (polyline) — FAQAT geometriya O'ZGARGANDA qayta
-    // quramiz. Har lokatsiya yangilanishida (har 10s) qayta yaratsak, uzun
-    // marshrutni native xarita har safar qayta tessellatsiya qilib QOTARDI.
-    // `identical` bilan havolani solishtiramiz: yangi marshrut yuklansa yoki
-    // tozalansa (null/[]) havola o'zgaradi — faqat shunda qayta quramiz.
-    if (!identical(state.routeGeometry, _lastRouteGeometryRef)) {
-      _lastRouteGeometryRef = state.routeGeometry;
-      _mapObjects.removeWhere((obj) => obj.mapId.value == 'route_polyline');
-      if (state.routeGeometry != null && state.routeGeometry!.isNotEmpty) {
-        _mapObjects.add(
-          PolylineMapObject(
-            mapId: const MapObjectId('route_polyline'),
-            polyline: Polyline(points: state.routeGeometry!),
-            strokeColor: const Color(0xFF2196F3), // Material Blue
-            strokeWidth: 5.0,
-            outlineColor: Colors.white,
-            outlineWidth: 1.5,
-            dashLength: 0,
-            dashOffset: 0,
-            gapLength: 0,
-          ),
-        );
-      }
-    }
+    // Marshrut chizig'i (polyline) UMUMAN chizilmaydi — mijoz oldiga borishda
+    // ham, safar davomida ham. Xaritada faqat haydovchi va mijoz markerlari
+    // turadi (native xaritani qotirmaslik uchun ham eng xavfsiz). Eski chiziq
+    // qolib ketgan bo'lsa, tozalab qo'yamiz.
+    _mapObjects.removeWhere((obj) => obj.mapId.value == 'route_polyline');
 
     // Remove client marker if order completed, initial state, when going offline, or client picked up
     // Also remove during inProgress to clean up after "Qani ketdik"
@@ -848,8 +700,7 @@ class _HomePageState extends State<HomePage> {
         PlacemarkIconStyle(
           image: BitmapDescriptor.fromBytes(buffer),
           scale: 1.2,
-          rotationType:
-              RotationType.noRotation, // We handle rotation ourselves
+          rotationType: RotationType.noRotation, // We handle rotation ourselves
         ),
       ),
     );
@@ -931,8 +782,10 @@ class _HomePageState extends State<HomePage> {
           northEast: Point(latitude: north + latPad, longitude: east + lngPad),
         ),
       ),
-      animation:
-          const MapAnimation(type: MapAnimationType.smooth, duration: 0.6),
+      animation: const MapAnimation(
+        type: MapAnimationType.smooth,
+        duration: 0.6,
+      ),
     );
   }
 
@@ -959,58 +812,74 @@ class _HomePageState extends State<HomePage> {
           PlacemarkIconStyle(
             image: BitmapDescriptor.fromBytes(buffer),
             scale: 1.0,
+            // Pin uchi aynan mijoz nuqtasini ko'rsatadi (pastki-markaz).
+            anchor: const Offset(0.5, 1.0),
           ),
         ),
       ),
     );
   }
 
-  /// Mijoz markeri rasmi — bir marta chizilib keshlanadi.
+  /// Mijoz markeri rasmi — yashil "pin" (haydovchining qizil markeridan ajralib
+  /// turadi). Ichida oq odam belgisi. Bir marta chizilib keshlanadi.
   Future<Uint8List> _clientMarkerBytes() async {
     if (_clientMarkerBitmap != null) return _clientMarkerBitmap!;
-    // Create custom client marker with bright red pin
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final size = 120.0;
+    const double w = 120;
+    const double h = 150;
+    const double cx = w / 2; // 60
+    const double headR = 44; // bosh doira radiusi
+    const double headCy = 48; // bosh doira markazi (y)
+    const Color pinColor = Color(0xFF34C759); // yashil — mijoz/pickup
 
-    // Draw red circle with white border
-    final circlePaint = Paint()
-      ..color = const Color(0xFFFF3B30)
+    // Pastdagi yengil soya (pin uchi ostida).
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(cx, h - 10), width: 38, height: 13),
+      shadowPaint,
+    );
+
+    final pinPaint = Paint()
+      ..color = pinColor
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 3, circlePaint);
+    // Teardrop: pastga ingichkalashgan uchburchak quyruq + tepada doira.
+    final path = Path()
+      ..moveTo(cx, h - 6)
+      ..lineTo(cx - headR * 0.60, headCy + headR * 0.80)
+      ..lineTo(cx + headR * 0.60, headCy + headR * 0.80)
+      ..close();
+    canvas.drawPath(path, pinPaint);
+    canvas.drawCircle(const Offset(cx, headCy), headR, pinPaint);
 
-    // Draw white border
-    final borderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
-
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 3, borderPaint);
-
-    // Draw person icon in center
-    final iconPaint = Paint()
+    // Ichki oq doira.
+    final whitePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(cx, headCy), headR * 0.62, whitePaint);
 
-    // Draw head
-    canvas.drawCircle(Offset(size / 2, size / 2.5), size / 10, iconPaint);
-
-    // Draw body (simple rectangle)
+    // Odam belgisi (yashil) — bosh + yelka/tana.
+    final personPaint = Paint()
+      ..color = pinColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(cx, headCy - 9), 9.5, personPaint);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
-          center: Offset(size / 2, size / 1.6),
-          width: size / 4,
-          height: size / 3.5,
+          center: const Offset(cx, headCy + 13),
+          width: 31,
+          height: 22,
         ),
-        Radius.circular(size / 20),
+        const Radius.circular(11),
       ),
-      iconPaint,
+      personPaint,
     );
 
     final picture = recorder.endRecording();
-    final img = await picture.toImage(size.toInt(), size.toInt());
+    final img = await picture.toImage(w.toInt(), h.toInt());
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
     _clientMarkerBitmap = byteData!.buffer.asUint8List();
     return _clientMarkerBitmap!;

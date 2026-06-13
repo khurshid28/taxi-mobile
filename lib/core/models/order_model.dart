@@ -16,6 +16,7 @@ class OrderModel {
   final String? tariff;
   final int? orderTypeId;
   final OrderTypeModel? orderType;
+  final int? driverId;
 
   OrderModel({
     required this.id,
@@ -32,6 +33,7 @@ class OrderModel {
     this.tariff,
     this.orderTypeId,
     this.orderType,
+    this.driverId,
   });
 
   /// Mercure / REST javoblari uchun parser. Backend bir nechta
@@ -146,6 +148,25 @@ class OrderModel {
       created = DateTime.now();
     }
 
+    // Haydovchi id — nested `driver` obyekti, IRI (`/api/drivers/5`) yoki yassi
+    // `driverId`. Tugatilgan buyurtmalar ro'yxatini aynan shu haydovchiga
+    // ajratish uchun kerak.
+    int? parseIntId(dynamic raw) {
+      if (raw == null) return null;
+      if (raw is int) return raw;
+      if (raw is num) return raw.toInt();
+      final s = raw.toString().trim();
+      if (s.isEmpty) return null;
+      final last = s.contains('/') ? s.split('/').last : s;
+      return int.tryParse(last);
+    }
+
+    final driverMap = asMap(json['driver']);
+    final driverId = parseIntId(driverMap?['id'] ??
+        json['driverId'] ??
+        json['driver_id'] ??
+        json['driver']);
+
     return OrderModel(
       id: id,
       clientName: clientName,
@@ -163,6 +184,7 @@ class OrderModel {
       tariff: tariff,
       orderTypeId: orderType?.id,
       orderType: orderType,
+      driverId: driverId,
     );
   }
 
@@ -199,9 +221,11 @@ enum OrderStatusType {
   /// Backenddagi string qiymati.
   final String value;
 
-  /// Backend string -> enum. Noma'lum bo'lsa pending.
+  /// Backend string -> enum. Noma'lum bo'lsa pending. Backend ba'zan katta
+  /// harfda (`COMPLETED`, `ON_THE_WAY`) qaytaradi — shuning uchun kichik
+  /// harfga keltirib solishtiramiz.
   static OrderStatusType fromString(String? raw) {
-    switch (raw) {
+    switch (raw?.toLowerCase().trim()) {
       case 'new':
         return OrderStatusType.newOrder;
       case 'pending':

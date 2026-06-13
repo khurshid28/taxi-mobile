@@ -10,6 +10,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/order_model.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/utils/storage_helper.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../data/order_service.dart';
+import '../../../../injection_container.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
 import '../../../home/presentation/cubit/home_state.dart';
 import '../../../../core/widgets/error_retry_view.dart';
@@ -50,11 +53,11 @@ class _OrdersPageState extends State<OrdersPage>
     });
 
     try {
-      // Real completed trips saved locally on this device.
-      final storedOrders = await _loadStoredOrders();
+      // Tugatilgan safarlar: backend (tarix) + lokal (shu qurilma) birlashmasi.
+      final orders = await _fetchCompletedOrders();
       if (!mounted) return;
       setState(() {
-        _orders = storedOrders;
+        _orders = orders;
         _filteredOrders = _orders;
         _isLoading = false;
       });
@@ -66,6 +69,49 @@ class _OrdersPageState extends State<OrdersPage>
         _isLoading = false;
       });
     }
+  }
+
+  /// Tugatilgan buyurtmalar ro'yxati: backenddan (APK qayta o'rnatilsa ham
+  /// saqlanadi) va lokal xotiradan (oflayn zaxira) olib, id bo'yicha
+  /// birlashtiriladi (backend ustuvor). Yangidan eskiga tartiblanadi.
+  Future<List<OrderModel>> _fetchCompletedOrders() async {
+    final driverId = await StorageHelper.getInt(AppConstants.keyDriverId);
+
+    // Lokal zaxira (tarmoqsiz ham ko'rinadi).
+    List<OrderModel> local = const [];
+    try {
+      local = await _loadStoredOrders();
+    } catch (_) {}
+
+    // Backend tarixi.
+    List<OrderModel> remote = const [];
+    try {
+      final all = await sl<OrderService>()
+          .fetchOrders(driverId: driverId, status: 'completed');
+      remote = all.where((o) {
+        if (o.id.isEmpty) return false;
+        if (o.status != OrderStatusType.completed) return false;
+        // Haydovchi mosligini tekshiramiz (ma'lum bo'lsa).
+        if (driverId != null && o.driverId != null) {
+          return o.driverId == driverId;
+        }
+        return true;
+      }).toList();
+    } catch (_) {
+      // Tarmoq xatosi — faqat lokal ko'rsatiladi.
+    }
+
+    // Birlashtirib, id bo'yicha takrorlanmaslik (backend lokalni yangilaydi).
+    final byId = <String, OrderModel>{};
+    for (final o in local) {
+      if (o.id.isNotEmpty) byId[o.id] = o;
+    }
+    for (final o in remote) {
+      byId[o.id] = o;
+    }
+    final merged = byId.values.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return merged;
   }
 
   Future<List<OrderModel>> _loadStoredOrders() async {
@@ -130,10 +176,10 @@ class _OrdersPageState extends State<OrdersPage>
     });
 
     try {
-      final storedOrders = await _loadStoredOrders();
+      final orders = await _fetchCompletedOrders();
       if (!mounted) return;
       setState(() {
-        _orders = storedOrders;
+        _orders = orders;
         _filterOrders(_selectedFilter);
         _isLoading = false;
       });
