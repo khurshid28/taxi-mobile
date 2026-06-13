@@ -318,6 +318,8 @@ class _HomePageState extends State<HomePage> {
                             isTimeoutEnabled: state.isTimeoutEnabled,
                             routeDurationMinutes: state.routeDurationMinutes,
                             routeDistanceKm: state.routeDistanceKm,
+                            plannedDistanceKm:
+                                state.currentOrder?.distance ?? 0,
                             onComplete: () => _showCompleteDialog(state),
                             onCancel: () => _showCancelSheet(context),
                             onOpenMaps: state.currentOrder != null

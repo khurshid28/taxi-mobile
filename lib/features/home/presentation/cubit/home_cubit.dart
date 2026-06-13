@@ -570,7 +570,8 @@ class HomeCubit extends Cubit<HomeState> {
       emit(state.copyWith(
         status: OrderStatus.goingToClient,
         currentOrder: acceptedOrder,
-        currentPrice: _computePrice(0, 0),
+        // Taxminiy narx allaqachon trip km ni o'z ichiga oladi (base + km).
+        currentPrice: _computePrice(acceptedOrder.distance, 0),
         traveledDistance: 0,
         waitingSeconds: 0,
         isWaitingTimerActive: false,
@@ -876,11 +877,14 @@ class HomeCubit extends Cubit<HomeState> {
       }
 
       final secs = _currentWaitingSeconds;
-      // Mijozni kutish bosqichida narx ko'rsatilmaydi (0 turadi) — narx hisobi
-      // on_the_way (mijoz mashinaga chiqqach) boshlanadi. Kutilgan vaqt esa
-      // saqlanadi va keyin narxga (kutish haqi sifatida) qo'shiladi.
+      // Mijozni kutish bosqichida ham "Taxminiy narx" JONLI yangilanadi:
+      // bepul vaqt tugagach kutish haqi (yuqoriga yaxlitlangan daqiqalar)
+      // darhol narxga qo'shilib boradi. Masofa — rejalashtirilgan trip km.
       if (state.status == OrderStatus.waitingForClient) {
-        emit(state.copyWith(waitingSeconds: secs));
+        emit(state.copyWith(
+          waitingSeconds: secs,
+          currentPrice: _computePrice(_plannedDistanceKm, secs),
+        ));
       } else {
         emit(state.copyWith(
           waitingSeconds: secs,
@@ -949,9 +953,15 @@ class HomeCubit extends Cubit<HomeState> {
 
   // ============== Helpers ==============
 
+  /// Buyurtmaning rejalashtirilgan masofasi (km) — backend bergan trip masofasi
+  /// (pickup→manzil). "Taxminiy narx" shu masofa bo'yicha hisoblanadi; safar
+  /// boshlangach esa haqiqiy bosib o'tilgan masofa (`_tripDistanceKm`) ishlatiladi.
+  double get _plannedDistanceKm => state.currentOrder?.distance ?? 0;
+
   /// Narx hisobi tarif (OrderTypes) asosida:
   ///   narx = minPrice + km*kmPrice + kutish haqi
-  ///   kutish haqi = max(0, kutishDaqiqa - waitTime) * waitPrice (timeout yoqilgan bo'lsa)
+  ///   kutish haqi = ceil(max(0, kutish - bepulVaqt)) * waitPrice (timeout yoqilgan bo'lsa)
+  /// Bepul vaqtdan oshgan qism daqiqaga YUQORIGA yaxlitlanadi (3:20 => 4 daqiqa).
   /// Tarif topilmasa AppConstants qiymatlari zaxira sifatida ishlatiladi.
   int _computePrice(double distanceKm, int waitingSeconds) {
     final t = _activeTariff;
@@ -964,8 +974,13 @@ class HomeCubit extends Cubit<HomeState> {
     final road = distanceKm * perKm;
     double waitCharge = 0;
     if (state.isTimeoutEnabled) {
-      final overMin = (waitingSeconds / 60.0) - freeWaitMin;
-      if (overMin > 0) waitCharge = overMin * perWaitMin;
+      // Bepul vaqtdan oshgan qism YUQORIGA yaxlitlanadi — har boshlangan
+      // daqiqa to'liq hisoblanadi (mas. 3:20 oshiq => 4 daqiqa).
+      final overSeconds = waitingSeconds - (freeWaitMin * 60);
+      if (overSeconds > 0) {
+        final overMinutes = (overSeconds / 60.0).ceil();
+        waitCharge = overMinutes * perWaitMin;
+      }
     }
     final total = base + road + waitCharge;
     return ((total / 500).round() * 500).toInt();

@@ -53,6 +53,11 @@ class OrderInProgressWidget extends StatelessWidget {
   final int? routeDurationMinutes;
   final String? routeDistanceKm;
 
+  /// Buyurtmaning rejalashtirilgan masofasi (km, pickup→manzil). "Taxminiy
+  /// narx" shu masofa bo'yicha hisoblanadi, shuning uchun safardan oldin
+  /// "Masofa" sifatida ham shu ko'rsatiladi (narx bilan mos bo'lishi uchun).
+  final double plannedDistanceKm;
+
   /// DraggableScrollableSheet bergan kontroller — ichki skroll shu bilan
   /// boshqariladi (drag ↔ scroll o'tishi to'g'ri ishlashi uchun).
   final ScrollController? scrollController;
@@ -81,6 +86,7 @@ class OrderInProgressWidget extends StatelessWidget {
     this.isTimeoutEnabled = true,
     this.routeDurationMinutes,
     this.routeDistanceKm,
+    this.plannedDistanceKm = 0,
     this.scrollController,
   });
 
@@ -437,13 +443,15 @@ class OrderInProgressWidget extends StatelessWidget {
   }
 
   Widget _metricsCard() {
-    // Masofa: safar davomida — bosib o'tilgan km; aks holda — yo'l masofasi
-    // (rejalashtirilgan), agar mavjud bo'lsa.
+    // Masofa: safar davomida — bosib o'tilgan km; aks holda — rejalashtirilgan
+    // trip masofasi (narx shu bo'yicha hisoblanadi). U bo'lmasa yo'l masofasi.
     final String distanceText = _isInProgress
         ? '${traveledDistance.toStringAsFixed(1)} km'
-        : (routeDistanceKm != null
-              ? '$routeDistanceKm km'
-              : '${traveledDistance.toStringAsFixed(1)} km');
+        : (plannedDistanceKm > 0
+              ? '${plannedDistanceKm.toStringAsFixed(1)} km'
+              : (routeDistanceKm != null
+                    ? '$routeDistanceKm km'
+                    : '${traveledDistance.toStringAsFixed(1)} km'));
 
     return Container(
       padding: EdgeInsets.all(16.w),
