@@ -10,6 +10,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../../injection_container.dart';
 import '../../data/driver_service.dart';
+import '../../../orders/data/order_service.dart';
+import '../../../../core/models/order_model.dart';
 import 'activity_page.dart';
 import 'settings_page.dart';
 import 'info_page.dart';
@@ -25,9 +27,9 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String _name = '';
   String _phone = '';
-  int _rating = 50;
   double _balance = 0.0;
   int _totalTrips = 0;
+  double _totalEarned = 0;
   bool _isLoading = true;
   bool _loadError = false;
 
@@ -53,13 +55,30 @@ class _ProfilePageState extends State<ProfilePage> {
       final profile = await sl<DriverService>().aboutMe();
       if (profile.name.isNotEmpty) name = profile.name;
       if (profile.phone.isNotEmpty) phone = profile.phone;
+
+      // Safar soni va daromad — REAL ma'lumot tugatilgan buyurtmalardan
+      // hisoblanadi (backend `about_me` trip/rating qaytarmaydi).
+      int trips = 0;
+      double earned = 0;
+      try {
+        final completed = await sl<OrderService>()
+            .fetchOrders(driverId: profile.id, status: 'completed');
+        final mine = completed.where((o) =>
+            o.status == OrderStatusType.completed &&
+            (profile.id == null ||
+                o.driverId == null ||
+                o.driverId == profile.id));
+        trips = mine.length;
+        earned = mine.fold<double>(0, (s, o) => s + o.price);
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _name = name;
         _phone = phone;
-        _rating = profile.rating;
         _balance = profile.balance;
-        _totalTrips = profile.totalTrips;
+        _totalTrips = trips;
+        _totalEarned = earned;
         _isLoading = false;
       });
     } catch (_) {
@@ -189,12 +208,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Color _getRatingColor(int rating) {
-    if (rating >= 80) return Colors.green;
-    if (rating >= 50) return Colors.orange;
-    return Colors.red;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -273,24 +286,24 @@ class _ProfilePageState extends State<ProfilePage> {
                           vertical: 5.h,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.10),
+                          color: AppColors.primary.withOpacity(0.10),
                           borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Iconsax.star_1,
-                              color: AppColors.warning,
+                              Iconsax.car,
+                              color: AppColors.primary,
                               size: 16.sp,
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              'Reyting: $_rating',
+                              '$_totalTrips ta safar',
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.warning,
+                                color: AppColors.primary,
                               ),
                             ),
                           ],
@@ -401,10 +414,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       SizedBox(width: 12.w),
                       Expanded(
                         child: _buildStatCard(
-                          icon: Iconsax.star_1,
-                          title: 'Reyting',
-                          value: _rating.toString(),
-                          color: _getRatingColor(_rating),
+                          icon: Iconsax.money,
+                          title: 'Daromad',
+                          value: NumberFormatter.formatPrice(_totalEarned),
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -513,12 +526,16 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Icon(icon, color: color, size: 28.w),
           ),
           SizedBox(height: 12.h),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           SizedBox(height: 4.h),

@@ -1136,7 +1136,7 @@ class _OrdersPageState extends State<OrdersPage>
                           ),
                           SizedBox(width: 6.w),
                           Text(
-                            dateFormat.format(order.createdAt),
+                            dateFormat.format(order.createdAtUz),
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: AppColors.textSecondary,
@@ -1608,7 +1608,7 @@ class _OrdersPageState extends State<OrdersPage>
                           ),
                           SizedBox(width: 12.w),
                           Text(
-                            dateFormat.format(order.createdAt),
+                            dateFormat.format(order.createdAtUz),
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: AppColors.textSecondary,

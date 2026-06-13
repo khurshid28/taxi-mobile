@@ -149,10 +149,15 @@ class _PaymentsPageState extends State<PaymentsPage>
                     floating: false,
                     pinned: true,
                     backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     flexibleSpace: FlexibleSpaceBar(
                       title: Text(
                         'To\'lovlar',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       background: Container(
                         color: AppColors.primary,
@@ -468,10 +473,15 @@ class _PaymentsPageState extends State<PaymentsPage>
           floating: false,
           pinned: true,
           backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
           flexibleSpace: FlexibleSpaceBar(
-            title: const Text(
+            title: Text(
               'To\'lovlar',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             background: Container(
               color: AppColors.primary,

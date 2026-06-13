@@ -36,6 +36,12 @@ class OrderModel {
     this.driverId,
   });
 
+  /// Buyurtma vaqti O'zbekiston vaqtida (UTC+5). Backend vaqtni UTC'da
+  /// (`...Z` / `+00:00`) qaytaradi — ekranda Toshkent vaqti ko'rinishi uchun
+  /// UTC instantga 5 soat qo'shamiz (qurilma vaqt mintaqasidan qat'i nazar).
+  DateTime get createdAtUz => createdAt.toUtc().add(const Duration(hours: 5));
+
+
   /// Mercure / REST javoblari uchun parser. Backend bir nechta
   /// nom variantlarini ishlatadi - imkon qadar moslashuvchan.
   ///
