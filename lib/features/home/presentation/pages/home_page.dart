@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
@@ -16,6 +18,7 @@ import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../widgets/order_bottom_sheet.dart';
 import '../widgets/order_in_progress_widget.dart';
+import '../widgets/collapsible_sheet.dart';
 import '../widgets/cancel_trip_sheet.dart';
 import '../widgets/trip_complete_dialog.dart';
 import '../widgets/slide_to_online_button.dart';
@@ -33,6 +36,16 @@ class _HomePageState extends State<HomePage> {
   final List<MapObject> _mapObjects = [];
   bool _hasMovedToInitialLocation = false;
   Point? _lastMarkerLocation; // Track last GPS marker position
+  // Mijozga yo'l olishda kamerani (haydovchi + mijoz) bir marta moslash uchun.
+  String? _fittedClientOrderId;
+
+  // Marshrut chizig'i (polyline) geometriyasining OXIRGI havolasi. Polyline'ni
+  // FAQAT geometriya o'zgarganda qayta quramiz — har lokatsiya yangilanishida
+  // (har 10s) emas. Aks holda uzun marshrutni native xarita har safar qayta
+  // tessellatsiya qilib (qayta chizib) app QOTARDI. Mijozga yo'l olishda
+  // marshrut bir marta yuklanadi, keyin o'zgarmaydi — shuning uchun bir marta
+  // chizilib, keyin tegilmaydi.
+  List<Point>? _lastRouteGeometryRef;
 
   // Xarita obyektlari (marker/polyline) faqat O'ZI yangilanishi uchun.
   // Bu o'zgarsa butun sahifa emas, faqat YandexMap o'ralgan
@@ -151,6 +164,22 @@ class _HomePageState extends State<HomePage> {
               _mapController != null) {
             _moveToLocation(state.currentLocation!);
             _hasMovedToInitialLocation = true;
+          }
+
+          // Mijozga yo'l olishda — haydovchi va mijozni bitta ekranga sig'dirib
+          // ko'rsatamiz (har buyurtma uchun bir marta; keyin haydovchi o'zi
+          // suradi/zumlaydi). Shunda mijoz markeri va yo'l darhol ko'rinadi.
+          final fitOrder = state.currentOrder;
+          if (fitOrder != null &&
+              state.status == OrderStatus.goingToClient &&
+              state.currentLocation != null &&
+              _mapController != null &&
+              _fittedClientOrderId != fitOrder.id) {
+            _fittedClientOrderId = fitOrder.id;
+            _fitTwoPoints(state.currentLocation!, fitOrder.pickupLocation);
+          }
+          if (state.status == OrderStatus.initial) {
+            _fittedClientOrderId = null;
           }
 
           // Update map objects when state changes (no setState needed)
@@ -278,7 +307,8 @@ class _HomePageState extends State<HomePage> {
                   // Timer/narx/masofa matni shu ichki BlocBuilder orqali har
                   // sekund yangilanadi — tashqi builder (xarita) qayta qurilmaydi.
                   child: BlocBuilder<HomeCubit, HomeState>(
-                    builder: (context, state) => OrderInProgressWidget(
+                    builder: (context, state) => CollapsibleSheet(
+                      child: OrderInProgressWidget(
                     clientPhone: state.currentOrder?.clientPhone,
                     clientName: state.currentOrder?.clientName,
                     pickupAddress: state.currentOrder?.pickupAddress,
@@ -297,6 +327,10 @@ class _HomePageState extends State<HomePage> {
                     routeDistanceKm: state.routeDistanceKm,
                     onComplete: () => _showCompleteDialog(state),
                     onCancel: () => _showCancelSheet(context),
+                    onOpenMaps: state.currentOrder != null
+                        ? () => _openClientInMaps(
+                            state.currentOrder!.pickupLocation)
+                        : null,
                     onArrived: () {
                       context.read<HomeCubit>().arrivedAtClient();
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -337,7 +371,8 @@ class _HomePageState extends State<HomePage> {
                             );
                           }
                         : null,
-                  ),
+                      ),
+                    ),
                   ),
                 ),
 
@@ -743,24 +778,29 @@ class _HomePageState extends State<HomePage> {
       _lastMarkerLocation = loc;
     }
 
-    // Remove old route polyline
-    _mapObjects.removeWhere((obj) => obj.mapId.value == 'route_polyline');
-
-    // Add route polyline if we have route geometry (updates when route changes)
-    if (state.routeGeometry != null && state.routeGeometry!.isNotEmpty) {
-      _mapObjects.add(
-        PolylineMapObject(
-          mapId: const MapObjectId('route_polyline'),
-          polyline: Polyline(points: state.routeGeometry!),
-          strokeColor: const Color(0xFF2196F3), // Material Blue
-          strokeWidth: 5.0,
-          outlineColor: Colors.white,
-          outlineWidth: 1.5,
-          dashLength: 0,
-          dashOffset: 0,
-          gapLength: 0,
-        ),
-      );
+    // Marshrut chizig'i (polyline) — FAQAT geometriya O'ZGARGANDA qayta
+    // quramiz. Har lokatsiya yangilanishida (har 10s) qayta yaratsak, uzun
+    // marshrutni native xarita har safar qayta tessellatsiya qilib QOTARDI.
+    // `identical` bilan havolani solishtiramiz: yangi marshrut yuklansa yoki
+    // tozalansa (null/[]) havola o'zgaradi — faqat shunda qayta quramiz.
+    if (!identical(state.routeGeometry, _lastRouteGeometryRef)) {
+      _lastRouteGeometryRef = state.routeGeometry;
+      _mapObjects.removeWhere((obj) => obj.mapId.value == 'route_polyline');
+      if (state.routeGeometry != null && state.routeGeometry!.isNotEmpty) {
+        _mapObjects.add(
+          PolylineMapObject(
+            mapId: const MapObjectId('route_polyline'),
+            polyline: Polyline(points: state.routeGeometry!),
+            strokeColor: const Color(0xFF2196F3), // Material Blue
+            strokeWidth: 5.0,
+            outlineColor: Colors.white,
+            outlineWidth: 1.5,
+            dashLength: 0,
+            dashOffset: 0,
+            gapLength: 0,
+          ),
+        );
+      }
     }
 
     // Remove client marker if order completed, initial state, when going offline, or client picked up
@@ -874,6 +914,38 @@ class _HomePageState extends State<HomePage> {
         duration: 0.5,
       ),
     );
+  }
+
+  /// Ikki nuqtani (haydovchi + mijoz) bitta ekranga sig'dirib ko'rsatadi.
+  void _fitTwoPoints(Point a, Point b) {
+    final south = math.min(a.latitude, b.latitude);
+    final north = math.max(a.latitude, b.latitude);
+    final west = math.min(a.longitude, b.longitude);
+    final east = math.max(a.longitude, b.longitude);
+    final latPad = (north - south).abs() * 0.35 + 0.0025;
+    final lngPad = (east - west).abs() * 0.35 + 0.0025;
+    _mapController?.moveCamera(
+      CameraUpdate.newBounds(
+        BoundingBox(
+          southWest: Point(latitude: south - latPad, longitude: west - lngPad),
+          northEast: Point(latitude: north + latPad, longitude: east + lngPad),
+        ),
+      ),
+      animation:
+          const MapAnimation(type: MapAnimationType.smooth, duration: 0.6),
+    );
+  }
+
+  /// Mijoz nuqtasiga tashqi navigatsiya (xarita ilovasi) ochadi. Mijoz
+  /// koordinatasi aniq bo'lgani uchun bu bosqichda foydali.
+  Future<void> _openClientInMaps(Point p) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1'
+      '&destination=${p.latitude},${p.longitude}&travelmode=driving',
+    );
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
   }
 
   Future<void> _addClientLocationMarker(Point location) async {

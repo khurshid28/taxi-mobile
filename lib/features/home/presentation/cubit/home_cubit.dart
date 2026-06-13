@@ -437,7 +437,7 @@ class HomeCubit extends Cubit<HomeState> {
         NotificationService().showNotification(
           title: '📍 Mijoz oldida',
           body: 'Siz mijoz oldiga yetib keldingiz. Kutish boshlandi.',
-          playSound: true,
+          playSound: false,
         );
         _startWaitingTimer();
         _persistActiveTrip();
@@ -513,7 +513,9 @@ class HomeCubit extends Cubit<HomeState> {
     _isAccepting = true;
     try {
       try {
-        await sl<OrderService>().accept(orderId: orderId, driverId: _driverId!);
+        await sl<OrderService>()
+            .accept(orderId: orderId, driverId: _driverId!)
+            .timeout(const Duration(seconds: 12));
         AppLogger.success('ACCEPT muvaffaqiyatli (orderId=$orderId, '
             'driverId=$_driverId)');
       } catch (e) {
@@ -618,7 +620,7 @@ class HomeCubit extends Cubit<HomeState> {
     NotificationService().showNotification(
       title: '📍 Mijoz oldida',
       body: 'Mijoz oldiga yetib keldingiz. Kutish boshlandi.',
-      playSound: true,
+      playSound: false,
     );
     _startWaitingTimer();
     _persistActiveTrip();
@@ -643,7 +645,7 @@ class HomeCubit extends Cubit<HomeState> {
     NotificationService().showNotification(
       title: '🚗 Safar boshlandi!',
       body: 'Mijoz olindi. Manzilga yo\'l oldik.',
-      playSound: true,
+      playSound: false,
     );
 
     // Safar masofasini shu nuqtadan (mijoz olingan joydan) yangidan sanaymiz.
@@ -689,45 +691,66 @@ class HomeCubit extends Cubit<HomeState> {
     final waitMinutes = (_accumulatedWaitingSeconds / 60).round();
 
     final order = state.currentOrder;
-    if (order != null) {
-      final completed = OrderModel(
-        id: order.id,
-        clientName: order.clientName,
-        clientPhone: order.clientPhone,
-        pickupLocation: order.pickupLocation,
-        destinationLocation: order.destinationLocation,
-        pickupAddress: order.pickupAddress,
-        destinationAddress: order.destinationAddress,
-        distance: _tripDistanceKm > 0 ? _tripDistanceKm : state.traveledDistance,
-        price: state.currentPrice.toDouble(),
-        createdAt: order.createdAt,
-        status: OrderStatusType.completed,
-      );
+    final OrderModel? completed = order == null
+        ? null
+        : OrderModel(
+            id: order.id,
+            clientName: order.clientName,
+            clientPhone: order.clientPhone,
+            pickupLocation: order.pickupLocation,
+            destinationLocation: order.destinationLocation,
+            pickupAddress: order.pickupAddress,
+            destinationAddress: order.destinationAddress,
+            distance: _tripDistanceKm > 0
+                ? _tripDistanceKm
+                : state.traveledDistance,
+            price: state.currentPrice.toDouble(),
+            createdAt: order.createdAt,
+            status: OrderStatusType.completed,
+          );
 
-      // Safar tugagan nuqta: haydovchining haqiqiy joriy joylashuvi,
-      // bo'lmasa manzil koordinatalari.
-      final endPoint = state.currentLocation ?? completed.destinationLocation;
+    // Safar tugagan nuqta: haydovchining haqiqiy joriy joylashuvi,
+    // bo'lmasa manzil koordinatalari.
+    final endPoint = state.currentLocation ?? completed?.destinationLocation;
 
-      try {
-        await sl<OrderService>().complete(
-          orderId: completed.id,
-          distance: completed.distance,
-          minut: tripMinutes,
-          waitTime: waitMinutes,
-          price: completed.price,
-          adress: completed.destinationAddress,
-          endLat: endPoint.latitude,
-          endLng: endPoint.longitude,
-        );
-      } catch (e) {
-        // ignore: avoid_print
-        print('⚠️ complete: $e');
-      }
-
-      await _saveCompletedOrder(completed);
-    }
-
+    // UI ni DARHOL bo'shatamiz — backend (complete) javobini KUTMAYMIZ. Sekin
+    // internetda "Tugatish" bosilgach app qotgandek turardi; endi ekran shu
+    // zahoti tozalanadi, yuborish esa orqa fonda (timeout bilan) ketadi.
     _resetOrderState();
+
+    if (completed != null && endPoint != null) {
+      unawaited(
+        _finishOrderInBackground(completed, tripMinutes, waitMinutes, endPoint),
+      );
+    }
+  }
+
+  /// Buyurtmani yakunlash so'rovini orqa fonda yuboradi va lokalga saqlaydi —
+  /// UI bloklanmasligi uchun (timeout bilan, osilib qolmaydi).
+  Future<void> _finishOrderInBackground(
+    OrderModel completed,
+    int tripMinutes,
+    int waitMinutes,
+    Point endPoint,
+  ) async {
+    try {
+      await sl<OrderService>()
+          .complete(
+            orderId: completed.id,
+            distance: completed.distance,
+            minut: tripMinutes,
+            waitTime: waitMinutes,
+            price: completed.price,
+            adress: completed.destinationAddress,
+            endLat: endPoint.latitude,
+            endLng: endPoint.longitude,
+          )
+          .timeout(const Duration(seconds: 12));
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ complete: $e');
+    }
+    await _saveCompletedOrder(completed);
   }
 
   void _resetOrderState() {

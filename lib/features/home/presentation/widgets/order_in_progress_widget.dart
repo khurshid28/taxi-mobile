@@ -33,6 +33,10 @@ class OrderInProgressWidget extends StatelessWidget {
   final VoidCallback? onToggleTimeout;
   final VoidCallback? onToggleWaitingTimer;
 
+  /// goingToClient/waitingForClient bosqichida mijoz nuqtasini tashqi
+  /// navigatsiya (xarita) ilovasida ochish uchun. Mijoz koordinatasi aniq.
+  final VoidCallback? onOpenMaps;
+
   final double? distanceToClient;
   final String? clientPhone;
   final String? clientName;
@@ -57,6 +61,7 @@ class OrderInProgressWidget extends StatelessWidget {
     this.onPickupClient,
     this.onToggleTimeout,
     this.onToggleWaitingTimer,
+    this.onOpenMaps,
     this.distanceToClient,
     this.clientPhone,
     this.clientName,
@@ -645,14 +650,32 @@ class OrderInProgressWidget extends StatelessWidget {
   }
 
   Widget _callMapsRow() {
-    // Manzil aniq emas (admin/mijoz aniq nuqta bermaydi), shuning uchun
-    // tashqi xarita navigatsiyasi ("Xarita" tugmasi) olib tashlandi —
-    // faqat mijozga qo'ng'iroq qoldi (to'liq kenglikda).
-    return _flatButton(
+    final call = _flatButton(
       icon: Iconsax.call,
-      label: 'Mijozga qo\'ng\'iroq',
+      label: 'Qo\'ng\'iroq',
       color: AppColors.success,
       onTap: clientPhone != null ? () => _makePhoneCall(clientPhone!) : null,
+    );
+    // Mijoz nuqtasi ANIQ (koordinatasi bor) — shuning uchun mijoz oldiga
+    // borishda tashqi navigatsiya ("Xaritada") foydali. Tugash manzili aniq
+    // emas, shuning uchun bu tugma faqat mijozga yo'l olish bosqichlarida
+    // ko'rsatiladi (goingToClient / waitingForClient).
+    final bool showMaps =
+        onOpenMaps != null && (isGoingToClient || isWaitingForClient);
+    if (!showMaps) return call;
+    return Row(
+      children: [
+        Expanded(child: call),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: _flatButton(
+            icon: Iconsax.routing,
+            label: 'Xaritada',
+            color: AppColors.info,
+            onTap: onOpenMaps,
+          ),
+        ),
+      ],
     );
   }
 
