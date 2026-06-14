@@ -378,10 +378,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-              // Floating Action Button - visible except when order received
+              // Floating Action Button - visible except when order received.
+              // YUQORI-O'NGda turadi — pastdagi DraggableScrollableSheet
+              // (buyurtma paneli) bilan to'qnashmaydi. Faqat "online + initial"
+              // holatda yuqorida Liniya kartasi bo'lgani uchun biroz pastroqqa
+              // suriladi; faol safarda yuqori bo'sh, shuning uchun topInset'da.
               if (state.status != OrderStatus.orderReceived)
                 Positioned(
-                  bottom: 120.h,
+                  top:
+                      topInset +
+                      (state.isOnline && state.status == OrderStatus.initial
+                          ? 78.h
+                          : 0),
                   right: 16.w,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

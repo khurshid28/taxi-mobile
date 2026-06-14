@@ -84,6 +84,32 @@ class OrderService {
     return const [];
   }
 
+  /// `GET /api/orders?status=new` — hali hech bir haydovchi olmagan (GLOBAL)
+  /// yangi buyurtmalar. Mercure ularni real-vaqtda yetkazadi; bu REST esa app
+  /// ochilganda yoki "Global" bo'limida pull-to-refresh bosilganda to'liq
+  /// ro'yxatni tortadi (ikkalasi id bo'yicha dedup qilinadi). Liniyaga chiqish
+  /// (online) talab qilinmaydi. Faqat status=new va haydovchisi biriktirilmagan
+  /// buyurtmalar qaytariladi.
+  Future<List<OrderModel>> fetchGlobalOrders() async {
+    final res = await _client.get(
+      'orders',
+      queryParameters: const {'status': 'new'},
+    );
+    final data = res.data;
+    final members = data is Map
+        ? (data['member'] ?? data['hydra:member'])
+        : (data is List ? data : null);
+    if (members is! List) return const [];
+    return members
+        .whereType<Map>()
+        .map((e) => OrderModel.fromJson(e.cast<String, dynamic>()))
+        .where((o) =>
+            o.id.isNotEmpty &&
+            o.status == OrderStatusType.newOrder &&
+            o.driverId == null)
+        .toList();
+  }
+
   /// `POST /api/orders/{id}/{driverId}/accept`
   Future<Map<String, dynamic>> accept({
     required String orderId,

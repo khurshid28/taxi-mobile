@@ -23,15 +23,19 @@ class DriverService {
     // shunda Mercure uchun qayta-qayta so'rov bermaymiz.
     if (profile.companyId != null) {
       await StorageHelper.saveInt(
-          AppConstants.keyCompanyId, profile.companyId!);
+        AppConstants.keyCompanyId,
+        profile.companyId!,
+      );
     }
     if (profile.phone.isNotEmpty) {
-      await StorageHelper.saveString(
-          AppConstants.keyUserPhone, profile.phone);
+      await StorageHelper.saveString(AppConstants.keyUserPhone, profile.phone);
     }
     // ignore: avoid_print
-    print('\ud83d\udc64 aboutMe \u2192 driverId=${profile.id}, '
-        'companyId=${profile.companyId}, phone=${profile.phone}');
+    print(
+      '\ud83d\udc64 aboutMe \u2192 keys=${data.keys.toList()}, '
+      'driverId=${profile.id}, '
+      'companyId=${profile.companyId}, phone=${profile.phone}',
+    );
     return profile;
   }
 
@@ -41,8 +45,7 @@ class DriverService {
     final data = (res.data as Map).cast<String, dynamic>();
     final model = DriverDataModel.fromJson(data);
     if (model.companyId != null) {
-      await StorageHelper.saveInt(
-          AppConstants.keyCompanyId, model.companyId!);
+      await StorageHelper.saveInt(AppConstants.keyCompanyId, model.companyId!);
     }
     if (model.tariffs.isNotEmpty) {
       await StorageHelper.saveString(
@@ -50,10 +53,18 @@ class DriverService {
         jsonEncode(model.tariffs),
       );
     }
+    // Balansni keshlaymiz — `driver_datas/about_me` server xatosi (500)
+    // bo'lganda oxirgi ma'lum balansni ko'rsatish uchun.
+    if (model.balance != null) {
+      await StorageHelper.setDouble(AppConstants.keyBalance, model.balance!);
+    }
     // ignore: avoid_print
-    print('\ud83c\udfe2 aboutMyData \u2192 company raw=${data['company']}, '
-        'companyId=${model.companyId}, tariffs=${model.tariffs}, '
-        'balance raw=${data['balance']} \u2192 ${model.balance}');
+    print(
+      '\ud83c\udfe2 aboutMyData \u2192 keys=${data.keys.toList()}, '
+      'company raw=${data['company']}, driver raw=${data['driver']}, '
+      'companyId=${model.companyId}, tariffs=${model.tariffs}, '
+      'balance raw=${data['balance']} \u2192 ${model.balance}',
+    );
     return model;
   }
 

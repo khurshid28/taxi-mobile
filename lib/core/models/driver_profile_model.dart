@@ -41,8 +41,8 @@ class DriverProfileModel {
 
     // Kompaniya ID: drivers/about_me -> userCompany: "/api/user_companies/2"
     // (yoki company: "/api/companies/2"). IRI dan oxirgi raqamni olamiz.
-    int? company() {
-      final v = json['company'] ?? json['userCompany'];
+    // Backend ba'zan `driver` obyekti ichida ham yuborishi mumkin.
+    int? parseCompany(dynamic v) {
       if (v is int) return v;
       if (v is num) return v.toInt();
       if (v is String) {
@@ -50,9 +50,20 @@ class DriverProfileModel {
         return int.tryParse(last);
       }
       if (v is Map) {
-        final cid = v['id'];
-        if (cid is int) return cid;
-        if (cid is String) return int.tryParse(cid);
+        return parseCompany(v['id'] ?? v['@id']);
+      }
+      return null;
+    }
+
+    int? company() {
+      final direct = parseCompany(
+          json['company'] ?? json['userCompany'] ?? json['companyId']);
+      if (direct != null) return direct;
+      final driver = json['driver'];
+      if (driver is Map) {
+        return parseCompany(driver['company'] ??
+            driver['userCompany'] ??
+            driver['companyId']);
       }
       return null;
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -178,8 +180,7 @@ class OrderInProgressWidget extends StatelessWidget {
                       SizedBox(height: 10.h),
                       _tripTimeRow(),
                     ],
-                    if (waitingSeconds > 0 &&
-                        (isWaitingForClient || isWaitingTimerActive)) ...[
+                    if (isWaitingForClient || isWaitingTimerActive) ...[
                       SizedBox(height: 10.h),
                       _waitingRow(),
                     ],
@@ -516,14 +517,20 @@ class OrderInProgressWidget extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 1.h),
-                Text(
-                  _formatMinutes(tripSeconds),
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: -0.3,
-                    height: 1.1,
+                // Safar vaqti har 1s da silliq yuradi (1:01 → 1:02 → 1:03),
+                // narx esa cubit'dan har 10s da yangilanadi.
+                _LiveSeconds(
+                  baseSeconds: tripSeconds,
+                  running: _isInProgress,
+                  builder: (context, seconds) => Text(
+                    _formatTime(seconds),
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: -0.3,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ],
@@ -579,14 +586,19 @@ class OrderInProgressWidget extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 1.h),
-                    Text(
-                      _formatTime(waitingSeconds),
-                      style: TextStyle(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.w900,
-                        color: c,
-                        letterSpacing: -0.5,
-                        height: 1.1,
+                    // Kutish vaqti ham har 1s da silliq yuradi.
+                    _LiveSeconds(
+                      baseSeconds: waitingSeconds,
+                      running: isWaitingForClient || isWaitingTimerActive,
+                      builder: (context, seconds) => Text(
+                        _formatTime(seconds),
+                        style: TextStyle(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.w900,
+                          color: c,
+                          letterSpacing: -0.5,
+                          height: 1.1,
+                        ),
                       ),
                     ),
                   ],
@@ -961,12 +973,6 @@ class OrderInProgressWidget extends StatelessWidget {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
-  /// Soniyalarni daqiqa ko'rinishida ko'rsatadi (safar vaqti uchun).
-  String _formatMinutes(int seconds) {
-    final m = seconds ~/ 60;
-    return '$m daqiqa';
-  }
-
   Future<void> _makePhoneCall(String phoneNumber) async {
     final uri = Uri.parse('tel:$phoneNumber');
     try {
@@ -983,4 +989,85 @@ class OrderInProgressWidget extends StatelessWidget {
       }
     }
   }
+}
+
+/// Soniya hisoblagichni MAHALLIY (har 1s) yangilab turadigan kichik, ajratilgan
+/// widget. Asosiy panel cubit'dan har ~10s da haqiqiy (sinxron) qiymat oladi;
+/// bu widget shu oraliqda ekranni silliq "1:01 → 1:02 → 1:03" qilib yuradi.
+///
+/// Faqat shu kichik `Text` qayta quriladi (panel ildizidagi `RepaintBoundary`
+/// ostida) — xarita va boshqa elementlar qayta qurilmaydi, shuning uchun
+/// interfeys qotmaydi.
+class _LiveSeconds extends StatefulWidget {
+  const _LiveSeconds({
+    required this.baseSeconds,
+    required this.running,
+    required this.builder,
+  });
+
+  /// Cubit bergan haqiqiy qiymat — har ~10s da yangilanadi va sinxronlanadi.
+  final int baseSeconds;
+
+  /// Hisob ketayaptimi (timer aktiv). `false` bo'lsa qiymat muzlaydi.
+  final bool running;
+
+  final Widget Function(BuildContext context, int seconds) builder;
+
+  @override
+  State<_LiveSeconds> createState() => _LiveSecondsState();
+}
+
+class _LiveSecondsState extends State<_LiveSeconds> {
+  Timer? _timer;
+  int _base = 0;
+  DateTime _syncAt = DateTime.now();
+  int _display = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _resync();
+    _ensureTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LiveSeconds oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Cubit yangi haqiqiy qiymat yubordi yoki holat o'zgardi — qayta moslaymiz.
+    if (oldWidget.baseSeconds != widget.baseSeconds ||
+        oldWidget.running != widget.running) {
+      _resync();
+      _ensureTimer();
+    }
+  }
+
+  void _resync() {
+    _base = widget.baseSeconds;
+    _syncAt = DateTime.now();
+    _display = _base;
+  }
+
+  void _ensureTimer() {
+    if (widget.running) {
+      _timer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        final elapsed = DateTime.now().difference(_syncAt).inSeconds;
+        final next = _base + (elapsed < 0 ? 0 : elapsed);
+        if (next != _display && mounted) {
+          setState(() => _display = next);
+        }
+      });
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _display);
 }

@@ -216,18 +216,22 @@ class MercureService {
         return;
       }
 
-      // ===== Yangi buyurtma (notification) =====
-      final incomingTariff = (data['tariff'] ?? '').toString().toLowerCase();
+      // ===== Yangi buyurtma =====
+      // Backend yangi buyurtmani turli "type" bilan yuborishi mumkin: "new",
+      // "NEW_ORDER", "global", "GLOBAL_ORDER"... — hammasi shu yerga tushadi
+      // (accept/cancel yuqorida qaytarilgan). Hammasini "Global buyurtmalar"
+      // ro'yxatiga uzatamiz: istalgan online haydovchi qabul qiladi (birinchi
+      // olgan yutadi). Foydalanuvchi talabi: "new" ham GLOBAL deb ko'rsatilsin.
+      final incomingTariffs = _extractTariffs(data['tariff']);
 
-      // Tarif filtri FAQAT global broadcast uchun. Shaxsiy `driver/{id}/orders`
-      // xabari allaqachon backend tomonidan shu haydovchiga yo'naltirilgan —
-      // uni hech qachon filtrlab tashlamaymiz.
-      final isGlobal = action.contains('global');
-      if (isGlobal &&
-          _activeTariffs.isNotEmpty &&
-          incomingTariff.isNotEmpty &&
-          !_activeTariffs.contains(incomingTariff)) {
-        AppLogger.warn('Tarif mos kelmadi: "$incomingTariff" ∉ $_activeTariffs '
+      // Tarif filtri: haydovchi o'z tariflariga mos buyurtmalarni ko'radi.
+      // Faqat ANIQ mos kelmaganda o'tkazib yuboramiz — tarif noma'lum/bo'sh
+      // bo'lsa yoki haydovchi tariflari hali yuklanmagan bo'lsa, ko'rsatamiz
+      // (adashib tushirib qoldirmaslik uchun).
+      if (_activeTariffs.isNotEmpty &&
+          incomingTariffs.isNotEmpty &&
+          !incomingTariffs.any(_activeTariffs.contains)) {
+        AppLogger.warn('Tarif mos kelmadi: $incomingTariffs ∉ $_activeTariffs '
             '— buyurtma o\'tkazib yuborildi');
         return;
       }
@@ -236,19 +240,12 @@ class MercureService {
       // orderId xom holatda va OrderModel parse qilgandan keyin — solishtirish
       // uchun ikkalasini ham ko'rsatamiz. Accept URL aynan shu id bilan ketadi.
       final finalId = orderId.isNotEmpty ? orderId : order.id;
-      AppLogger.info('OrderModel.id = "${order.id}"  (tarif=$incomingTariff, '
-          'global=$isGlobal)');
-      AppLogger.order('YANGI BUYURTMA #$finalId → UI ga uzatildi');
-      // Ovoz NotificationService ichida bir marta chalinadi (bu yerda chalsak
-      // ikki marta bo'lardi va order kelganda yukni oshirardi).
-      // GLOBAL buyurtma (hech kim olmagan, hammaga yuborilgan) — alohida
-      // "globalNewOrder" turi bilan ketadi: u bottom-sheet emas, alohida
-      // "Global buyurtmalar" oynasidagi ro'yxatga qo'shiladi. Shaxsiy
-      // (`driver/{id}/orders`) buyurtma esa avvalgidek `newOrder`.
+      AppLogger.info('OrderModel.id = "${order.id}"  '
+          '(tariflar=$incomingTariffs)');
+      AppLogger.order('GLOBAL buyurtma #$finalId → ro\'yxatga uzatildi');
+      // Ovoz NotificationService ichida bir marta chalinadi.
       _eventsCtrl.add(MercureEvent(
-        type: isGlobal
-            ? MercureEventType.globalNewOrder
-            : MercureEventType.newOrder,
+        type: MercureEventType.globalNewOrder,
         order: order,
         orderId: finalId,
         raw: data,
@@ -260,6 +257,34 @@ class MercureService {
         raw: const {},
       ));
     }
+  }
+
+  /// Payload'dagi tarif(lar)ni kichik harfli nomlar ro'yxatiga aylantiradi.
+  /// Backend tarifni string ("Start"), ro'yxat (["Start","Comfort"]) yoki
+  /// obyektlar ro'yxati ([{name:"Start"}]) ko'rinishida yuborishi mumkin —
+  /// hammasini bir xil ko'rinishga keltiramiz. Noma'lum/bo'sh → [].
+  List<String> _extractTariffs(dynamic raw) {
+    if (raw == null) return const [];
+    final out = <String>[];
+    void add(dynamic v) {
+      if (v == null) return;
+      if (v is Map) {
+        final n = v['name'] ?? v['title'] ?? v['tariff'] ?? v['id'];
+        if (n != null) out.add(n.toString().toLowerCase().trim());
+      } else {
+        final s = v.toString().toLowerCase().trim();
+        if (s.isNotEmpty) out.add(s);
+      }
+    }
+
+    if (raw is List) {
+      for (final e in raw) {
+        add(e);
+      }
+    } else {
+      add(raw);
+    }
+    return out.where((e) => e.isNotEmpty).toList();
   }
 
   void disconnect() {

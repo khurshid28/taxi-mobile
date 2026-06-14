@@ -30,6 +30,7 @@ class AppConstants {
   static const String keyDriverId = 'driver_id';
   static const String keyCompanyId = 'company_id';
   static const String keyDriverTariffs = 'driver_tariffs';
+  static const String keyBalance = 'driver_balance';
   static const String keyUserPhone = 'user_phone';
   static const String keyIsLoggedIn = 'is_logged_in';
   static const String keyProfileCompleted = 'profile_completed';

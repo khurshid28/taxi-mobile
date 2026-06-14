@@ -47,8 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Keshlangan ma'lumotlar (server javobigacha ko'rsatiladi)
     var name = await StorageHelper.getString('user_name') ?? 'Haydovchi';
-    var phone =
-        await StorageHelper.getString(AppConstants.keyUserPhone) ?? '';
+    var phone = await StorageHelper.getString(AppConstants.keyUserPhone) ?? '';
 
     try {
       // Serverdan real profil ma'lumotlari
@@ -56,18 +55,34 @@ class _ProfilePageState extends State<ProfilePage> {
       if (profile.name.isNotEmpty) name = profile.name;
       if (profile.phone.isNotEmpty) phone = profile.phone;
 
+      // Balans `drivers/about_me` da 0 keladi — real balans
+      // `driver_datas/about_me` (aboutMyData) javobida bo'ladi.
+      double balance = profile.balance;
+      try {
+        final data = await sl<DriverService>().aboutMyData();
+        if (data.balance != null) balance = data.balance!;
+      } catch (_) {
+        // `driver_datas/about_me` server xatosi (500) — keshlangan balans.
+        final cached = await StorageHelper.getDouble(AppConstants.keyBalance);
+        if (cached != null) balance = cached;
+      }
+
       // Safar soni va daromad — REAL ma'lumot tugatilgan buyurtmalardan
       // hisoblanadi (backend `about_me` trip/rating qaytarmaydi).
       int trips = 0;
       double earned = 0;
       try {
-        final completed = await sl<OrderService>()
-            .fetchOrders(driverId: profile.id, status: 'completed');
-        final mine = completed.where((o) =>
-            o.status == OrderStatusType.completed &&
-            (profile.id == null ||
-                o.driverId == null ||
-                o.driverId == profile.id));
+        final completed = await sl<OrderService>().fetchOrders(
+          driverId: profile.id,
+          status: 'completed',
+        );
+        final mine = completed.where(
+          (o) =>
+              o.status == OrderStatusType.completed &&
+              (profile.id == null ||
+                  o.driverId == null ||
+                  o.driverId == profile.id),
+        );
         trips = mine.length;
         earned = mine.fold<double>(0, (s, o) => s + o.price);
       } catch (_) {}
@@ -76,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _name = name;
         _phone = phone;
-        _balance = profile.balance;
+        _balance = balance;
         _totalTrips = trips;
         _totalEarned = earned;
         _isLoading = false;
@@ -117,11 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Iconsax.logout,
-                  color: AppColors.error,
-                  size: 30.w,
-                ),
+                child: Icon(Iconsax.logout, color: AppColors.error, size: 30.w),
               ),
               SizedBox(height: 18.h),
               Text(
@@ -219,279 +230,284 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 220.h,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: IconThemeData(color: AppColors.textPrimary),
-            title: Text(
-              'Profil',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
-              ),
-            ),
-            centerTitle: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: AppColors.surface,
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(height: 36.h),
-                      Container(
-                        width: 84.w,
-                        height: 84.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withOpacity(0.10),
-                        ),
-                        child: Icon(
-                          Iconsax.user,
-                          size: 44.sp,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        _name,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        _phone,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 5.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.10),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Iconsax.car,
-                              color: AppColors.primary,
-                              size: 16.sp,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              '$_totalTrips ta safar',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+      body: RefreshIndicator(
+        onRefresh: _loadUserData,
+        color: AppColors.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 220.h,
+              floating: false,
+              pinned: true,
+              backgroundColor: AppColors.surface,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: IconThemeData(color: AppColors.textPrimary),
+              title: Text(
+                'Profil',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
                 ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                children: [
-                  if (_loadError)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 12.h),
-                      child: ErrorRetryBanner(onRetry: _loadUserData),
-                    ),
-                  // Balance Card
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.25),
-                          blurRadius: 24.r,
-                          offset: Offset(0.w, 10.h),
-                          spreadRadius: -4.w,
+              centerTitle: true,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  color: AppColors.surface,
+                  child: SafeArea(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 36.h),
+                        Container(
+                          width: 84.w,
+                          height: 84.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.primary.withOpacity(0.10),
+                          ),
+                          child: Icon(
+                            Iconsax.user,
+                            size: 44.sp,
+                            color: AppColors.primary,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(24.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        SizedBox(height: 12.h),
+                        Text(
+                          _name,
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          _phone,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 5.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Balans',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  TweenAnimationBuilder(
-                                    tween: Tween<double>(
-                                      begin: 0,
-                                      end: _balance,
-                                    ),
-                                    duration: const Duration(
-                                      milliseconds: 1000,
-                                    ),
-                                    curve: Curves.easeOut,
-                                    builder: (context, double value, child) {
-                                      return Text(
-                                        NumberFormatter.formatPriceWithCurrency(
-                                          value,
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 28.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
+                              Icon(
+                                Iconsax.car,
+                                color: AppColors.primary,
+                                size: 16.sp,
                               ),
-                              Container(
-                                padding: EdgeInsets.all(12.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Iconsax.wallet,
-                                  color: Colors.white,
+                              SizedBox(width: 4.w),
+                              Text(
+                                '$_totalTrips ta safar',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 16.h),
-                  // Stats Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Iconsax.car,
-                          title: 'Safar',
-                          value: _totalTrips.toString(),
-                          color: Colors.blue,
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Iconsax.money,
-                          title: 'Daromad',
-                          value: NumberFormatter.formatPrice(_totalEarned),
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  // Menu Items
-                  _buildMenuItem(
-                    icon: Iconsax.user,
-                    title: 'Profil tahrirlash',
-                    onTap: () {
-                      // Navigate to edit profile
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Iconsax.activity,
-                    title: 'Aktivligim',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ActivityPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Iconsax.setting_2,
-                    title: 'Sozlamalar',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Iconsax.info_circle,
-                    title: 'Ma\'lumotlar',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const InfoPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Iconsax.call,
-                    title: 'Yordam',
-                    onTap: () async {
-                      final Uri phoneUri = Uri(
-                        scheme: 'tel',
-                        path: '+998901234567',
-                      );
-                      if (await canLaunchUrl(phoneUri)) {
-                        await launchUrl(phoneUri);
-                      }
-                    },
-                  ),
-                  SizedBox(height: 16.h),
-                  _buildMenuItem(
-                    icon: Iconsax.logout,
-                    title: 'Chiqish',
-                    onTap: _logout,
-                    isDestructive: true,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  children: [
+                    if (_loadError)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: ErrorRetryBanner(onRetry: _loadUserData),
+                      ),
+                    // Balance Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.25),
+                            blurRadius: 24.r,
+                            offset: Offset(0.w, 10.h),
+                            spreadRadius: -4.w,
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(24.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Balans',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    TweenAnimationBuilder(
+                                      tween: Tween<double>(
+                                        begin: 0,
+                                        end: _balance,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 1000,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      builder: (context, double value, child) {
+                                        return Text(
+                                          NumberFormatter.formatPriceWithCurrency(
+                                            value,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 28.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: EdgeInsets.all(12.w),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Iconsax.wallet,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    // Stats Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Iconsax.car,
+                            title: 'Safar',
+                            value: _totalTrips.toString(),
+                            color: Colors.blue,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Iconsax.money,
+                            title: 'Daromad',
+                            value: NumberFormatter.formatPrice(_totalEarned),
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24.h),
+                    // Menu Items
+                    _buildMenuItem(
+                      icon: Iconsax.user,
+                      title: 'Profil tahrirlash',
+                      onTap: () {
+                        // Navigate to edit profile
+                      },
+                    ),
+                    _buildMenuItem(
+                      icon: Iconsax.activity,
+                      title: 'Aktivligim',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ActivityPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      icon: Iconsax.setting_2,
+                      title: 'Sozlamalar',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      icon: Iconsax.info_circle,
+                      title: 'Ma\'lumotlar',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const InfoPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      icon: Iconsax.call,
+                      title: 'Yordam',
+                      onTap: () async {
+                        final Uri phoneUri = Uri(
+                          scheme: 'tel',
+                          path: '+998901234567',
+                        );
+                        if (await canLaunchUrl(phoneUri)) {
+                          await launchUrl(phoneUri);
+                        }
+                      },
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildMenuItem(
+                      icon: Iconsax.logout,
+                      title: 'Chiqish',
+                      onTap: _logout,
+                      isDestructive: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

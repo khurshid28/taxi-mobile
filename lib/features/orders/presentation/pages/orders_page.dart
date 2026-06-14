@@ -87,8 +87,10 @@ class _OrdersPageState extends State<OrdersPage>
     // Backend tarixi.
     List<OrderModel> remote = const [];
     try {
-      final all = await sl<OrderService>()
-          .fetchOrders(driverId: driverId, status: 'completed');
+      final all = await sl<OrderService>().fetchOrders(
+        driverId: driverId,
+        status: 'completed',
+      );
       remote = all.where((o) {
         if (o.id.isEmpty) return false;
         if (o.status != OrderStatusType.completed) return false;
@@ -155,41 +157,25 @@ class _OrdersPageState extends State<OrdersPage>
     super.dispose();
   }
 
-  void _filterOrders(OrderStatusType? status) {
-    setState(() {
-      _selectedFilter = status;
-      if (status == null) {
-        _filteredOrders = _orders;
-      } else {
-        _filteredOrders = _orders
-            .where((order) => order.status == status)
-            .toList();
-      }
-      _animationController.reset();
-      _animationController.forward();
-    });
-  }
-
-  Future<void> _refreshOrders() async {
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
-
+  /// Pastga tortib yangilash — HAR BIR tabda HAMMASINI yangilaydi: global
+  /// buyurtmalar (cubit) + tugatilganlar (backend+lokal). Faol/navbatdagilar
+  /// cubit state'da jonli turadi, shu sababli alohida so'rov shart emas.
+  Future<void> _refreshAll() async {
+    try {
+      await context.read<HomeCubit>().loadGlobalOrders();
+    } catch (_) {}
     try {
       final orders = await _fetchCompletedOrders();
       if (!mounted) return;
       setState(() {
         _orders = orders;
-        _filterOrders(_selectedFilter);
-        _isLoading = false;
+        _filteredOrders = _selectedFilter == null
+            ? _orders
+            : _orders.where((o) => o.status == _selectedFilter).toList();
+        _hasError = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
+      // Pull paytidagi xato — eski ro'yxat qoladi, jim o'tamiz.
     }
   }
 
@@ -247,8 +233,11 @@ class _OrdersPageState extends State<OrdersPage>
             child: _selectedTab == 0
                 ? _buildActiveTab()
                 : _selectedTab == 1
-                    ? GlobalOrdersView(onGoHome: widget.onGoHome)
-                    : _buildCompletedTab(),
+                ? GlobalOrdersView(
+                    onGoHome: widget.onGoHome,
+                    onRefresh: _refreshAll,
+                  )
+                : _buildCompletedTab(),
           ),
         ],
       ),
@@ -265,17 +254,12 @@ class _OrdersPageState extends State<OrdersPage>
       ),
       child: BlocBuilder<HomeCubit, HomeState>(
         // Faqat global buyurtmalar SONI o'zgarganda qayta quramiz (amber dot).
-        buildWhen: (p, c) =>
-            p.globalOrders.length != c.globalOrders.length,
+        buildWhen: (p, c) => p.globalOrders.length != c.globalOrders.length,
         builder: (context, state) {
           final globalCount = state.globalOrders.length;
           return Row(
             children: [
-              _buildTabButton(
-                label: 'Faol',
-                index: 0,
-                icon: Iconsax.car,
-              ),
+              _buildTabButton(label: 'Faol', index: 0, icon: Iconsax.car),
               _buildTabButton(
                 label: 'Global',
                 index: 1,
@@ -327,8 +311,7 @@ class _OrdersPageState extends State<OrdersPage>
                   Icon(
                     icon,
                     size: 18.w,
-                    color:
-                        isSelected ? Colors.white : AppColors.textSecondary,
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
                   ),
                   // Global buyurtma kelsa — amber belgi (tanlanmagan tabda).
                   if (badgeCount > 0 && !isSelected)
@@ -337,14 +320,17 @@ class _OrdersPageState extends State<OrdersPage>
                       top: -5.h,
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                            horizontal: 4.w, vertical: 0.5.h),
+                          horizontal: 4.w,
+                          vertical: 0.5.h,
+                        ),
                         constraints: BoxConstraints(minWidth: 14.w),
                         decoration: BoxDecoration(
                           color: AppColors.warning,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.pill),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                           border: Border.all(
-                              color: AppColors.surfaceVariant, width: 1.5.w),
+                            color: AppColors.surfaceVariant,
+                            width: 1.5.w,
+                          ),
                         ),
                         child: Text(
                           badgeCount > 9 ? '9+' : '$badgeCount',
@@ -369,8 +355,7 @@ class _OrdersPageState extends State<OrdersPage>
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
-                    color:
-                        isSelected ? Colors.white : AppColors.textSecondary,
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -384,21 +369,168 @@ class _OrdersPageState extends State<OrdersPage>
   // ============== Faol (active) tab ==============
 
   Widget _buildActiveTab() {
-    return BlocBuilder<HomeCubit, HomeState>(
-      builder: (context, state) {
-        final order = state.currentOrder;
-        if (order == null || !_isActiveStatus(state.status)) {
-          return _buildEmptyState(
-            title: 'Faol buyurtma yo\'q',
-            subtitle: 'Yangi buyurtmalar asosiy oynada qabul qilinadi',
-            icon: Iconsax.car,
+    return RefreshIndicator(
+      onRefresh: _refreshAll,
+      color: AppColors.primary,
+      child: BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, state) {
+          final order = state.currentOrder;
+          final hasCurrent = order != null && _isActiveStatus(state.status);
+          final queued = state.queuedOrders;
+          if (!hasCurrent && queued.isEmpty) {
+            // Bo'sh holatda ham pastga tortib yangilash ishlashi uchun
+            // viewport balandligini egallaydigan scrollable ro'yxatga o'raymiz.
+            return LayoutBuilder(
+              builder: (context, constraints) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: _buildEmptyState(
+                      title: 'Faol buyurtma yo\'q',
+                      subtitle:
+                          'Yangi buyurtmalar asosiy oynada qabul qilinadi',
+                      icon: Iconsax.car,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(16.w),
+            children: [
+              if (hasCurrent) _buildActiveOrderCard(state, order),
+              ...queued.map(_buildQueuedOrderCard),
+            ],
           );
-        }
-        return ListView(
-          padding: EdgeInsets.all(16.w),
-          children: [_buildActiveOrderCard(state, order)],
-        );
-      },
+        },
+      ),
+    );
+  }
+
+  // Navbatdagi (2-chi) buyurtma kartasi — joriy safar tugagach avtomatik
+  // boshlanadi, shu sababli boshqaruv tugmalari yo'q.
+  Widget _buildQueuedOrderCard(OrderModel order) {
+    const accent = AppColors.warning;
+    final tariff = (order.tariff ?? '').trim();
+    return Container(
+      margin: EdgeInsets.only(bottom: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: accent.withOpacity(0.4), width: 1.5.w),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Iconsax.clock, size: 18.w, color: accent),
+                SizedBox(width: 8.w),
+                Text(
+                  'Navbatda',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const Spacer(),
+                if (tariff.isNotEmpty)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 5.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Text(
+                      tariff,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: 14.h),
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Column(
+                children: [
+                  _buildQueuedAddressRow(
+                    color: AppColors.success,
+                    text: order.pickupAddress,
+                  ),
+                  SizedBox(height: 10.h),
+                  _buildQueuedAddressRow(
+                    color: AppColors.error,
+                    text: order.destinationAddress,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              children: [
+                Icon(Iconsax.info_circle, size: 14.w, color: accent),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    'Joriy safar tugagach avtomatik boshlanadi',
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQueuedAddressRow({required Color color, required String text}) {
+    return Row(
+      children: [
+        Container(
+          width: 6.w,
+          height: 6.h,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(
+            text.trim().isEmpty ? '—' : text,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -470,254 +602,256 @@ class _OrdersPageState extends State<OrdersPage>
           boxShadow: AppColors.cardShadow,
         ),
         child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 56.w,
-                  height: 56.h,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [statusColor, statusColor.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: statusColor.withOpacity(0.4),
-                        blurRadius: 12.r,
-                        offset: Offset(0, 4.h),
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 56.w,
+                    height: 56.h,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [statusColor, statusColor.withOpacity(0.8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Iconsax.user,
-                      size: 28.w,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.clientName,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.3,
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withOpacity(0.4),
+                          blurRadius: 12.r,
+                          offset: Offset(0, 4.h),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Iconsax.user,
+                        size: 28.w,
+                        color: Colors.white,
                       ),
-                      SizedBox(height: 6.h),
-                      Row(
-                        children: [
-                          Icon(
-                            Iconsax.call,
-                            size: 14.w,
-                            color: AppColors.textSecondary,
+                    ),
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.clientName,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.3,
                           ),
-                          SizedBox(width: 6.w),
-                          Text(
-                            order.clientPhone,
-                            style: TextStyle(
-                              fontSize: 12.sp,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 6.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Iconsax.call,
+                              size: 14.w,
                               color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
                             ),
-                          ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              order.clientPhone,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          statusColor.withOpacity(0.15),
+                          statusColor.withOpacity(0.05),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        statusColor.withOpacity(0.15),
-                        statusColor.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: statusColor.withOpacity(0.3),
+                        width: 1.5.w,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8.w,
+                          height: 8.h,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w700,
+                            color: statusColor,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: statusColor.withOpacity(0.3),
-                      width: 1.5.w,
-                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8.w,
-                        height: 8.h,
-                        decoration: BoxDecoration(
-                          color: statusColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 6.w),
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w700,
-                          color: statusColor,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
+                ],
               ),
-              child: Column(
+              SizedBox(height: 16.h),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 6.w,
+                          height: 6.h,
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: Text(
+                            order.pickupAddress,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10.h),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6.w,
+                          height: 6.h,
+                          decoration: const BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: Text(
+                            order.destinationAddress,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 6.w,
-                        height: 6.h,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          order.pickupAddress,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      Container(
-                        width: 6.w,
-                        height: 6.h,
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          order.destinationAddress,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 14.h),
-            Row(
-              children: [
-                _buildActiveMetric(
-                  icon: Iconsax.routing,
-                  value: '${state.traveledDistance.toStringAsFixed(1)} km',
-                ),
-                if (timeValue != null) ...[
-                  SizedBox(width: 10.w),
                   _buildActiveMetric(
-                    icon: Iconsax.clock,
-                    value: '$timeLabel $timeValue',
+                    icon: Iconsax.routing,
+                    value: '${state.traveledDistance.toStringAsFixed(1)} km',
+                  ),
+                  if (timeValue != null) ...[
+                    SizedBox(width: 10.w),
+                    _buildActiveMetric(
+                      icon: Iconsax.clock,
+                      value: '$timeLabel $timeValue',
+                    ),
+                  ],
+                  const Spacer(),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 8.h,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.15),
+                          AppColors.primary.withOpacity(0.05),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                        width: 1.5.w,
+                      ),
+                    ),
+                    child: Text(
+                      NumberFormatter.formatPrice(
+                        state.currentPrice.toDouble(),
+                      ),
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
                   ),
                 ],
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.05),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
-                      width: 1.5.w,
-                    ),
-                  ),
-                  child: Text(
-                    NumberFormatter.formatPrice(state.currentPrice.toDouble()),
+              ),
+              SizedBox(height: 16.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => widget.onGoHome?.call(),
+                  icon: Icon(Iconsax.map_1, size: 18.w),
+                  label: Text(
+                    'Xaritada davom etish',
                     style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      letterSpacing: -0.3,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => widget.onGoHome?.call(),
-                icon: Icon(Iconsax.map_1, size: 18.w),
-                label: Text(
-                  'Xaritada davom etish',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: statusColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: statusColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -733,11 +867,7 @@ class _OrdersPageState extends State<OrdersPage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14.w,
-            color: AppColors.textSecondary,
-          ),
+          Icon(icon, size: 14.w, color: AppColors.textSecondary),
           SizedBox(width: 6.w),
           Text(
             value,
@@ -756,17 +886,29 @@ class _OrdersPageState extends State<OrdersPage>
 
   Widget _buildCompletedTab() {
     return RefreshIndicator(
-      onRefresh: _refreshOrders,
+      onRefresh: _refreshAll,
       color: AppColors.primary,
       child: _isLoading
           ? _buildShimmerLoading()
           : _hasError
-          ? ErrorRetryView(onRetry: _refreshOrders)
+          ? ErrorRetryView(onRetry: _refreshAll)
           : _filteredOrders.isEmpty
-          ? _buildEmptyState(
-              title: 'Tugatilgan buyurtmalar yo\'q',
-              subtitle: 'Yakunlangan safarlar shu yerda ko\'rinadi',
-              icon: Iconsax.clock,
+          ? LayoutBuilder(
+              builder: (context, constraints) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: _buildEmptyState(
+                      title: 'Tugatilgan buyurtmalar yo\'q',
+                      subtitle: 'Yakunlangan safarlar shu yerda ko\'rinadi',
+                      icon: Iconsax.clock,
+                    ),
+                  ),
+                ],
+              ),
             )
           : AnimatedBuilder(
               animation: _animationController,

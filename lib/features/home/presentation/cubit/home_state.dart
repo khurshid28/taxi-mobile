@@ -45,6 +45,14 @@ class HomeState extends Equatable {
   /// esa olib tashlaydi (jim — ovoz/banner yo'q, faqat ma'lumot yangilanadi).
   final List<OrderModel> globalOrders;
 
+  /// Haydovchi QABUL QILGAN, lekin hozir xaritada faol bo'lmagan (navbatdagi)
+  /// buyurtmalar. App bir vaqtda BITTA safarni xaritada boshqaradi, lekin
+  /// haydovchi 2 tagacha faol buyurtma olishi mumkin — 1-chisi `currentOrder`
+  /// (xaritada), 2-chisi shu navbatda kutadi. 1-chi yakunlangach 2-chi
+  /// avtomatik `currentOrder`ga ko'tariladi. Backend `orders/driver/{id}/active`
+  /// maksimal 2 ta qaytaradi — shularga mos.
+  final List<OrderModel> queuedOrders;
+
   const HomeState({
     this.status = OrderStatus.initial,
     this.currentLocation,
@@ -69,6 +77,7 @@ class HomeState extends Equatable {
     this.tripStartTime,
     this.tripSeconds = 0,
     this.globalOrders = const [],
+    this.queuedOrders = const [],
   });
 
   HomeState copyWith({
@@ -96,6 +105,7 @@ class HomeState extends Equatable {
     DateTime? tripStartTime,
     int? tripSeconds,
     List<OrderModel>? globalOrders,
+    List<OrderModel>? queuedOrders,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -121,6 +131,7 @@ class HomeState extends Equatable {
       tripStartTime: tripStartTime ?? this.tripStartTime,
       tripSeconds: tripSeconds ?? this.tripSeconds,
       globalOrders: globalOrders ?? this.globalOrders,
+      queuedOrders: queuedOrders ?? this.queuedOrders,
     );
   }
 
@@ -149,5 +160,6 @@ class HomeState extends Equatable {
     tripStartTime,
     tripSeconds,
     globalOrders,
+    queuedOrders,
   ];
 }

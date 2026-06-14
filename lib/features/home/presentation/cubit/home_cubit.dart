@@ -52,7 +52,8 @@ class HomeCubit extends Cubit<HomeState> {
   // Hisoblagichni 10s'da +10 qilib emas, HAQIQIY o'tgan vaqtni o'lchaymiz.
   // Shunda completed'ga yuboriladigan kutish vaqti soniyagacha aniq bo'ladi
   // (mijozni kutish + safar ichidagi qo'lda pauzalar yig'indisi).
-  int _accumulatedWaitingSeconds = 0; // yakunlangan kutish segmentlari yig'indisi
+  int _accumulatedWaitingSeconds =
+      0; // yakunlangan kutish segmentlari yig'indisi
   DateTime? _waitingStartedAt; // joriy faol kutish segmenti boshlangan vaqt
 
   // Backend session
@@ -89,8 +90,7 @@ class HomeCubit extends Cubit<HomeState> {
         _onSessionExpired();
       });
       // Tugashidan oldin: token hali bor - oxirgi cancel chaqiruvi
-      _sessionExpiringSub ??=
-          AuthEvents.instance.onSessionExpiring.listen((_) {
+      _sessionExpiringSub ??= AuthEvents.instance.onSessionExpiring.listen((_) {
         _tryCancelActiveOrder();
       });
 
@@ -104,7 +104,9 @@ class HomeCubit extends Cubit<HomeState> {
         emit(
           state.copyWith(
             currentLocation: Point(
-                latitude: position.latitude, longitude: position.longitude),
+              latitude: position.latitude,
+              longitude: position.longitude,
+            ),
             heading: position.heading,
             status: OrderStatus.initial,
             isLoading: false,
@@ -121,6 +123,10 @@ class HomeCubit extends Cubit<HomeState> {
       // ham buyurtma "Faol" bo'limida va asosiy oynada ko'rinishi uchun.
       await _restoreActiveTrip();
       _startLocationTracking();
+      // Global buyurtmalar REST orqali (liniyaga chiqish shart emas) — Mercure
+      // real-vaqt bilan id bo'yicha dedup qilib birlashtiriladi.
+      // ignore: discarded_futures
+      loadGlobalOrders();
     } catch (e) {
       emit(state.copyWith(error: e.toString(), isLoading: false));
     }
@@ -129,8 +135,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _loadDriverSession() async {
     _driverId = await StorageHelper.getInt(AppConstants.keyDriverId);
     _companyId = await StorageHelper.getInt(AppConstants.keyCompanyId);
-    _mercureToken =
-        await StorageHelper.getString(AppConstants.keyMercureToken);
+    _mercureToken = await StorageHelper.getString(AppConstants.keyMercureToken);
 
     // Cache'da driver/company ID yo'q bo'lsa - bir marta about_me orqali
     // olib kelamiz va cache'laymiz. Keyingi safar so'rov bermaymiz.
@@ -140,15 +145,35 @@ class HomeCubit extends Cubit<HomeState> {
         _driverId = profile.id ?? _driverId;
         _companyId = profile.companyId ?? _companyId;
         // ignore: avoid_print
-        print('\ud83d\udd04 about_me orqali yuklandi: driverId=$_driverId, '
-            'companyId=$_companyId');
+        print(
+          '\ud83d\udd04 about_me orqali yuklandi: driverId=$_driverId, '
+          'companyId=$_companyId',
+        );
       } catch (e) {
         // ignore: avoid_print
         print('\ud83d\udd34 about_me yuklash xato: $e');
       }
+      // `drivers/about_me` companyId qaytarmasligi mumkin. Hali null bo'lsa
+      // `driver_datas/about_me` (company IRI) orqali olib kelamiz — Mercure
+      // global topic (`company/{id}/orders/...`) uchun company majburiy.
+      if (_companyId == null) {
+        try {
+          final data = await sl<DriverService>().aboutMyData();
+          _companyId = data.companyId ?? _companyId;
+          // ignore: avoid_print
+          print(
+            '\ud83d\udd04 driver_datas/about_me \u2192 companyId=$_companyId',
+          );
+        } catch (e) {
+          // ignore: avoid_print
+          print('\ud83d\udd34 driver_datas/about_me xato: $e');
+        }
+      }
     } else {
       // ignore: avoid_print
-      print('\ud83d\udcbe Cache\'dan: driverId=$_driverId, companyId=$_companyId');
+      print(
+        '\ud83d\udcbe Cache\'dan: driverId=$_driverId, companyId=$_companyId',
+      );
     }
     final raw = await StorageHelper.getString(AppConstants.keyDriverTariffs);
     if (raw != null && raw.isNotEmpty) {
@@ -217,21 +242,24 @@ class HomeCubit extends Cubit<HomeState> {
       _waitingTimer?.cancel();
       _tripTimer?.cancel();
       _activeTariff = null;
-      emit(state.copyWith(
-        status: OrderStatus.initial,
-        currentOrder: null,
-        destinationLocation: null,
-        routePoints: const [],
-        routeGeometry: null,
-        distanceToClient: null,
-        clientPickedUp: false,
-        waitingSeconds: 0,
-        currentPrice: 0,
-        traveledDistance: 0,
-        tripSeconds: 0,
-        isWaitingTimerActive: false,
-        globalOrders: const [],
-      ));
+      emit(
+        state.copyWith(
+          status: OrderStatus.initial,
+          currentOrder: null,
+          destinationLocation: null,
+          routePoints: const [],
+          routeGeometry: null,
+          distanceToClient: null,
+          clientPickedUp: false,
+          waitingSeconds: 0,
+          currentPrice: 0,
+          traveledDistance: 0,
+          tripSeconds: 0,
+          isWaitingTimerActive: false,
+          queuedOrders: const [],
+        ),
+      );
+      // Global buyurtmalar offline'da ham ko'rinadi — ro'yxatni TOZALAMAYMIZ.
       StorageHelper.remove(_activeTripKey);
     }
   }
@@ -241,8 +269,10 @@ class HomeCubit extends Cubit<HomeState> {
   void _connectMercure() {
     if (_driverId == null || _companyId == null) {
       // ignore: avoid_print
-      print('\u26a0\ufe0f Mercure ulanmadi: driver/company ID yo\'q '
-          '(driverId=$_driverId, companyId=$_companyId)');
+      print(
+        '\u26a0\ufe0f Mercure ulanmadi: driver/company ID yo\'q '
+        '(driverId=$_driverId, companyId=$_companyId)',
+      );
       return;
     }
     final svc = sl<MercureService>();
@@ -253,9 +283,11 @@ class HomeCubit extends Cubit<HomeState> {
         ? _mercureToken
         : AppConstants.mercureStaticToken;
     // ignore: avoid_print
-    print('\ud83d\udce1 Mercure connect → driverId=$_driverId, '
-        'companyId=$_companyId, tariffs=$_tariffs, '
-        'token=${_mercureToken != null && _mercureToken!.isNotEmpty ? "server" : "static"}');
+    print(
+      '\ud83d\udce1 Mercure connect → driverId=$_driverId, '
+      'companyId=$_companyId, tariffs=$_tariffs, '
+      'token=${_mercureToken != null && _mercureToken!.isNotEmpty ? "server" : "static"}',
+    );
     svc.connect(
       driverId: _driverId!,
       companyId: _companyId!,
@@ -273,24 +305,30 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void _onMercureEvent(MercureEvent event) {
-    AppLogger.info('HomeCubit event: ${event.type} '
-        '(orderId=${event.orderId}, holat=${state.status}, '
-        'online=${state.isOnline})');
+    AppLogger.info(
+      'HomeCubit event: ${event.type} '
+      '(orderId=${event.orderId}, holat=${state.status}, '
+      'online=${state.isOnline})',
+    );
     switch (event.type) {
       case MercureEventType.newOrder:
         if (event.order != null && state.status == OrderStatus.initial) {
-          emit(state.copyWith(
-            status: OrderStatus.orderReceived,
-            currentOrder: event.order,
-          ));
+          emit(
+            state.copyWith(
+              status: OrderStatus.orderReceived,
+              currentOrder: event.order,
+            ),
+          );
           // Ovoz showNewOrderNotification ichida bir marta ijro etiladi
           // (ikki marta chaqirilsa player qotib qolardi).
           NotificationService().showNewOrderNotification();
           AppLogger.order('EKRANGA CHIQARILDI: buyurtma #${event.order!.id}');
         } else {
-          AppLogger.warn('Yangi buyurtma KO\'RSATILMADI: '
-              'order=${event.order != null}, holat=${state.status} '
-              '(faqat "initial" holatda chiqadi)');
+          AppLogger.warn(
+            'Yangi buyurtma KO\'RSATILMADI: '
+            'order=${event.order != null}, holat=${state.status} '
+            '(faqat "initial" holatda chiqadi)',
+          );
         }
         break;
       case MercureEventType.globalNewOrder:
@@ -309,8 +347,10 @@ class HomeCubit extends Cubit<HomeState> {
         if (!_isAccepting &&
             state.currentOrder?.id == event.orderId &&
             state.status == OrderStatus.orderReceived) {
-          AppLogger.info('Buyurtma #${event.orderId} bekor/qabul qilindi — '
-              'ekran tozalandi');
+          AppLogger.info(
+            'Buyurtma #${event.orderId} bekor/qabul qilindi — '
+            'ekran tozalandi',
+          );
           // Toza reset (copyWith null bilan currentOrder tozalanmaydi).
           _resetOrderState();
         }
@@ -331,12 +371,12 @@ class HomeCubit extends Cubit<HomeState> {
   /// REST orqali to'ldiramiz (Mercure faqat {orderId, tariff} yuboradi).
   void _addGlobalOrder(OrderModel? order) {
     if (order == null) return;
-    // Faqat online haydovchi global buyurtmani ko'radi/oladi.
-    if (!state.isOnline) {
-      AppLogger.warn('Global buyurtma KO\'RSATILMADI: haydovchi offline');
-      return;
-    }
-    // Allaqachon ro'yxatda yoki joriy faol buyurtma bo'lsa — takrorlamaymiz.
+    // Tarif filtri: haydovchining tarifiga mos kelmaydigan buyurtmani
+    // ko'rsatmaymiz (mas. "comfront" yo'q bo'lsa, comfort buyurtma chiqmaydi).
+    // Mercure xizmati ham filtrlaydi — bu cubit darajasidagi qo'shimcha kafolat.
+    if (!_matchesDriverTariff(order)) return;
+    // Global buyurtmalar online bo'lmasa ham ko'rinadi (liniyaga chiqish shart
+    // emas). Allaqachon ro'yxatda yoki joriy faol buyurtma bo'lsa — takrorlamaymiz.
     if (order.id.isEmpty ||
         state.globalOrders.any((o) => o.id == order.id) ||
         state.currentOrder?.id == order.id) {
@@ -347,8 +387,10 @@ class HomeCubit extends Cubit<HomeState> {
     // Ogohlantirish (ovoz + background banner). accepted/canceled'dan farqli —
     // bu yangi, olинadigan buyurtma. Foreground'da faqat ovoz + ro'yxat/badge.
     NotificationService().showGlobalOrderNotification();
-    AppLogger.order('GLOBAL buyurtma ro\'yxatga qo\'shildi: #${order.id} '
-        '(jami: ${updated.length})');
+    AppLogger.order(
+      'GLOBAL buyurtma ro\'yxatga qo\'shildi: #${order.id} '
+      '(jami: ${updated.length})',
+    );
     // To'liq ma'lumotni orqa fonda tortib, kartani boyitamiz.
     // ignore: discarded_futures
     _enrichGlobalOrder(order.id);
@@ -379,8 +421,10 @@ class HomeCubit extends Cubit<HomeState> {
     final updated = state.globalOrders.where((o) => o.id != orderId).toList();
     if (updated.length != state.globalOrders.length) {
       emit(state.copyWith(globalOrders: updated));
-      AppLogger.info('Global ro\'yxatdan olindi: #$orderId '
-          '(qoldi: ${updated.length})');
+      AppLogger.info(
+        'Global ro\'yxatdan olindi: #$orderId '
+        '(qoldi: ${updated.length})',
+      );
     }
   }
 
@@ -390,29 +434,250 @@ class HomeCubit extends Cubit<HomeState> {
   /// ularning ro'yxatidan o'chiriladi.
   Future<void> acceptGlobalOrder(OrderModel order) async {
     if (_driverId == null) return;
-    if (!state.isOnline) {
-      emit(state.copyWith(
-          error: 'Buyurtma olish uchun avval liniyaga chiqing.'));
-      return;
-    }
-    // Faol buyurtma bormi? Bo'lsa — yangisini olib bo'lmaydi.
-    if (state.currentOrder != null && state.status != OrderStatus.initial) {
-      emit(state.copyWith(
-          error: 'Sizda faol buyurtma bor. Avval uni yakunlang.'));
-      return;
-    }
     if (order.id.isEmpty) {
       emit(state.copyWith(error: 'Buyurtma raqami yo\'q.'));
       return;
     }
+    // Allaqachon shu buyurtma faol yoki navbatda bo'lsa — takror olmaymiz.
+    if (state.currentOrder?.id == order.id ||
+        state.queuedOrders.any((o) => o.id == order.id)) {
+      return;
+    }
+    // Maksimal 2 ta faol buyurtma. To'lgan bo'lsa — yangisini olmaymiz.
+    if (_activeOrderCount >= 2) {
+      emit(
+        state.copyWith(
+          error: 'Sizda 2 ta faol buyurtma bor. Avval birini yakunlang.',
+        ),
+      );
+      return;
+    }
+
+    // Allaqachon bitta faol safar bor — yangisini NAVBATGA olamiz (xaritadagi
+    // joriy safar buzilmaydi). Aks holda — to'g'ridan-to'g'ri faol safar.
+    final hasCurrent =
+        state.currentOrder != null && state.status != OrderStatus.initial;
+    if (hasCurrent) {
+      await _acceptToQueue(order);
+      return;
+    }
+
+    // Liniyaga chiqish (online) SHART EMAS — global buyurtmani offline ham
+    // olish mumkin. Muvaffaqiyatli olingach haydovchi avtomatik liniyaga
+    // chiqariladi (pastda).
+    final wasOnline = state.isOnline;
     // Ro'yxatdan darhol olib, currentOrder qilib qo'yamiz (acceptOrder uni
     // o'qiydi). Status'ni `orderReceived` QILMAYMIZ — aks holda asosiy oynada
     // shaxsiy bottom-sheet miltillab ochilib-yopilardi; acceptOrder
     // muvaffaqiyatda to'g'ridan-to'g'ri goingToClient'ga o'tadi.
-    final remaining =
-        state.globalOrders.where((o) => o.id != order.id).toList();
+    final remaining = state.globalOrders
+        .where((o) => o.id != order.id)
+        .toList();
     emit(state.copyWith(currentOrder: order, globalOrders: remaining));
     await acceptOrder();
+
+    // Offline holatda global buyurtma olingan bo'lsa — endi faol safar bor,
+    // shuning uchun haydovchini liniyaga chiqaramiz (lokatsiya push + Mercure).
+    if (!wasOnline &&
+        state.currentOrder?.id == order.id &&
+        state.status != OrderStatus.initial) {
+      emit(state.copyWith(isOnline: true));
+      _connectMercure();
+      _startLocationPush();
+    }
+  }
+
+  /// Hozir faol (xaritadagi + navbatdagi) buyurtmalar soni. Maksimal 2.
+  int get _activeOrderCount {
+    final hasCurrent =
+        state.currentOrder != null && state.status != OrderStatus.initial;
+    return (hasCurrent ? 1 : 0) + state.queuedOrders.length;
+  }
+
+  /// Ikkinchi (navbatdagi) buyurtmani backendda qabul qilib, navbatga qo'shadi.
+  /// Joriy xaritadagi safar buzilmaydi. Muvaffaqiyatsiz bo'lsa (allaqachon
+  /// olingan) — global ro'yxatda qoladi va xato ko'rsatiladi.
+  Future<void> _acceptToQueue(OrderModel order) async {
+    final driverId = _driverId;
+    if (driverId == null) return;
+    try {
+      await sl<OrderService>()
+          .accept(orderId: order.id, driverId: driverId)
+          .timeout(const Duration(seconds: 12));
+    } catch (e) {
+      AppLogger.error('Navbatga olish XATO (#${order.id}): $e');
+      emit(
+        state.copyWith(
+          error: 'Ikkinchi buyurtmani olib bo\'lmadi — u allaqachon olingan.',
+        ),
+      );
+      return;
+    }
+    // Navbatga DARHOL qo'shamiz (yengil nusxa bilan) — ro'yxat tez yangilanadi.
+    // To'liq ma'lumotni (manzil, narx) order id orqali ORQA FONDA tortamiz.
+    final queued = List<OrderModel>.of(state.queuedOrders)..add(order);
+    final remaining = state.globalOrders
+        .where((o) => o.id != order.id)
+        .toList();
+    emit(state.copyWith(queuedOrders: queued, globalOrders: remaining));
+    AppLogger.success(
+      'Navbatga olindi: #${order.id} (navbatda: ${queued.length})',
+    );
+    _persistActiveTrip();
+    // ignore: discarded_futures
+    _enrichQueuedOrder(order.id);
+  }
+
+  /// Navbatdagi buyurtmaning to'liq ma'lumotini (manzil, masofa) order id
+  /// orqali REST'dan tortib, navbatdagi yengil nusxani almashtiradi.
+  Future<void> _enrichQueuedOrder(String orderId) async {
+    if (orderId.isEmpty) return;
+    try {
+      final full = await sl<OrderService>().getOrder(orderId);
+      final idx = state.queuedOrders.indexWhere((o) => o.id == orderId);
+      if (idx == -1) return; // oraliqda faollashtirilgan yoki olib tashlangan
+      final updated = List<OrderModel>.of(state.queuedOrders);
+      updated[idx] = full;
+      emit(state.copyWith(queuedOrders: updated));
+      _persistActiveTrip();
+      AppLogger.info('Navbatdagi buyurtma to\'ldirildi: #$orderId');
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ navbatdagi buyurtma to\'ldirish xato (#$orderId): $e');
+    }
+  }
+
+  /// Joriy safar yakunlangach (complete/cancel) navbatdagi keyingi buyurtmani
+  /// xaritadagi faol safarga ko'taradi. Navbat bo'sh bo'lsa — hech narsa.
+  void _promoteNextQueuedOrder() {
+    if (state.queuedOrders.isEmpty) return;
+    final next = state.queuedOrders.first;
+    final rest = state.queuedOrders.skip(1).toList();
+    if (next.id.isEmpty) {
+      emit(state.copyWith(queuedOrders: rest));
+      return;
+    }
+
+    if (_orderTypes.isEmpty) {
+      // ignore: discarded_futures
+      _loadOrderTypes();
+    }
+    _activeTariff = _resolveTariff(next);
+    _accumulatedWaitingSeconds = 0;
+    _waitingStartedAt = null;
+    _tripDistanceKm = 0;
+    _lastDistancePoint = state.currentLocation;
+    _lastMapEmit = null;
+
+    emit(
+      state.copyWith(
+        status: OrderStatus.goingToClient,
+        currentOrder: next,
+        queuedOrders: rest,
+        destinationLocation: next.destinationLocation,
+        clientPickedUp: false,
+        traveledDistance: 0,
+        waitingSeconds: 0,
+        currentPrice: _computePrice(next.distance, 0),
+        tripSeconds: 0,
+        isWaitingTimerActive: false,
+        isOnline: true,
+      ),
+    );
+    AppLogger.order(
+      'Navbatdagi buyurtma faollashtirildi: #${next.id} '
+      '(navbatda qoldi: ${rest.length})',
+    );
+    _persistActiveTrip();
+    // To'liq/yangi ma'lumotni order id orqali ORQA FONDA tortamiz, so'ng
+    // marshrutni chizamiz. Tortib bo'lmasa — mavjud ma'lumot bilan davom etadi.
+    // ignore: discarded_futures
+    _activatePromotedOrder(next.id);
+  }
+
+  /// Navbatdan ko'tarilgan buyurtmaning eng so'nggi ma'lumotini order id orqali
+  /// tortib (manzil, masofa, narx) joriy buyurtmani yangilaydi, keyin mijozga
+  /// boradigan marshrutni so'raydi.
+  Future<void> _activatePromotedOrder(String orderId) async {
+    if (orderId.isNotEmpty) {
+      try {
+        final full = await sl<OrderService>().getOrder(orderId);
+        if (state.currentOrder?.id == orderId) {
+          emit(
+            state.copyWith(
+              currentOrder: full,
+              destinationLocation: full.destinationLocation,
+              currentPrice: _computePrice(
+                full.distance,
+                _currentWaitingSeconds,
+              ),
+            ),
+          );
+          _persistActiveTrip();
+        }
+      } catch (e) {
+        AppLogger.error('Faollashtirilgan buyurtma datasi (#$orderId): $e');
+      }
+    }
+    await _requestRouteToClient();
+  }
+
+  /// Buyurtma haydovchining tariflariga (aboutMe/_tariffs) mos keladimi.
+  /// Faqat ANIQ mos kelmaganda `false` qaytaradi — buyurtma tarifi noma'lum
+  /// yoki haydovchi tariflari hali yuklanmagan bo'lsa, ko'rsatamiz (Mercure
+  /// filtri bilan bir xil mantiq). Masalan: haydovchida "comfort" tarifi
+  /// yo'q bo'lsa, "comfort" buyurtmalar global ro'yxatda KO'RINMAYDI.
+  bool _matchesDriverTariff(OrderModel order) {
+    if (_tariffs.isEmpty) return true;
+    final orderTariff = (order.tariff ?? '').toLowerCase().trim();
+    if (orderTariff.isEmpty) return true;
+    final active = _tariffs.map((e) => e.toLowerCase().trim()).toSet();
+    return active.contains(orderTariff);
+  }
+
+  /// Global (hali hech kim olmagan, status=new) buyurtmalarni REST orqali
+  /// tortib, mavjud ro'yxat bilan id bo'yicha BIRLASHTIRADI. Mercure real-vaqt
+  /// + REST bir xil buyurtmani IKKI marta ko'rsatmasligi uchun dedup qilinadi.
+  /// App ochilganda va "Global" bo'limida pull-to-refresh bosilganda chaqiriladi.
+  /// Liniyaga chiqish (online) SHART EMAS — global buyurtmalar offline ham
+  /// ko'rinadi.
+  Future<void> loadGlobalOrders() async {
+    if (_driverId == null) {
+      await _loadDriverSession();
+      if (_driverId == null) return;
+    }
+    List<OrderModel> remote;
+    try {
+      remote = await sl<OrderService>().fetchGlobalOrders().timeout(
+        const Duration(seconds: 12),
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print('\u26a0\ufe0f global buyurtmalar (REST): $e');
+      return;
+    }
+
+    // id bo'yicha birlashtiramiz: mavjud (ehtimol Mercure orqali boyitilgan)
+    // nusxalar ustuvor, so'ng REST'dan YANGILARINI qo'shamiz (takror emas).
+    final byId = <String, OrderModel>{};
+    for (final o in state.globalOrders) {
+      if (o.id.isNotEmpty) byId[o.id] = o;
+    }
+    for (final o in remote) {
+      if (o.id.isEmpty) continue;
+      if (state.currentOrder?.id == o.id) continue; // o'zimning faol buyurtmam
+      if (!_matchesDriverTariff(o)) continue; // tarif mos emas — ko'rsatmaymiz
+      byId.putIfAbsent(o.id, () => o);
+    }
+    // Birlashma faqat o'sadi yoki o'zgarmaydi (union). Yangi id qo'shilmagan
+    // bo'lsa — ortiqcha rebuild qilmaymiz.
+    if (byId.length == state.globalOrders.length) return;
+    final merged = byId.values.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    emit(state.copyWith(globalOrders: merged));
+    AppLogger.order(
+      'Global buyurtmalar REST orqali yangilandi: ${merged.length} ta',
+    );
   }
 
   // ============== Location push (har 10 sek) ==============
@@ -489,15 +754,18 @@ class HomeCubit extends Cubit<HomeState> {
     _waitingStartedAt = null;
     StorageHelper.remove(_activeTripKey);
     // Toza offline holat + xato xabari (home_page listener bir marta ko'rsatadi).
-    emit(HomeState(
-      status: OrderStatus.initial,
-      currentLocation: state.currentLocation,
-      heading: state.heading,
-      isOnline: false,
-      isTimeoutEnabled: state.isTimeoutEnabled,
-      error: 'Siz boshqa qurilmada online holatdasiz. Bu qurilmada ishlash '
-          'uchun avval o\'sha qurilmadan chiqing.',
-    ));
+    emit(
+      HomeState(
+        status: OrderStatus.initial,
+        currentLocation: state.currentLocation,
+        heading: state.heading,
+        isOnline: false,
+        isTimeoutEnabled: state.isTimeoutEnabled,
+        error:
+            'Siz boshqa qurilmada online holatdasiz. Bu qurilmada ishlash '
+            'uchun avval o\'sha qurilmadan chiqing.',
+      ),
+    );
   }
 
   // ============== Real GPS tracking ==============
@@ -520,8 +788,11 @@ class HomeCubit extends Cubit<HomeState> {
     // timeout + oxirgi ma'lum joylashuv (cache) zaxira sifatida — app
     // ochilishi va buyurtma tiklash bloklanmasligi uchun.
     try {
-      return await Geolocator.getCurrentPosition()
-          .timeout(const Duration(seconds: 8));
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+        ),
+      ).timeout(const Duration(seconds: 8));
     } catch (_) {
       final last = await Geolocator.getLastKnownPosition();
       if (last != null) return last;
@@ -540,8 +811,10 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void _onPositionChanged(Position position) {
-    final newLocation =
-        Point(latitude: position.latitude, longitude: position.longitude);
+    final newLocation = Point(
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
 
     // Yo'nalish (marker burilishi) — oldingi GPS nuqtasidan.
     final heading = (_lastDistancePoint != null)
@@ -572,12 +845,14 @@ class HomeCubit extends Cubit<HomeState> {
       );
       if (dMeters <= 50) {
         _lastMapEmit = DateTime.now();
-        emit(state.copyWith(
-          currentLocation: newLocation,
-          heading: heading,
-          distanceToClient: 0,
-          status: OrderStatus.waitingForClient,
-        ));
+        emit(
+          state.copyWith(
+            currentLocation: newLocation,
+            heading: heading,
+            distanceToClient: 0,
+            status: OrderStatus.waitingForClient,
+          ),
+        );
         NotificationService().showNotification(
           title: '📍 Mijoz oldida',
           body: 'Siz mijoz oldiga yetib keldingiz. Kutish boshlandi.',
@@ -608,17 +883,19 @@ class HomeCubit extends Cubit<HomeState> {
       );
     }
 
-    emit(state.copyWith(
-      currentLocation: newLocation,
-      heading: heading,
-      traveledDistance: state.status == OrderStatus.inProgress
-          ? _tripDistanceKm
-          : state.traveledDistance,
-      currentPrice: state.status == OrderStatus.inProgress
-          ? _computePrice(_tripDistanceKm, state.waitingSeconds)
-          : state.currentPrice,
-      distanceToClient: distanceToClient,
-    ));
+    emit(
+      state.copyWith(
+        currentLocation: newLocation,
+        heading: heading,
+        traveledDistance: state.status == OrderStatus.inProgress
+            ? _tripDistanceKm
+            : state.traveledDistance,
+        currentPrice: state.status == OrderStatus.inProgress
+            ? _computePrice(_tripDistanceKm, state.waitingSeconds)
+            : state.currentPrice,
+        distanceToClient: distanceToClient,
+      ),
+    );
   }
 
   // ============== Order actions (real backend) ==============
@@ -639,18 +916,25 @@ class HomeCubit extends Cubit<HomeState> {
     // ko'rinishida buzilib backend 404 qaytaradi. Bu Mercure xabarida orderId
     // kelmaganini bildiradi (backend tomonidagi muammo).
     if (orderId.isEmpty) {
-      AppLogger.error('ACCEPT BEKOR: orderId BO\'SH — Mercure xabarida '
-          'orderId kelmagan. Backend payload\'ga orderId qo\'shishi kerak.');
+      AppLogger.error(
+        'ACCEPT BEKOR: orderId BO\'SH — Mercure xabarida '
+        'orderId kelmagan. Backend payload\'ga orderId qo\'shishi kerak.',
+      );
       _resetOrderState();
-      emit(state.copyWith(
-        error: 'Buyurtma raqami (orderId) kelmadi. Backend Mercure xabariga '
-            'orderId qo\'shishi kerak.',
-      ));
+      emit(
+        state.copyWith(
+          error:
+              'Buyurtma raqami (orderId) kelmadi. Backend Mercure xabariga '
+              'orderId qo\'shishi kerak.',
+        ),
+      );
       return;
     }
 
-    AppLogger.info('URL      = ${AppConstants.baseUrl}orders/$orderId/'
-        '$_driverId/accept');
+    AppLogger.info(
+      'URL      = ${AppConstants.baseUrl}orders/$orderId/'
+      '$_driverId/accept',
+    );
 
     // Accept davom etmoqda — Mercure "accepted" xabari (shu haydovchining o'z
     // qabuli ham) currentOrder'ni reset qilib qo'ymasin.
@@ -660,8 +944,10 @@ class HomeCubit extends Cubit<HomeState> {
         await sl<OrderService>()
             .accept(orderId: orderId, driverId: _driverId!)
             .timeout(const Duration(seconds: 12));
-        AppLogger.success('ACCEPT muvaffaqiyatli (orderId=$orderId, '
-            'driverId=$_driverId)');
+        AppLogger.success(
+          'ACCEPT muvaffaqiyatli (orderId=$orderId, '
+          'driverId=$_driverId)',
+        );
       } catch (e) {
         // Aniq diagnostika: qaysi URL, qaysi status, backend nima dedi.
         if (e is DioException) {
@@ -679,10 +965,13 @@ class HomeCubit extends Cubit<HomeState> {
         // qaytamiz va xabar ko'rsatamiz.
         _activeTariff = null;
         _resetOrderState();
-        emit(state.copyWith(
-          error: 'Buyurtmani qabul qilib bo\'lmadi — u allaqachon olingan '
-              'yoki mavjud emas.',
-        ));
+        emit(
+          state.copyWith(
+            error:
+                'Buyurtmani qabul qilib bo\'lmadi — u allaqachon olingan '
+                'yoki mavjud emas.',
+          ),
+        );
         return;
       }
 
@@ -712,15 +1001,17 @@ class HomeCubit extends Cubit<HomeState> {
       // shunda oraliqda biror reset bo'lsa ham buyurtma qaytadi.
       _lastMapEmit = null; // marker/masofa darhol yangilansin (10s kutmasin)
       _lastDistancePoint = state.currentLocation;
-      emit(state.copyWith(
-        status: OrderStatus.goingToClient,
-        currentOrder: acceptedOrder,
-        // Taxminiy narx allaqachon trip km ni o'z ichiga oladi (base + km).
-        currentPrice: _computePrice(acceptedOrder.distance, 0),
-        traveledDistance: 0,
-        waitingSeconds: 0,
-        isWaitingTimerActive: false,
-      ));
+      emit(
+        state.copyWith(
+          status: OrderStatus.goingToClient,
+          currentOrder: acceptedOrder,
+          // Taxminiy narx allaqachon trip km ni o'z ichiga oladi (base + km).
+          currentPrice: _computePrice(acceptedOrder.distance, 0),
+          traveledDistance: 0,
+          waitingSeconds: 0,
+          isWaitingTimerActive: false,
+        ),
+      );
 
       // Snapshotni DARHOL saqlaymiz — marshrut yuklash (pastda) osilib qolsa
       // yoki haydovchi appni shu zahoti yopsa ham buyurtma "Faol" bo'limida
@@ -736,19 +1027,29 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> rejectOrder() async {
-    if (state.currentOrder != null &&
+    final current = state.currentOrder;
+    final bool shouldCancel =
+        current != null &&
         (state.status == OrderStatus.orderAccepted ||
             state.status == OrderStatus.goingToClient ||
-            state.status == OrderStatus.waitingForClient)) {
-      try {
-        await sl<OrderService>().cancelByDriver(state.currentOrder!.id);
-      } catch (e) {
+            state.status == OrderStatus.waitingForClient);
+
+    // UI ni DARHOL bo'shatamiz va navbatda buyurtma bo'lsa — uni avtomatik
+    // faol safarga ko'taramiz. Backend (cancel) javobini KUTMAYMIZ: sekin
+    // internetda "Bekor qilish" bosilgach ekran qotmasin.
+    _resetOrderState();
+    _promoteNextQueuedOrder();
+
+    // Bekor qilishni orqa fonda yuboramiz (faqat haqiqatan qabul qilingan
+    // buyurtma uchun — shaxsiy taklif/orderReceived'da backendga so'rov yo'q).
+    if (shouldCancel) {
+      // ignore: discarded_futures
+      sl<OrderService>().cancelByDriver(current.id).catchError((e) {
         // ignore: avoid_print
         print('⚠️ cancel: $e');
-      }
+        return <String, dynamic>{};
+      });
     }
-
-    _resetOrderState();
   }
 
   /// Qo'lda "Yetib keldim". GPS avto-o'tish (mijozdan 50 m) ishlamasa
@@ -758,10 +1059,9 @@ class HomeCubit extends Cubit<HomeState> {
   void arrivedAtClient() {
     if (state.status != OrderStatus.goingToClient) return;
     _lastMapEmit = null; // keyingi yangilanish darhol ko'rinsin
-    emit(state.copyWith(
-      status: OrderStatus.waitingForClient,
-      distanceToClient: 0,
-    ));
+    emit(
+      state.copyWith(status: OrderStatus.waitingForClient, distanceToClient: 0),
+    );
     NotificationService().showNotification(
       title: '📍 Mijoz oldida',
       body: 'Mijoz oldiga yetib keldingiz. Kutish boshlandi.',
@@ -798,19 +1098,21 @@ class HomeCubit extends Cubit<HomeState> {
     _lastDistancePoint = state.currentLocation;
     _lastMapEmit = null; // birinchi yangilanish darhol ko'rinsin
 
-    emit(state.copyWith(
-      clientPickedUp: true,
-      status: OrderStatus.inProgress,
-      // Boradigan manzil ANIQ EMAS — safar davomida xaritaga yo'l chizig'i
-      // chizilmaydi. Haydovchi borib yetgach "Tugatish" tugmasi bilan o'zi
-      // yakunlaydi. Shu sabab mijozga chizilgan eski chiziqni ham o'chiramiz.
-      routeGeometry: const [],
-      // Bazaviy narx + kutish haqi (agar bo'lsa) saqlanadi, masofa 0 dan boshlanadi
-      currentPrice: _computePrice(0, state.waitingSeconds),
-      traveledDistance: 0,
-      tripStartTime: DateTime.now(),
-      tripSeconds: 0,
-    ));
+    emit(
+      state.copyWith(
+        clientPickedUp: true,
+        status: OrderStatus.inProgress,
+        // Boradigan manzil ANIQ EMAS — safar davomida xaritaga yo'l chizig'i
+        // chizilmaydi. Haydovchi borib yetgach "Tugatish" tugmasi bilan o'zi
+        // yakunlaydi. Shu sabab mijozga chizilgan eski chiziqni ham o'chiramiz.
+        routeGeometry: const [],
+        // Bazaviy narx + kutish haqi (agar bo'lsa) saqlanadi, masofa 0 dan boshlanadi
+        currentPrice: _computePrice(0, state.waitingSeconds),
+        traveledDistance: 0,
+        tripStartTime: DateTime.now(),
+        tripSeconds: 0,
+      ),
+    );
 
     _startTripTimer();
     _persistActiveTrip();
@@ -862,6 +1164,8 @@ class HomeCubit extends Cubit<HomeState> {
     // internetda "Tugatish" bosilgach app qotgandek turardi; endi ekran shu
     // zahoti tozalanadi, yuborish esa orqa fonda (timeout bilan) ketadi.
     _resetOrderState();
+    // Navbatda buyurtma bo'lsa — uni avtomatik faol safarga ko'taramiz.
+    _promoteNextQueuedOrder();
 
     if (completed != null && endPoint != null) {
       unawaited(
@@ -905,16 +1209,21 @@ class HomeCubit extends Cubit<HomeState> {
     // eskича qolib ketardi va xaritada eski marshrut chizig'i "qotib" turardi.
     // Buni oldini olish uchun butunlay TOZA yangi HomeState quramiz — faqat
     // joylashuv, yo'nalish, online holati va timeout sozlamasi saqlanadi.
-    emit(HomeState(
-      status: OrderStatus.initial,
-      currentLocation: state.currentLocation,
-      heading: state.heading,
-      isOnline: state.isOnline,
-      isTimeoutEnabled: state.isTimeoutEnabled,
-      // Global ro'yxat buyurtma yakunlangach ham saqlanadi (yangi safar
-      // tugagandan keyin haydovchi yana global buyurtma olishi mumkin).
-      globalOrders: state.globalOrders,
-    ));
+    emit(
+      HomeState(
+        status: OrderStatus.initial,
+        currentLocation: state.currentLocation,
+        heading: state.heading,
+        isOnline: state.isOnline,
+        isTimeoutEnabled: state.isTimeoutEnabled,
+        // Global ro'yxat buyurtma yakunlangach ham saqlanadi (yangi safar
+        // tugagandan keyin haydovchi yana global buyurtma olishi mumkin).
+        globalOrders: state.globalOrders,
+        // Navbatdagi (2-chi) buyurtma ham saqlanadi — joriy safar tugagach
+        // `_promoteNextQueuedOrder` uni faol safarga ko'taradi.
+        queuedOrders: state.queuedOrders,
+      ),
+    );
     _activeTariff = null;
     _tripDistanceKm = 0;
     _lastDistancePoint = null;
@@ -941,7 +1250,8 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _tryCancelActiveOrder() async {
     final activeOrder = state.currentOrder;
     if (activeOrder == null) return;
-    final hasActiveTrip = state.status == OrderStatus.orderAccepted ||
+    final hasActiveTrip =
+        state.status == OrderStatus.orderAccepted ||
         state.status == OrderStatus.goingToClient ||
         state.status == OrderStatus.waitingForClient ||
         state.status == OrderStatus.inProgress;
@@ -964,24 +1274,31 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> _loadRoute(Point from, Point to) async {
     try {
-      final routeData = await MapboxRouteService.getRoute(from, to,
-              mode: 'driving')
-          .timeout(const Duration(seconds: 12));
+      final routeData = await MapboxRouteService.getRoute(
+        from,
+        to,
+        mode: 'driving',
+      ).timeout(const Duration(seconds: 12));
       if (routeData['points'] != null &&
           (routeData['points'] as List).isNotEmpty) {
-        emit(state.copyWith(
-          routeGeometry: routeData['points'],
-          currentRouteIndex: 0,
-          routeDurationMinutes: routeData['durationMinutes'],
-          routeDistanceKm: routeData['distanceKm'],
-        ));
+        emit(
+          state.copyWith(
+            routeGeometry: routeData['points'],
+            currentRouteIndex: 0,
+            routeDurationMinutes: routeData['durationMinutes'],
+            routeDistanceKm: routeData['distanceKm'],
+          ),
+        );
         return;
       }
     } catch (_) {}
 
     try {
-      final geom = await YandexRouteDrawer.getRoute(from, to, mode: 'driving')
-          .timeout(const Duration(seconds: 12));
+      final geom = await YandexRouteDrawer.getRoute(
+        from,
+        to,
+        mode: 'driving',
+      ).timeout(const Duration(seconds: 12));
       if (geom.isNotEmpty) {
         emit(state.copyWith(routeGeometry: geom, currentRouteIndex: 0));
         return;
@@ -1005,41 +1322,50 @@ class HomeCubit extends Cubit<HomeState> {
     _waitingTimer?.cancel();
     // Faol segment boshlanish vaqti (resume bo'lsa eskisi saqlanadi).
     _waitingStartedAt ??= DateTime.now();
-    emit(state.copyWith(
-      isWaitingTimerActive: true,
-      waitingSeconds: _currentWaitingSeconds,
-    ));
+    emit(
+      state.copyWith(
+        isWaitingTimerActive: true,
+        waitingSeconds: _currentWaitingSeconds,
+      ),
+    );
 
     // Har 10 soniyada FAQAT ekranni yangilaymiz — vaqtning o'zi wall-clock'dan
     // o'lchanadi (qotmaslik uchun emit kam, lekin hisob aniq).
-    _waitingTimer =
-        Timer.periodic(const Duration(seconds: _updateIntervalSec), (timer) {
-      // Kutish hisoblagichi faqat mijozni kutish bosqichida yoki safar ichida
-      // qo'lda yoqilgan bo'lsa ishlaydi. Aks holda to'xtaydi.
-      final canRun = state.status == OrderStatus.waitingForClient ||
-          (state.status == OrderStatus.inProgress &&
-              state.isWaitingTimerActive);
-      if (!canRun) {
-        timer.cancel();
-        return;
-      }
+    _waitingTimer = Timer.periodic(
+      const Duration(seconds: _updateIntervalSec),
+      (timer) {
+        // Kutish hisoblagichi faqat mijozni kutish bosqichida yoki safar ichida
+        // qo'lda yoqilgan bo'lsa ishlaydi. Aks holda to'xtaydi.
+        final canRun =
+            state.status == OrderStatus.waitingForClient ||
+            (state.status == OrderStatus.inProgress &&
+                state.isWaitingTimerActive);
+        if (!canRun) {
+          timer.cancel();
+          return;
+        }
 
-      final secs = _currentWaitingSeconds;
-      // Mijozni kutish bosqichida ham "Taxminiy narx" JONLI yangilanadi:
-      // bepul vaqt tugagach kutish haqi (yuqoriga yaxlitlangan daqiqalar)
-      // darhol narxga qo'shilib boradi. Masofa — rejalashtirilgan trip km.
-      if (state.status == OrderStatus.waitingForClient) {
-        emit(state.copyWith(
-          waitingSeconds: secs,
-          currentPrice: _computePrice(_plannedDistanceKm, secs),
-        ));
-      } else {
-        emit(state.copyWith(
-          waitingSeconds: secs,
-          currentPrice: _computePrice(_tripDistanceKm, secs),
-        ));
-      }
-    });
+        final secs = _currentWaitingSeconds;
+        // Mijozni kutish bosqichida ham "Taxminiy narx" JONLI yangilanadi:
+        // bepul vaqt tugagach kutish haqi (yuqoriga yaxlitlangan daqiqalar)
+        // darhol narxga qo'shilib boradi. Masofa — rejalashtirilgan trip km.
+        if (state.status == OrderStatus.waitingForClient) {
+          emit(
+            state.copyWith(
+              waitingSeconds: secs,
+              currentPrice: _computePrice(_plannedDistanceKm, secs),
+            ),
+          );
+        } else {
+          emit(
+            state.copyWith(
+              waitingSeconds: secs,
+              currentPrice: _computePrice(_tripDistanceKm, secs),
+            ),
+          );
+        }
+      },
+    );
   }
 
   void _stopWaitingTimer() {
@@ -1047,14 +1373,17 @@ class HomeCubit extends Cubit<HomeState> {
     _waitingTimer = null;
     // Faol segmentni yakunlab, ANIQ o'tgan vaqtni umumiy yig'indiga qo'shamiz.
     if (_waitingStartedAt != null) {
-      _accumulatedWaitingSeconds +=
-          DateTime.now().difference(_waitingStartedAt!).inSeconds;
+      _accumulatedWaitingSeconds += DateTime.now()
+          .difference(_waitingStartedAt!)
+          .inSeconds;
       _waitingStartedAt = null;
     }
-    emit(state.copyWith(
-      isWaitingTimerActive: false,
-      waitingSeconds: _accumulatedWaitingSeconds,
-    ));
+    emit(
+      state.copyWith(
+        isWaitingTimerActive: false,
+        waitingSeconds: _accumulatedWaitingSeconds,
+      ),
+    );
   }
 
   void toggleWaitingTimer() {
@@ -1070,17 +1399,26 @@ class HomeCubit extends Cubit<HomeState> {
   void _startTripTimer() {
     _tripTimer?.cancel();
     // Har 10 soniyada: safar vaqti + narx yangilanadi (svetoforda turganda
-    // ham). GPS yurmasa ham soat shu yerda yuradi — lekin har 10 soniyada.
-    _tripTimer =
-        Timer.periodic(const Duration(seconds: _updateIntervalSec), (timer) {
+    // ham). GPS yurmasa ham soat shu yerda yuradi. Vaqt `tripStartTime`'dan
+    // HAQIQIY o'tgan vaqt sifatida hisoblanadi — Timer kechiksa ham
+    // (telefon band bo'lsa) sekundlar surilib/ortda qolib ketmaydi.
+    _tripTimer = Timer.periodic(const Duration(seconds: _updateIntervalSec), (
+      timer,
+    ) {
       if (state.status != OrderStatus.inProgress) {
         timer.cancel();
         return;
       }
-      emit(state.copyWith(
-        tripSeconds: state.tripSeconds + _updateIntervalSec,
-        currentPrice: _computePrice(_tripDistanceKm, state.waitingSeconds),
-      ));
+      final start = state.tripStartTime;
+      final secs = start != null
+          ? DateTime.now().difference(start).inSeconds
+          : state.tripSeconds + _updateIntervalSec;
+      emit(
+        state.copyWith(
+          tripSeconds: secs < 0 ? 0 : secs,
+          currentPrice: _computePrice(_tripDistanceKm, state.waitingSeconds),
+        ),
+      );
     });
   }
 
@@ -1146,8 +1484,7 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> _saveCompletedOrder(OrderModel order) async {
     try {
-      final raw =
-          await StorageHelper.getString('completed_orders') ?? '[]';
+      final raw = await StorageHelper.getString('completed_orders') ?? '[]';
       final List<dynamic> list = jsonDecode(raw);
       list.insert(0, {
         'id': order.id,
@@ -1175,7 +1512,8 @@ class HomeCubit extends Cubit<HomeState> {
   /// time/km/narx yo'qolmasligi uchun). Aktiv safar bo'lmasa kalitni o'chiradi.
   Future<void> _persistActiveTrip() async {
     final order = state.currentOrder;
-    final isActive = order != null &&
+    final isActive =
+        order != null &&
         (state.status == OrderStatus.orderAccepted ||
             state.status == OrderStatus.goingToClient ||
             state.status == OrderStatus.waitingForClient ||
@@ -1190,6 +1528,8 @@ class HomeCubit extends Cubit<HomeState> {
     final snapshot = <String, dynamic>{
       'status': state.status.name,
       'order': order.toJson(),
+      // Navbatdagi (2-chi) buyurtma(lar) ham saqlanadi.
+      'queued': state.queuedOrders.map((o) => o.toJson()).toList(),
       'traveledDistance': state.traveledDistance,
       'waitingSeconds': state.waitingSeconds,
       'currentPrice': state.currentPrice,
@@ -1288,8 +1628,9 @@ class HomeCubit extends Cubit<HomeState> {
     final clientPickedUp = snap['clientPickedUp'] == true;
     final isWaitingActive = snap['isWaitingTimerActive'] == true;
     final isTimeoutEnabled = snap['isTimeoutEnabled'] != false;
-    final tripStartTime =
-        DateTime.tryParse((snap['tripStartTime'] ?? '').toString());
+    final tripStartTime = DateTime.tryParse(
+      (snap['tripStartTime'] ?? '').toString(),
+    );
 
     // Kutish vaqtini ANIQ tiklaymiz: saqlangan yig'indi + (kutish faol bo'lsa)
     // app yopiq turgan vaqt (wall-clock) avtomatik qo'shiladi.
@@ -1315,20 +1656,34 @@ class HomeCubit extends Cubit<HomeState> {
       currentPrice = _computePrice(traveled, waitingSeconds);
     }
 
-    emit(state.copyWith(
-      status: status,
-      currentOrder: order,
-      destinationLocation: destination,
-      traveledDistance: traveled,
-      waitingSeconds: waitingSeconds,
-      currentPrice: currentPrice,
-      clientPickedUp: clientPickedUp,
-      isWaitingTimerActive: isWaitingActive,
-      isTimeoutEnabled: isTimeoutEnabled,
-      tripStartTime: tripStartTime,
-      tripSeconds: tripSeconds,
-      isOnline: true,
-    ));
+    // Navbatdagi (2-chi) buyurtmalarni tiklaymiz.
+    List<OrderModel> queued = const [];
+    final ql = snap['queued'];
+    if (ql is List) {
+      queued = ql
+          .whereType<Map>()
+          .map((m) => OrderModel.fromJson(m.cast<String, dynamic>()))
+          .where((o) => o.id.isNotEmpty)
+          .toList();
+    }
+
+    emit(
+      state.copyWith(
+        status: status,
+        currentOrder: order,
+        destinationLocation: destination,
+        traveledDistance: traveled,
+        waitingSeconds: waitingSeconds,
+        currentPrice: currentPrice,
+        clientPickedUp: clientPickedUp,
+        isWaitingTimerActive: isWaitingActive,
+        isTimeoutEnabled: isTimeoutEnabled,
+        tripStartTime: tripStartTime,
+        tripSeconds: tripSeconds,
+        isOnline: true,
+        queuedOrders: queued,
+      ),
+    );
 
     // Online rejimni tiklaymiz (Mercure + 10s location push).
     _connectMercure();
@@ -1380,10 +1735,13 @@ class HomeCubit extends Cubit<HomeState> {
     }
     if (active.isEmpty) return;
 
-    // Eng so'nggi (yangi) faol buyurtmani tanlaymiz.
+    // Eng so'nggi (yangi) faol buyurtmani XARITADAGI safar qilamiz, qolganini
+    // (maks 1 ta) NAVBATGA qo'yamiz — haydovchi 2 tagacha faol buyurtma
+    // tutishi mumkin.
     active.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final order = active.first;
     if (order.id.isEmpty) return;
+    final restQueued = active.skip(1).where((o) => o.id.isNotEmpty).toList();
 
     // Tarifni aniqlaymiz (narx hisobi uchun).
     if (_orderTypes.isEmpty) await _loadOrderTypes();
@@ -1391,10 +1749,12 @@ class HomeCubit extends Cubit<HomeState> {
 
     // Buyurtma holatiga qarab app bosqichini tanlaymiz:
     //  on_the_way / arrive -> safar (inProgress), aks holda mijoz oldiga.
-    final isOnTrip = order.status == OrderStatusType.onTheWay ||
+    final isOnTrip =
+        order.status == OrderStatusType.onTheWay ||
         order.status == OrderStatusType.arrive;
-    final restoredStatus =
-        isOnTrip ? OrderStatus.inProgress : OrderStatus.goingToClient;
+    final restoredStatus = isOnTrip
+        ? OrderStatus.inProgress
+        : OrderStatus.goingToClient;
 
     _accumulatedWaitingSeconds = 0;
     _waitingStartedAt = null;
@@ -1403,21 +1763,26 @@ class HomeCubit extends Cubit<HomeState> {
     _lastMapEmit = null;
     final tripStart = isOnTrip ? DateTime.now() : null;
 
-    emit(state.copyWith(
-      status: restoredStatus,
-      currentOrder: order,
-      destinationLocation: order.destinationLocation,
-      clientPickedUp: isOnTrip,
-      traveledDistance: 0,
-      waitingSeconds: 0,
-      currentPrice: _computePrice(order.distance, 0),
-      tripStartTime: tripStart,
-      tripSeconds: 0,
-      isOnline: true,
-    ));
+    emit(
+      state.copyWith(
+        status: restoredStatus,
+        currentOrder: order,
+        destinationLocation: order.destinationLocation,
+        clientPickedUp: isOnTrip,
+        traveledDistance: 0,
+        waitingSeconds: 0,
+        currentPrice: _computePrice(order.distance, 0),
+        tripStartTime: tripStart,
+        tripSeconds: 0,
+        isOnline: true,
+        queuedOrders: restQueued,
+      ),
+    );
 
-    AppLogger.success('Backenddan faol buyurtma tiklandi: #${order.id} '
-        '(holat=${order.status.value} -> ${restoredStatus.name})');
+    AppLogger.success(
+      'Backenddan faol buyurtma tiklandi: #${order.id} '
+      '(holat=${order.status.value} -> ${restoredStatus.name})',
+    );
 
     // Online rejim: Mercure + 10s location push (push 403 bersa
     // _onAnotherDeviceOnline avtomatik offline'ga o'tkazadi).

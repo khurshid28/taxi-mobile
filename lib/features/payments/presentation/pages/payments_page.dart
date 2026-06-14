@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/storage_helper.dart';
 import '../../../../injection_container.dart';
 import '../../../profile/data/driver_service.dart';
 import '../../../../core/models/payment_model.dart';
@@ -64,7 +66,11 @@ class _PaymentsPageState extends State<PaymentsPage>
       final data = await sl<DriverService>().aboutMyData();
       if (mounted) setState(() => _balance = data.balance ?? 0);
     } catch (_) {
-      if (mounted) setState(() => _hasError = true);
+      // `driver_datas/about_me` server xatosi (500) bo'lsa — sahifani
+      // bloklamaymiz, oxirgi keshlangan balansni ko'rsatamiz.
+      final cached =
+          await StorageHelper.getDouble(AppConstants.keyBalance) ?? 0;
+      if (mounted) setState(() => _balance = cached);
     }
   }
 
@@ -731,7 +737,11 @@ class _PaymentsPageState extends State<PaymentsPage>
                         SizedBox(height: 16.h),
                         Divider(color: AppColors.divider, height: 1.h),
                         SizedBox(height: 16.h),
-                        _buildDetailRow('ID', payment.id, AppColors.textSecondary),
+                        _buildDetailRow(
+                          'ID',
+                          payment.id,
+                          AppColors.textSecondary,
+                        ),
                       ],
                     ),
                   ),
@@ -1061,9 +1071,7 @@ class _PaymentsPageState extends State<PaymentsPage>
           ),
           boxShadow: [
             BoxShadow(
-              color: isSelected
-                  ? color.withOpacity(0.2)
-                  : AppColors.shadow,
+              color: isSelected ? color.withOpacity(0.2) : AppColors.shadow,
               blurRadius: isSelected ? 12.r : 8.r,
               offset: Offset(0, isSelected ? 4.h : 2.h),
             ),

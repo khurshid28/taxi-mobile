@@ -2,8 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../core/models/order_model.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -22,7 +24,13 @@ import '../../../home/presentation/cubit/home_state.dart';
 class GlobalOrdersView extends StatefulWidget {
   /// Buyurtma olingach asosiy (xarita) oynaga o'tish uchun.
   final VoidCallback? onGoHome;
-  const GlobalOrdersView({super.key, this.onGoHome});
+
+  /// Pastga tortib yangilaganda chaqiriladi. Berilmasa — faqat global
+  /// buyurtmalar yangilanadi. ("Buyurtmalar" oynasi bu yerga HAMMA bo'limni
+  /// yangilaydigan funksiyani uzatadi.)
+  final Future<void> Function()? onRefresh;
+
+  const GlobalOrdersView({super.key, this.onGoHome, this.onRefresh});
 
   @override
   State<GlobalOrdersView> createState() => _GlobalOrdersViewState();
@@ -32,8 +40,23 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
   // Hozir qaysi buyurtma olinmoqda (tugmada spinner ko'rsatish uchun).
   String? _acceptingId;
 
-  bool _hasActiveOrder(HomeState s) =>
-      s.currentOrder != null && s.status != OrderStatus.initial;
+  @override
+  void initState() {
+    super.initState();
+    // "Global" bo'limi ochilganda REST orqali ham yuklaymiz (liniyaga chiqish
+    // shart emas). Mercure real-vaqt bilan id bo'yicha dedup qilinadi.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HomeCubit>().loadGlobalOrders();
+    });
+  }
+
+  // Hozir faol (xaritadagi + navbatdagi) buyurtmalar soni. Maksimal 2.
+  int _activeCount(HomeState s) {
+    final hasCurrent =
+        s.currentOrder != null && s.status != OrderStatus.initial;
+    return (hasCurrent ? 1 : 0) + s.queuedOrders.length;
+  }
 
   Future<void> _accept(BuildContext context, OrderModel order) async {
     if (_acceptingId != null) return;
@@ -46,8 +69,7 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
     // Xato bo'lsa (allaqachon olingan) — asosiy oyna listener'i toast
     // ko'rsatadi, ro'yxatda qolamiz.
     final st = cubit.state;
-    if (st.currentOrder?.id == order.id &&
-        st.status != OrderStatus.initial) {
+    if (st.currentOrder?.id == order.id && st.status != OrderStatus.initial) {
       widget.onGoHome?.call();
     }
   }
@@ -60,32 +82,131 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
   }
 
   Widget _body(BuildContext context, HomeState state) {
-    if (!state.isOnline) {
-      return _empty(
-        icon: Iconsax.flash_slash,
-        title: 'Liniyada emassiz',
-        subtitle:
-            'Global buyurtmalarni ko\'rish va olish uchun avval liniyaga chiqing',
-      );
-    }
+    final onRefresh =
+        widget.onRefresh ?? context.read<HomeCubit>().loadGlobalOrders;
     if (state.globalOrders.isEmpty) {
-      return _empty(
-        icon: Iconsax.box_search,
-        title: 'Hozircha global buyurtma yo\'q',
-        subtitle:
-            'Hech kim olmagan buyurtma kelsa, shu yerda paydo bo\'ladi',
+      // Bo'sh holatda ham pull-to-refresh ishlashi uchun — viewport balandligini
+      // egallaydigan scrollable ListView ichida markazlashtiramiz.
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: _empty(
+                  icon: Iconsax.box_search,
+                  title: 'Hozircha global buyurtma yo\'q',
+                  subtitle:
+                      'Hech kim olmagan buyurtma kelsa, shu yerda paydo bo\'ladi',
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    final hasActive = _hasActiveOrder(state);
-    return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
-      itemCount: state.globalOrders.length + (hasActive ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (hasActive && index == 0) return _activeHint();
-        final order = state.globalOrders[hasActive ? index - 1 : index];
-        return _orderCard(context, order, disabled: hasActive);
-      },
+    // Haydovchi 2 tagacha faol buyurtma olishi mumkin. To'lgan (2) bo'lsa —
+    // yangi global buyurtma olib bo'lmaydi (tugma o'chadi + ogohlantirish).
+    final full = _activeCount(state) >= 2;
+    final loc = state.currentLocation;
+
+    // 1) Buyurtmalarni 2 guruhga ajratamiz: yaqinda berilgan (<2 soat) va
+    //    eskirgan (>=2 soat).
+    final recent = <OrderModel>[];
+    final older = <OrderModel>[];
+    for (final o in state.globalOrders) {
+      (_isOld(o) ? older : recent).add(o);
+    }
+    // 2) Har bir guruhni OLISH nuqtasigacha masofa bo'yicha tartiblaymiz —
+    //    eng yaqini birinchi.
+    recent.sort((a, b) => _byKm(a, b, loc));
+    older.sort((a, b) => _byKm(a, b, loc));
+
+    // 3) Ko'rsatiladigan elementlar: avval yaqinlar, so'ng eskilar (sarlavha
+    //    bilan ajratiladi).
+    final items = <Widget>[];
+    if (full) items.add(_activeHint());
+    for (final o in recent) {
+      items.add(_orderCard(context, o, disabled: full, currentLocation: loc));
+    }
+    if (older.isNotEmpty) {
+      if (recent.isNotEmpty) {
+        items.add(_sectionHeader('Ancha vaqt oldin berilgan'));
+      }
+      for (final o in older) {
+        items.add(
+          _orderCard(
+            context,
+            o,
+            disabled: full,
+            currentLocation: loc,
+            isOld: true,
+          ),
+        );
+      }
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
+        children: items,
+      ),
+    );
+  }
+
+  // Buyurtma "eskirgan"mi (2 soatdan oshgan)? createdAt UTC bo'yicha.
+  bool _isOld(OrderModel o) =>
+      DateTime.now().toUtc().difference(o.createdAt.toUtc()) >=
+      const Duration(hours: 2);
+
+  // Haydovchidan OLISH nuqtasigacha masofa (km). Aniqlab bo'lmasa null.
+  double? _pickupKm(OrderModel o, Point? loc) {
+    if (loc == null) return null;
+    final p = o.pickupLocation;
+    if (p.latitude == 0 && p.longitude == 0) return null;
+    return Geolocator.distanceBetween(
+          loc.latitude,
+          loc.longitude,
+          p.latitude,
+          p.longitude,
+        ) /
+        1000;
+  }
+
+  // Masofa bo'yicha taqqoslash — eng yaqini birinchi; noma'lum masofa oxirida.
+  int _byKm(OrderModel a, OrderModel b, Point? loc) {
+    final ka = _pickupKm(a, loc);
+    final kb = _pickupKm(b, loc);
+    if (ka == null && kb == null) return b.createdAt.compareTo(a.createdAt);
+    if (ka == null) return 1;
+    if (kb == null) return -1;
+    return ka.compareTo(kb);
+  }
+
+  Widget _sectionHeader(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h, bottom: 12.h),
+      child: Row(
+        children: [
+          Icon(Iconsax.clock, size: 15.w, color: AppColors.textHint),
+          SizedBox(width: 8.w),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12.5.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textHint,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(child: Divider(color: AppColors.divider, thickness: 1)),
+        ],
+      ),
     );
   }
 
@@ -104,7 +225,7 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
           SizedBox(width: 10.w),
           Expanded(
             child: Text(
-              'Sizda faol buyurtma bor. Uni yakunlagach yangi global '
+              'Sizda 2 ta faol buyurtma bor. Birini yakunlagach yana global '
               'buyurtma olishingiz mumkin.',
               style: TextStyle(
                 fontSize: 12.5.sp,
@@ -119,14 +240,22 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
     );
   }
 
-  Widget _orderCard(BuildContext context, OrderModel order,
-      {required bool disabled}) {
+  Widget _orderCard(
+    BuildContext context,
+    OrderModel order, {
+    required bool disabled,
+    Point? currentLocation,
+    bool isOld = false,
+  }) {
     final accent = AppColors.primary;
     final basePrice = context.read<HomeCubit>().resolveOrderBasePrice(order);
     final hasPickup = order.pickupAddress.trim().isNotEmpty;
     final hasDest = order.destinationAddress.trim().isNotEmpty;
     final tariff = (order.tariff ?? '').trim();
     final isAccepting = _acceptingId == order.id;
+
+    // Haydovchidan buyurtmani OLISH joyigacha (pickup) masofa.
+    final double? pickupKm = _pickupKm(order, currentLocation);
 
     return Container(
       margin: EdgeInsets.only(bottom: 14.h),
@@ -145,8 +274,10 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
             Row(
               children: [
                 Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 5.h,
+                  ),
                   decoration: BoxDecoration(
                     color: accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -212,8 +343,7 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
             if (!hasPickup && !hasDest)
               Row(
                 children: [
-                  Icon(Iconsax.location,
-                      size: 16.w, color: AppColors.textHint),
+                  Icon(Iconsax.location, size: 16.w, color: AppColors.textHint),
                   SizedBox(width: 8.w),
                   Text(
                     'Manzil aniqlanmoqda...',
@@ -226,33 +356,87 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
                 ],
               ),
             SizedBox(height: 12.h),
-            // Masofa + vaqt
-            Row(
+            // Masofa + vaqt (joy yetmasa keyingi qatorga o'tadi — overflow yo'q)
+            Wrap(
+              spacing: 14.w,
+              runSpacing: 6.h,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (order.distance > 0) ...[
-                  Icon(Iconsax.routing,
-                      size: 15.w, color: AppColors.textSecondary),
-                  SizedBox(width: 5.w),
-                  Text(
-                    '${order.distance.toStringAsFixed(1)} km',
-                    style: TextStyle(
-                      fontSize: 12.5.sp,
+                if (pickupKm != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Iconsax.gps, size: 15.w, color: accent),
+                      SizedBox(width: 5.w),
+                      Text(
+                        'Sizdan ${pickupKm.toStringAsFixed(1)} km',
+                        style: TextStyle(
+                          fontSize: 12.5.sp,
+                          color: accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                if (order.distance > 0)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Iconsax.routing,
+                        size: 15.w,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 5.w),
+                      Text(
+                        '${order.distance.toStringAsFixed(1)} km',
+                        style: TextStyle(
+                          fontSize: 12.5.sp,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Iconsax.clock,
+                      size: 15.w,
                       color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  SizedBox(width: 14.w),
-                ],
-                Icon(Iconsax.clock,
-                    size: 15.w, color: AppColors.textSecondary),
-                SizedBox(width: 5.w),
-                Text(
-                  DateFormat('HH:mm').format(order.createdAtUz),
-                  style: TextStyle(
-                    fontSize: 12.5.sp,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                    SizedBox(width: 5.w),
+                    Text(
+                      DateFormat('HH:mm').format(order.createdAtUz),
+                      style: TextStyle(
+                        fontSize: 12.5.sp,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (isOld) ...[
+                      SizedBox(width: 8.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(7.r),
+                        ),
+                        child: Text(
+                          'Ancha bo\'lgan',
+                          style: TextStyle(
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -283,8 +467,7 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
                             height: 18.w,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.white),
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
                             ),
                           ),
                           SizedBox(width: 10.w),
@@ -372,11 +555,7 @@ class _GlobalOrdersViewState extends State<GlobalOrdersView> {
   Widget _connector() {
     return Padding(
       padding: EdgeInsets.only(left: 14.5.w, top: 2.h, bottom: 2.h),
-      child: Container(
-        width: 1.5.w,
-        height: 14.h,
-        color: AppColors.divider,
-      ),
+      child: Container(width: 1.5.w, height: 14.h, color: AppColors.divider),
     );
   }
 
