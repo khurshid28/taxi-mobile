@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_rebuilder.dart';
 import '../../../home/presentation/pages/home_page.dart';
-import '../../../orders/presentation/pages/global_orders_page.dart';
 import '../../../orders/presentation/pages/orders_page.dart';
 import '../../../payments/presentation/pages/payments_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
@@ -30,8 +29,6 @@ class _MainWrapperState extends State<MainWrapper> {
     super.initState();
     _pages = [
       ThemeRebuilder(builder: (_) => HomePage()),
-      ThemeRebuilder(
-          builder: (_) => GlobalOrdersPage(onGoHome: () => _goToTab(0))),
       ThemeRebuilder(builder: (_) => OrdersPage(onGoHome: () => _goToTab(0))),
       ThemeRebuilder(builder: (_) => PaymentsPage()),
       ThemeRebuilder(builder: (_) => ProfilePage()),
@@ -48,10 +45,15 @@ class _MainWrapperState extends State<MainWrapper> {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BlocBuilder<HomeCubit, HomeState>(
-        // Faqat global buyurtmalar SONI o'zgarganda qayta quramiz (badge).
-        buildWhen: (p, c) => p.globalOrders.length != c.globalOrders.length,
+        // Faol safar yoki global buyurtma o'zgarganda qayta quramiz (amber
+        // belgi "Buyurtma" ustida ko'rinishi uchun).
+        buildWhen: (p, c) =>
+            p.globalOrders.length != c.globalOrders.length ||
+            p.currentOrder?.id != c.currentOrder?.id ||
+            p.status != c.status,
         builder: (context, state) {
           final globalCount = state.globalOrders.length;
+          final hasActive = _isActiveTrip(state);
           return BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (index) {
@@ -77,21 +79,16 @@ class _MainWrapperState extends State<MainWrapper> {
                 label: 'Asosiy',
               ),
               BottomNavigationBarItem(
-                icon: _navIcon(Iconsax.global,
+                icon: _navIcon(Iconsax.box,
                     size: 24.w,
                     color: AppColors.textSecondary,
-                    badge: globalCount),
-                activeIcon: _navIcon(Iconsax.global,
+                    count: globalCount,
+                    dot: hasActive),
+                activeIcon: _navIcon(Iconsax.box,
                     size: 26.w,
                     color: AppColors.primary,
-                    badge: globalCount),
-                label: 'Global',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Iconsax.box,
-                    size: 24.w, color: AppColors.textSecondary),
-                activeIcon:
-                    Icon(Iconsax.box, size: 26.w, color: AppColors.primary),
+                    count: globalCount,
+                    dot: hasActive),
                 label: 'Buyurtma',
               ),
               BottomNavigationBarItem(
@@ -115,43 +112,69 @@ class _MainWrapperState extends State<MainWrapper> {
     );
   }
 
-  /// Badge'li nav ikona — Global tabda olinishi mumkin bo'lgan buyurtmalar
-  /// sonini ko'rsatadi (0 bo'lsa badge yo'q).
+  /// Faol (qabul qilingan) safar bormi — footer "Buyurtma" ustidagi amber
+  /// belgi shu va global buyurtmalarga qarab ko'rinadi.
+  bool _isActiveTrip(HomeState s) =>
+      s.currentOrder != null &&
+      (s.status == OrderStatus.orderAccepted ||
+          s.status == OrderStatus.goingToClient ||
+          s.status == OrderStatus.waitingForClient ||
+          s.status == OrderStatus.inProgress);
+
+  /// "Buyurtma" nav ikonasi ustidagi AMBER belgi: global buyurtmalar soni
+  /// (count > 0) yoki faol safar (dot) bo'lsa ko'rinadi.
   Widget _navIcon(
     IconData icon, {
     required double size,
     required Color color,
-    int badge = 0,
+    int count = 0,
+    bool dot = false,
   }) {
     final iconWidget = Icon(icon, size: size, color: color);
-    if (badge <= 0) return iconWidget;
+    if (count <= 0 && !dot) return iconWidget;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         iconWidget,
-        Positioned(
-          right: -8.w,
-          top: -5.h,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-            constraints: BoxConstraints(minWidth: 16.w),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: Border.all(color: AppColors.surface, width: 1.5.w),
+        if (count > 0)
+          Positioned(
+            right: -8.w,
+            top: -5.h,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+              constraints: BoxConstraints(minWidth: 16.w),
+              decoration: BoxDecoration(
+                color: AppColors.warning,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: AppColors.surface, width: 1.5.w),
+              ),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
             ),
-            child: Text(
-              badge > 99 ? '99+' : '$badge',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 9.sp,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+          )
+        else
+          // Faqat faol safar (global yo'q) — raqamsiz kichik amber nuqta.
+          Positioned(
+            right: -3.w,
+            top: -2.h,
+            child: Container(
+              width: 9.w,
+              height: 9.w,
+              decoration: BoxDecoration(
+                color: AppColors.warning,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.surface, width: 1.5.w),
               ),
             ),
           ),
-        ),
       ],
     );
   }

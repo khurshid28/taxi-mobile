@@ -11,23 +11,24 @@ import '../../../../core/utils/number_formatter.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
 import '../../../home/presentation/cubit/home_state.dart';
 
-/// "Global buyurtmalar" oynasi.
+/// "Global buyurtmalar" ko'rinishi — "Buyurtmalar" oynasidagi "Global" tab
+/// ichida ko'rsatiladi (alohida sahifa emas).
 ///
 /// Hech bir haydovchi 2 urinishda olmagan buyurtma kompaniya bo'yicha BARCHA
 /// online haydovchilarga yuboriladi. Ular shu yerda ro'yxat bo'lib turadi —
 /// istalgan haydovchi "Olish" tugmasi bilan oladi (birinchi olgan yutadi).
 /// Boshqa haydovchi olsa yoki buyurtma bekor qilinsa — ro'yxat JIM yangilanadi
 /// (Mercure `GLOBAL_ORDER_ACCEPTED` / `GLOBAL_ORDER_CANCELED`).
-class GlobalOrdersPage extends StatefulWidget {
+class GlobalOrdersView extends StatefulWidget {
   /// Buyurtma olingach asosiy (xarita) oynaga o'tish uchun.
   final VoidCallback? onGoHome;
-  const GlobalOrdersPage({super.key, this.onGoHome});
+  const GlobalOrdersView({super.key, this.onGoHome});
 
   @override
-  State<GlobalOrdersPage> createState() => _GlobalOrdersPageState();
+  State<GlobalOrdersView> createState() => _GlobalOrdersViewState();
 }
 
-class _GlobalOrdersPageState extends State<GlobalOrdersPage> {
+class _GlobalOrdersViewState extends State<GlobalOrdersView> {
   // Hozir qaysi buyurtma olinmoqda (tugmada spinner ko'rsatish uchun).
   String? _acceptingId;
 
@@ -53,86 +54,8 @@ class _GlobalOrdersPageState extends State<GlobalOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfaceVariant,
-      body: SafeArea(
-        bottom: false,
-        child: BlocBuilder<HomeCubit, HomeState>(
-          builder: (context, state) {
-            return Column(
-              children: [
-                _header(state.globalOrders.length),
-                Expanded(child: _body(context, state)),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _header(int count) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44.w,
-            height: 44.w,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(14.r),
-            ),
-            child: Icon(Iconsax.global, size: 24.w, color: AppColors.primary),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Global buyurtmalar',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Hammaga ochiq — birinchi olgan yutadi',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (count > 0)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-        ],
-      ),
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, state) => _body(context, state),
     );
   }
 

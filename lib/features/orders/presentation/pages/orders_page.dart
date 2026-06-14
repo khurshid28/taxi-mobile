@@ -16,6 +16,7 @@ import '../../../../injection_container.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
 import '../../../home/presentation/cubit/home_state.dart';
 import '../../../../core/widgets/error_retry_view.dart';
+import 'global_orders_page.dart';
 
 class OrdersPage extends StatefulWidget {
   /// Faol buyurtma kartasi bosilganda asosiy (xarita) oynaga o'tish uchun.
@@ -34,7 +35,7 @@ class _OrdersPageState extends State<OrdersPage>
   late AnimationController _animationController;
   bool _isLoading = true;
   bool _hasError = false;
-  int _selectedTab = 0; // 0 = Faol, 1 = Tugatilgan
+  int _selectedTab = 0; // 0 = Faol, 1 = Global, 2 = Tugatilgan
 
   @override
   void initState() {
@@ -245,7 +246,9 @@ class _OrdersPageState extends State<OrdersPage>
           Expanded(
             child: _selectedTab == 0
                 ? _buildActiveTab()
-                : _buildCompletedTab(),
+                : _selectedTab == 1
+                    ? GlobalOrdersView(onGoHome: widget.onGoHome)
+                    : _buildCompletedTab(),
           ),
         ],
       ),
@@ -260,19 +263,33 @@ class _OrdersPageState extends State<OrdersPage>
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      child: Row(
-        children: [
-          _buildTabButton(
-            label: 'Faol',
-            index: 0,
-            icon: Iconsax.car,
-          ),
-          _buildTabButton(
-            label: 'Tugatilgan',
-            index: 1,
-            icon: Iconsax.tick_circle,
-          ),
-        ],
+      child: BlocBuilder<HomeCubit, HomeState>(
+        // Faqat global buyurtmalar SONI o'zgarganda qayta quramiz (amber dot).
+        buildWhen: (p, c) =>
+            p.globalOrders.length != c.globalOrders.length,
+        builder: (context, state) {
+          final globalCount = state.globalOrders.length;
+          return Row(
+            children: [
+              _buildTabButton(
+                label: 'Faol',
+                index: 0,
+                icon: Iconsax.car,
+              ),
+              _buildTabButton(
+                label: 'Global',
+                index: 1,
+                icon: Iconsax.global,
+                badgeCount: globalCount,
+              ),
+              _buildTabButton(
+                label: 'Tugatilgan',
+                index: 2,
+                icon: Iconsax.tick_circle,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -281,6 +298,7 @@ class _OrdersPageState extends State<OrdersPage>
     required String label,
     required int index,
     required IconData icon,
+    int badgeCount = 0,
   }) {
     final isSelected = _selectedTab == index;
     return Expanded(
@@ -303,18 +321,57 @@ class _OrdersPageState extends State<OrdersPage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 18.w,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18.w,
+                    color:
+                        isSelected ? Colors.white : AppColors.textSecondary,
+                  ),
+                  // Global buyurtma kelsa — amber belgi (tanlanmagan tabda).
+                  if (badgeCount > 0 && !isSelected)
+                    Positioned(
+                      right: -6.w,
+                      top: -5.h,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 4.w, vertical: 0.5.h),
+                        constraints: BoxConstraints(minWidth: 14.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning,
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.pill),
+                          border: Border.all(
+                              color: AppColors.surfaceVariant, width: 1.5.w),
+                        ),
+                        child: Text(
+                          badgeCount > 9 ? '9+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8.sp,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              SizedBox(width: 8.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
+              SizedBox(width: 6.w),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color:
+                        isSelected ? Colors.white : AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
