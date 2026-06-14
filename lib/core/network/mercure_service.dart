@@ -27,7 +27,7 @@ class MercureEvent {
   });
 }
 
-enum MercureEventType { newOrder, accepted, canceled, unknown }
+enum MercureEventType { newOrder, globalNewOrder, accepted, canceled, unknown }
 
 /// Real-time ulanish holati (UI banner uchun).
 enum MercureStatus { connecting, connected, disconnected }
@@ -241,8 +241,14 @@ class MercureService {
       AppLogger.order('YANGI BUYURTMA #$finalId → UI ga uzatildi');
       // Ovoz NotificationService ichida bir marta chalinadi (bu yerda chalsak
       // ikki marta bo'lardi va order kelganda yukni oshirardi).
+      // GLOBAL buyurtma (hech kim olmagan, hammaga yuborilgan) — alohida
+      // "globalNewOrder" turi bilan ketadi: u bottom-sheet emas, alohida
+      // "Global buyurtmalar" oynasidagi ro'yxatga qo'shiladi. Shaxsiy
+      // (`driver/{id}/orders`) buyurtma esa avvalgidek `newOrder`.
       _eventsCtrl.add(MercureEvent(
-        type: MercureEventType.newOrder,
+        type: isGlobal
+            ? MercureEventType.globalNewOrder
+            : MercureEventType.newOrder,
         order: order,
         orderId: finalId,
         raw: data,

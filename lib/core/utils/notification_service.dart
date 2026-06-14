@@ -93,4 +93,15 @@ class NotificationService {
       playSound: true,
     );
   }
+
+  /// Hech kim olmagan, BARCHA online haydovchilarga yuborilgan "global"
+  /// buyurtma keldi. Birinchi olgan haydovchi yutadi — shuning uchun
+  /// haydovchini darhol ogohlantiramiz (ovoz + background banner).
+  Future<void> showGlobalOrderNotification() async {
+    await showNotification(
+      title: '📢 Global buyurtma!',
+      body: 'Yangi global buyurtma mavjud. Birinchi bo\'lib oling!',
+      playSound: true,
+    );
+  }
 }

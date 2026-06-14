@@ -61,6 +61,29 @@ class OrderService {
     return const [];
   }
 
+  /// `GET /api/orders/driver/{id}/active` — haydovchining O'ZIGA tegishli faol
+  /// (qabul qilingan) buyurtmalari. Backend maksimal 2 ta qaytaradi. App qayta
+  /// ochilganda yoki BOSHQA qurilmada faol safarni tiklash uchun — lokal
+  /// snapshot bo'lmasa shu endpoint orqali backenddan olinadi.
+  Future<List<OrderModel>> fetchActiveOrders(int driverId) async {
+    final res = await _client.get('orders/driver/$driverId/active');
+    final data = res.data;
+    final members = data is Map
+        ? (data['member'] ?? data['hydra:member'])
+        : (data is List ? data : null);
+    if (members is List) {
+      return members
+          .whereType<Map>()
+          .map((e) => OrderModel.fromJson(e.cast<String, dynamic>()))
+          .toList();
+    }
+    // Ba'zan bitta obyekt ham qaytishi mumkin (collection emas).
+    if (data is Map && (data['id'] != null || data['@id'] != null)) {
+      return [OrderModel.fromJson(data.cast<String, dynamic>())];
+    }
+    return const [];
+  }
+
   /// `POST /api/orders/{id}/{driverId}/accept`
   Future<Map<String, dynamic>> accept({
     required String orderId,

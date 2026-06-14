@@ -38,6 +38,13 @@ class HomeState extends Equatable {
   final DateTime? tripStartTime; // When the trip (inProgress) actually started
   final int tripSeconds; // Trip duration in seconds (pickup -> complete)
 
+  /// Hech bir haydovchi 2 urinishda olmagan, kompaniya bo'yicha BARCHA online
+  /// haydovchilarga yuborilgan "global" buyurtmalar. Istalgan haydovchi shu
+  /// ro'yxatdan buyurtmani olishi mumkin (birinchi olgan yutadi). Mercure
+  /// `GLOBAL_ORDER` ro'yxatga qo'shadi, `GLOBAL_ORDER_ACCEPTED`/`_CANCELED`
+  /// esa olib tashlaydi (jim — ovoz/banner yo'q, faqat ma'lumot yangilanadi).
+  final List<OrderModel> globalOrders;
+
   const HomeState({
     this.status = OrderStatus.initial,
     this.currentLocation,
@@ -61,6 +68,7 @@ class HomeState extends Equatable {
     this.routeDistanceKm,
     this.tripStartTime,
     this.tripSeconds = 0,
+    this.globalOrders = const [],
   });
 
   HomeState copyWith({
@@ -87,6 +95,7 @@ class HomeState extends Equatable {
     int? currentRouteIndex,
     DateTime? tripStartTime,
     int? tripSeconds,
+    List<OrderModel>? globalOrders,
   }) {
     return HomeState(
       status: status ?? this.status,
@@ -111,6 +120,7 @@ class HomeState extends Equatable {
       routeDistanceKm: routeDistanceKm ?? this.routeDistanceKm,
       tripStartTime: tripStartTime ?? this.tripStartTime,
       tripSeconds: tripSeconds ?? this.tripSeconds,
+      globalOrders: globalOrders ?? this.globalOrders,
     );
   }
 
@@ -138,5 +148,6 @@ class HomeState extends Equatable {
     routeDistanceKm,
     tripStartTime,
     tripSeconds,
+    globalOrders,
   ];
 }

@@ -230,6 +230,7 @@ class HomeCubit extends Cubit<HomeState> {
         traveledDistance: 0,
         tripSeconds: 0,
         isWaitingTimerActive: false,
+        globalOrders: const [],
       ));
       StorageHelper.remove(_activeTripKey);
     }
@@ -292,8 +293,19 @@ class HomeCubit extends Cubit<HomeState> {
               '(faqat "initial" holatda chiqadi)');
         }
         break;
+      case MercureEventType.globalNewOrder:
+        // Hech kim olmagan, hammaga yuborilgan buyurtma — alohida "Global
+        // buyurtmalar" ro'yxatiga qo'shamiz (bottom-sheet emas).
+        _addGlobalOrder(event.order);
+        break;
       case MercureEventType.accepted:
       case MercureEventType.canceled:
+        // 1) GLOBAL ro'yxatdan shu buyurtmani JIM olib tashlaymiz — kimdir
+        //    oldi yoki bekor qilindi (ovoz/banner YO'Q, faqat ro'yxat
+        //    yangilanadi — foydalanuvchi talabi).
+        _removeGlobalOrder(event.orderId);
+        // 2) Agar shu buyurtma AYNAN ekrandagi (shaxsiy) buyurtma bo'lsa —
+        //    bottom-sheet'ni tozalaymiz.
         if (!_isAccepting &&
             state.currentOrder?.id == event.orderId &&
             state.status == OrderStatus.orderReceived) {
@@ -306,6 +318,101 @@ class HomeCubit extends Cubit<HomeState> {
       case MercureEventType.unknown:
         break;
     }
+  }
+
+  // ============== Global buyurtmalar ==============
+  // Hech bir haydovchi 2 urinishda olmagan buyurtma kompaniya bo'yicha BARCHA
+  // online haydovchilarga yuboriladi (`company/{id}/orders/global`). Ular
+  // alohida "Global buyurtmalar" oynasida ro'yxat bo'lib turadi; istalgan
+  // haydovchi oladi (birinchi olgan yutadi).
+
+  /// Yangi global buyurtmani ro'yxatga qo'shadi (eng yangisi tepada) va
+  /// haydovchini ogohlantiradi. To'liq ma'lumotni (manzil, narx) orqa fonda
+  /// REST orqali to'ldiramiz (Mercure faqat {orderId, tariff} yuboradi).
+  void _addGlobalOrder(OrderModel? order) {
+    if (order == null) return;
+    // Faqat online haydovchi global buyurtmani ko'radi/oladi.
+    if (!state.isOnline) {
+      AppLogger.warn('Global buyurtma KO\'RSATILMADI: haydovchi offline');
+      return;
+    }
+    // Allaqachon ro'yxatda yoki joriy faol buyurtma bo'lsa — takrorlamaymiz.
+    if (order.id.isEmpty ||
+        state.globalOrders.any((o) => o.id == order.id) ||
+        state.currentOrder?.id == order.id) {
+      return;
+    }
+    final updated = <OrderModel>[order, ...state.globalOrders];
+    emit(state.copyWith(globalOrders: updated));
+    // Ogohlantirish (ovoz + background banner). accepted/canceled'dan farqli —
+    // bu yangi, olинadigan buyurtma. Foreground'da faqat ovoz + ro'yxat/badge.
+    NotificationService().showGlobalOrderNotification();
+    AppLogger.order('GLOBAL buyurtma ro\'yxatga qo\'shildi: #${order.id} '
+        '(jami: ${updated.length})');
+    // To'liq ma'lumotni orqa fonda tortib, kartani boyitamiz.
+    // ignore: discarded_futures
+    _enrichGlobalOrder(order.id);
+  }
+
+  /// Global buyurtmaning to'liq ma'lumotini (manzil, masofa) REST orqali
+  /// tortib, ro'yxatdagi yengil nusxani almashtiradi.
+  Future<void> _enrichGlobalOrder(String orderId) async {
+    if (orderId.isEmpty) return;
+    try {
+      final full = await sl<OrderService>().getOrder(orderId);
+      final idx = state.globalOrders.indexWhere((o) => o.id == orderId);
+      if (idx == -1) return; // oraliqda olib tashlangan
+      final updated = List<OrderModel>.of(state.globalOrders);
+      updated[idx] = full;
+      emit(state.copyWith(globalOrders: updated));
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ global order to\'ldirish xato (#$orderId): $e');
+    }
+  }
+
+  /// Global ro'yxatdan buyurtmani JIM olib tashlaydi (accepted/canceled).
+  void _removeGlobalOrder(String? orderId) {
+    if (orderId == null || orderId.isEmpty || state.globalOrders.isEmpty) {
+      return;
+    }
+    final updated = state.globalOrders.where((o) => o.id != orderId).toList();
+    if (updated.length != state.globalOrders.length) {
+      emit(state.copyWith(globalOrders: updated));
+      AppLogger.info('Global ro\'yxatdan olindi: #$orderId '
+          '(qoldi: ${updated.length})');
+    }
+  }
+
+  /// "Global buyurtmalar" oynasidan buyurtmani olish. Oddiy `acceptOrder`
+  /// oqimini qayta ishlatamiz: buyurtmani currentOrder qilib qo'yib, accept
+  /// yuboramiz. Backend boshqalarga `GLOBAL_ORDER_ACCEPTED` tarqatadi —
+  /// ularning ro'yxatidan o'chiriladi.
+  Future<void> acceptGlobalOrder(OrderModel order) async {
+    if (_driverId == null) return;
+    if (!state.isOnline) {
+      emit(state.copyWith(
+          error: 'Buyurtma olish uchun avval liniyaga chiqing.'));
+      return;
+    }
+    // Faol buyurtma bormi? Bo'lsa — yangisini olib bo'lmaydi.
+    if (state.currentOrder != null && state.status != OrderStatus.initial) {
+      emit(state.copyWith(
+          error: 'Sizda faol buyurtma bor. Avval uni yakunlang.'));
+      return;
+    }
+    if (order.id.isEmpty) {
+      emit(state.copyWith(error: 'Buyurtma raqami yo\'q.'));
+      return;
+    }
+    // Ro'yxatdan darhol olib, currentOrder qilib qo'yamiz (acceptOrder uni
+    // o'qiydi). Status'ni `orderReceived` QILMAYMIZ — aks holda asosiy oynada
+    // shaxsiy bottom-sheet miltillab ochilib-yopilardi; acceptOrder
+    // muvaffaqiyatda to'g'ridan-to'g'ri goingToClient'ga o'tadi.
+    final remaining =
+        state.globalOrders.where((o) => o.id != order.id).toList();
+    emit(state.copyWith(currentOrder: order, globalOrders: remaining));
+    await acceptOrder();
   }
 
   // ============== Location push (har 10 sek) ==============
@@ -350,9 +457,47 @@ class HomeCubit extends Cubit<HomeState> {
         status: onTrip ? 'on_the_way' : null,
       );
     } catch (e) {
+      // 403 = backend "Siz boshqa qurilmada onlinesiz" deydi. Bir vaqtning
+      // o'zida faqat BITTA qurilma online bo'la oladi (birinchi ulangani).
+      // Bu qurilmani offline'ga o'tkazib, haydovchini ogohlantiramiz.
+      if (e is DioException && e.response?.statusCode == 403) {
+        AppLogger.warn('Location push 403 — boshqa qurilmada online');
+        _onAnotherDeviceOnline();
+        return;
+      }
       // ignore: avoid_print
       print('⚠️ location push xato: $e');
     }
+  }
+
+  /// Backend 403 qaytardi: haydovchi BOSHQA qurilmada allaqachon online.
+  /// Bir vaqtda faqat bitta qurilma ishlaydi (birinchi online bo'lgani).
+  /// Bu qurilmada online bo'lib bo'lmaydi — to'liq offline'ga o'tamiz va
+  /// bir martalik xabar ko'rsatamiz (push to'xtatilgani uchun takror chiqmaydi).
+  void _onAnotherDeviceOnline() {
+    _disconnectMercure();
+    _stopLocationPush();
+    _waitingTimer?.cancel();
+    _waitingTimer = null;
+    _tripTimer?.cancel();
+    _tripTimer = null;
+    _activeTariff = null;
+    _tripDistanceKm = 0;
+    _lastDistancePoint = null;
+    _lastMapEmit = null;
+    _accumulatedWaitingSeconds = 0;
+    _waitingStartedAt = null;
+    StorageHelper.remove(_activeTripKey);
+    // Toza offline holat + xato xabari (home_page listener bir marta ko'rsatadi).
+    emit(HomeState(
+      status: OrderStatus.initial,
+      currentLocation: state.currentLocation,
+      heading: state.heading,
+      isOnline: false,
+      isTimeoutEnabled: state.isTimeoutEnabled,
+      error: 'Siz boshqa qurilmada online holatdasiz. Bu qurilmada ishlash '
+          'uchun avval o\'sha qurilmadan chiqing.',
+    ));
   }
 
   // ============== Real GPS tracking ==============
@@ -766,6 +911,9 @@ class HomeCubit extends Cubit<HomeState> {
       heading: state.heading,
       isOnline: state.isOnline,
       isTimeoutEnabled: state.isTimeoutEnabled,
+      // Global ro'yxat buyurtma yakunlangach ham saqlanadi (yangi safar
+      // tugagandan keyin haydovchi yana global buyurtma olishi mumkin).
+      globalOrders: state.globalOrders,
     ));
     _activeTariff = null;
     _tripDistanceKm = 0;
@@ -1076,9 +1224,14 @@ class HomeCubit extends Cubit<HomeState> {
     try {
       raw = await StorageHelper.getString(_activeTripKey);
     } catch (_) {
+      raw = null;
+    }
+    // Lokal snapshot yo'q (boshqa qurilma yoki APK qayta o'rnatilgan) — faol
+    // buyurtmani backenddan tiklashga urinamiz.
+    if (raw == null || raw.isEmpty) {
+      await _restoreActiveTripFromBackend();
       return;
     }
-    if (raw == null || raw.isEmpty) return;
 
     Map<String, dynamic> snap;
     try {
@@ -1197,6 +1350,84 @@ class HomeCubit extends Cubit<HomeState> {
       _requestRouteToClient();
     } else {
       // orderAccepted / goingToClient
+      _requestRouteToClient();
+    }
+  }
+
+  /// Lokal snapshot bo'lmaganda backenddan faol (accepted) buyurtmani tiklaydi:
+  /// `GET /api/orders/driver/{id}/active` (maks 2 ta). Eng so'nggi faol
+  /// buyurtmani asosiy oynaga va "Faol" bo'limiga qaytaramiz — shunda haydovchi
+  /// boshqa qurilmada qabul qilgan yoki APK qayta o'rnatilgan bo'lsa ham
+  /// safarini davom ettira oladi. (App bitta faol safarni qo'llab-quvvatlaydi,
+  /// shuning uchun eng yangisini olamiz.)
+  Future<void> _restoreActiveTripFromBackend() async {
+    final driverId = _driverId;
+    if (driverId == null) return;
+    // Allaqachon faol buyurtma bo'lsa — ustidan yozmaymiz.
+    if (state.currentOrder != null && state.status != OrderStatus.initial) {
+      return;
+    }
+
+    List<OrderModel> active;
+    try {
+      active = await sl<OrderService>()
+          .fetchActiveOrders(driverId)
+          .timeout(const Duration(seconds: 12));
+    } catch (e) {
+      // ignore: avoid_print
+      print('⚠️ faol buyurtmalar (backend tiklash): $e');
+      return;
+    }
+    if (active.isEmpty) return;
+
+    // Eng so'nggi (yangi) faol buyurtmani tanlaymiz.
+    active.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final order = active.first;
+    if (order.id.isEmpty) return;
+
+    // Tarifni aniqlaymiz (narx hisobi uchun).
+    if (_orderTypes.isEmpty) await _loadOrderTypes();
+    _activeTariff = _resolveTariff(order);
+
+    // Buyurtma holatiga qarab app bosqichini tanlaymiz:
+    //  on_the_way / arrive -> safar (inProgress), aks holda mijoz oldiga.
+    final isOnTrip = order.status == OrderStatusType.onTheWay ||
+        order.status == OrderStatusType.arrive;
+    final restoredStatus =
+        isOnTrip ? OrderStatus.inProgress : OrderStatus.goingToClient;
+
+    _accumulatedWaitingSeconds = 0;
+    _waitingStartedAt = null;
+    _tripDistanceKm = 0;
+    _lastDistancePoint = state.currentLocation;
+    _lastMapEmit = null;
+    final tripStart = isOnTrip ? DateTime.now() : null;
+
+    emit(state.copyWith(
+      status: restoredStatus,
+      currentOrder: order,
+      destinationLocation: order.destinationLocation,
+      clientPickedUp: isOnTrip,
+      traveledDistance: 0,
+      waitingSeconds: 0,
+      currentPrice: _computePrice(order.distance, 0),
+      tripStartTime: tripStart,
+      tripSeconds: 0,
+      isOnline: true,
+    ));
+
+    AppLogger.success('Backenddan faol buyurtma tiklandi: #${order.id} '
+        '(holat=${order.status.value} -> ${restoredStatus.name})');
+
+    // Online rejim: Mercure + 10s location push (push 403 bersa
+    // _onAnotherDeviceOnline avtomatik offline'ga o'tkazadi).
+    _connectMercure();
+    _startLocationPush();
+    _persistActiveTrip();
+
+    if (isOnTrip) {
+      _startTripTimer();
+    } else {
       _requestRouteToClient();
     }
   }
